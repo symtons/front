@@ -10,24 +10,21 @@ const Layout = ({ children }) => {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      {/* Header */}
       <Header user={user} employee={employee} />
-
-      {/* Sidebar */}
       <Sidebar user={user} employee={employee} />
-
-      {/* Main Content */}
+      
       <Box
         component="main"
+        className="dashboard-main"
         sx={{
           flexGrow: 1,
-          pt: '72px',
-          pl: 0,  // Reduced left padding
-          pr: 2,
-          pb: 2,
+          marginLeft: '240px',
           backgroundColor: '#ecf0f1',
           minHeight: '100vh',
-          marginLeft: '240px',
+          paddingTop: '56px !important',
+          paddingLeft: '8px !important',
+          paddingRight: '16px !important',
+          paddingBottom: '16px !important',
         }}
       >
         {children}

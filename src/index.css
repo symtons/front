@@ -19,3 +19,21 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Force override Material-UI's massive padding */
+main.MuiBox-root.css-1jk5ujg {
+  padding: 56px 16px 16px 8px !important;
+}
+
+main.MuiBox-root {
+  padding: 56px 16px 16px 8px !important;
+}
+/* Target the specific main element */
+.dashboard-main {
+  padding: 56px 16px 16px 8px !important;
+}
+
+/* Override ALL Material-UI Box padding in main */
+main[class*="MuiBox"] {
+  padding: 56px 16px 16px 8px !important;
+}

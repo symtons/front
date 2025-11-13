@@ -146,7 +146,6 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      <Box sx={{ ml: -2 }}>
       {/* Header Section */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5, color: '#2c3e50' }}>
@@ -157,7 +156,7 @@ const Dashboard = () => {
         </Typography>
       </Box>
 
-      {/* Stats Cards - Using Flex instead of Grid */}
+      {/* Stats Cards */}
       <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
         {statCards.map((stat, index) => (
           <Box key={index} sx={{ flex: '1 1 calc(25% - 16px)', minWidth: '200px' }}>
@@ -205,7 +204,7 @@ const Dashboard = () => {
         ))}
       </Box>
 
-      {/* Quick Actions & Recent Activities - Using Flex */}
+      {/* Quick Actions & Recent Activities */}
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         {/* Quick Actions */}
         <Box sx={{ flex: '1 1 58%', minWidth: '400px' }}>
@@ -339,7 +338,6 @@ const Dashboard = () => {
             </Box>
           </Paper>
         </Box>
-      </Box>
       </Box>
     </Layout>
   );
