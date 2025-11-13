@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Grid,
   Card,
   CardContent,
   Paper,
@@ -147,20 +146,21 @@ const Dashboard = () => {
 
   return (
     <Layout>
+      <Box sx={{ ml: -2 }}>
       {/* Header Section */}
-      <Box sx={{ mb: 2, ml: 0 }}>  {/* Add ml: 0 */}
-      <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5, color: '#2c3e50' }}>
-        Dashboard
-      </Typography>
-      <Typography variant="body1" color="text.secondary">
-        Welcome back! Here's what's happening at TPA today.
-      </Typography>
-    </Box>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5, color: '#2c3e50' }}>
+          Dashboard
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Welcome back! Here's what's happening at TPA today.
+        </Typography>
+      </Box>
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      {/* Stats Cards - Using Flex instead of Grid */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
         {statCards.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
+          <Box key={index} sx={{ flex: '1 1 calc(25% - 16px)', minWidth: '200px' }}>
             <Card 
               sx={{ 
                 background: 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)',
@@ -201,14 +201,14 @@ const Dashboard = () => {
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
 
-      {/* Quick Actions & Recent Activities */}
-      <Grid container spacing={3}>
+      {/* Quick Actions & Recent Activities - Using Flex */}
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         {/* Quick Actions */}
-        <Grid item xs={12} md={7}>
+        <Box sx={{ flex: '1 1 58%', minWidth: '400px' }}>
           <Paper sx={{ p: 3, height: '100%', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRadius: '12px' }}>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, color: '#2c3e50' }}>
               Quick Actions
@@ -217,9 +217,9 @@ const Dashboard = () => {
               Frequently used tools and shortcuts
             </Typography>
 
-            <Grid container spacing={2}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
               {quickActions.map((action, index) => (
-                <Grid item xs={12} sm={6} key={action.id}>
+                <Box key={action.id} sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '200px' }}>
                   <Card 
                     sx={{ 
                       cursor: 'pointer',
@@ -255,14 +255,14 @@ const Dashboard = () => {
                       </Box>
                     </CardContent>
                   </Card>
-                </Grid>
+                </Box>
               ))}
-            </Grid>
+            </Box>
           </Paper>
-        </Grid>
+        </Box>
 
         {/* Recent Activities */}
-        <Grid item xs={12} md={5}>
+        <Box sx={{ flex: '1 1 38%', minWidth: '300px' }}>
           <Paper sx={{ p: 3, height: '100%', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRadius: '12px' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Box>
@@ -338,8 +338,9 @@ const Dashboard = () => {
               )}
             </Box>
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
+      </Box>
     </Layout>
   );
 };

@@ -21,10 +21,10 @@ const Layout = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 2,
-          pl: 0,  // Left padding - reduce this to bring content closer
-          pr: 2,  // Right padding
           pt: '72px',
+          pl: 0,  // Reduced left padding
+          pr: 2,
+          pb: 2,
           backgroundColor: '#ecf0f1',
           minHeight: '100vh',
           marginLeft: '240px',
