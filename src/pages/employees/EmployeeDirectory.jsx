@@ -9,7 +9,8 @@ import {
   Select,
   MenuItem,
   IconButton,
-  Tooltip
+  Tooltip,
+  Snackbar
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
@@ -22,6 +23,7 @@ import FilterBar from '../../components/common/filters/FilterBar';
 import DataTable from '../../components/common/tables/DataTable';
 import StatusChip from '../../components/common/display/StatusChip';
 import UserAvatar from '../../components/common/display/UserAvatar';
+import EditEmployeeModal from './EditEmployeeModal';
 import { employeeService } from '../../services/employeeService';
 import api from '../../services/authService';
 
@@ -47,6 +49,12 @@ const EmployeeDirectory = () => {
   const [canEdit, setCanEdit] = useState(false);
   const [canCreate, setCanCreate] = useState(false);
 
+  // Edit Modal State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
   useEffect(() => {
     fetchDepartments();
     checkPermissions();
@@ -56,64 +64,57 @@ const EmployeeDirectory = () => {
     fetchEmployees();
   }, [page, rowsPerPage, searchTerm, departmentFilter, employeeTypeFilter, statusFilter]);
 
-  const checkPermissions = () => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const role = user.role;
-    
-    if (role === 'Admin' || role === 'Executive' || role === 'Director') {
-      setCanEdit(true);
-    }
-    
-    if (role === 'Admin' || role === 'Executive') {
-      setCanCreate(true);
-    }
-  };
-
   const fetchDepartments = async () => {
     try {
-      const response = await api.get('/Auth/Departments');
+      const response = await api.get('/Department/All');
       setDepartments(response.data);
     } catch (err) {
       console.error('Error fetching departments:', err);
     }
   };
 
+  const checkPermissions = async () => {
+    try {
+      const response = await api.get('/Menu/MyMenus');
+      const employeeMenu = response.data.find(
+        menu => menu.menuName === 'employees' || menu.menuUrl === '/employees'
+      );
+      
+      if (employeeMenu) {
+        setCanEdit(employeeMenu.permissions?.canEdit || false);
+        setCanCreate(employeeMenu.permissions?.canCreate || false);
+      }
+    } catch (err) {
+      console.error('Error checking permissions:', err);
+    }
+  };
+
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      setError('');
-      
       const params = {
         pageNumber: page + 1,
         pageSize: rowsPerPage,
         search: searchTerm || undefined,
         departmentId: departmentFilter || undefined,
         employeeType: employeeTypeFilter || undefined,
-        employmentStatus: statusFilter || undefined
+        employmentStatus: statusFilter || undefined,
       };
 
-      const data = await employeeService.getDirectory(params);
-      
-      setEmployees(data.employees);
-      setTotalCount(data.totalCount);
+      const response = await employeeService.getDirectory(params);
+      setEmployees(response.employees || []);
+      setTotalCount(response.totalCount || 0);
+      setError('');
     } catch (err) {
       setError(err.message || 'Failed to load employees');
+      setEmployees([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
     setPage(0);
   };
 
@@ -125,12 +126,28 @@ const EmployeeDirectory = () => {
     setPage(0);
   };
 
+  const handleChangePage = (newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (newRowsPerPage) => {
+    setRowsPerPage(newRowsPerPage);
+    setPage(0);
+  };
+
   const handleViewEmployee = (employeeId) => {
     navigate(`/employees/${employeeId}`);
   };
 
   const handleEditEmployee = (employeeId) => {
-    navigate(`/employees/edit/${employeeId}`);
+    setSelectedEmployeeId(employeeId);
+    setEditModalOpen(true);
+  };
+
+  const handleEditSuccess = (message) => {
+    setSuccessMessage(message);
+    setShowSuccess(true);
+    fetchEmployees(); // Refresh the list
   };
 
   // Define table columns
@@ -360,6 +377,26 @@ const EmployeeDirectory = () => {
           onRowClick={(row) => handleViewEmployee(row.employeeId)}
           emptyMessage="No employees found"
         />
+
+        {/* Edit Employee Modal */}
+        <EditEmployeeModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          employeeId={selectedEmployeeId}
+          onSuccess={handleEditSuccess}
+        />
+
+        {/* Success Snackbar */}
+        <Snackbar
+          open={showSuccess}
+          autoHideDuration={6000}
+          onClose={() => setShowSuccess(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <Alert severity="success" onClose={() => setShowSuccess(false)}>
+            {successMessage}
+          </Alert>
+        </Snackbar>
       </Box>
     </Layout>
   );
