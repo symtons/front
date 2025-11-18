@@ -73,21 +73,64 @@ const EmployeeDirectory = () => {
     }
   };
 
-  const checkPermissions = async () => {
-    try {
-      const response = await api.get('/Menu/MyMenus');
-      const employeeMenu = response.data.find(
-        menu => menu.menuName === 'employees' || menu.menuUrl === '/employees'
-      );
-      
-      if (employeeMenu) {
-        setCanEdit(employeeMenu.permissions?.canEdit || false);
-        setCanCreate(employeeMenu.permissions?.canCreate || false);
+ // CORRECTED checkPermissions function for EmployeeDirectory.jsx
+// Replace the existing checkPermissions function with this code
+
+const checkPermissions = async () => {
+  try {
+    const response = await api.get('/Menu/MyMenus');
+    console.log('Menu Response:', response.data); // Debug log to see API response
+    
+    // Helper function to search recursively through menus and submenus
+    const findMenu = (menus) => {
+      for (const menu of menus) {
+        // Check if this is the employees parent menu with submenus
+        if (menu.menuName === 'employees' && menu.subMenus) {
+          // Find the 'employees-list' submenu
+          const employeeListMenu = menu.subMenus.find(
+            sub => sub.menuName === 'employees-list' || sub.menuUrl === '/employees/list'
+          );
+          if (employeeListMenu) {
+            return employeeListMenu;
+          }
+        }
+        
+        // Also check if current menu is directly 'employees-list'
+        if (menu.menuName === 'employees-list' || menu.menuUrl === '/employees/list') {
+          return menu;
+        }
+        
+        // Recursively search submenus
+        if (menu.subMenus && menu.subMenus.length > 0) {
+          const found = findMenu(menu.subMenus);
+          if (found) return found;
+        }
       }
-    } catch (err) {
-      console.error('Error checking permissions:', err);
+      return null;
+    };
+    
+    const employeeMenu = findMenu(response.data);
+    console.log('Found Employee Menu:', employeeMenu); // Debug log
+    
+    if (employeeMenu) {
+      // KEY FIX: Access properties directly (canEdit, canCreate)
+      // NOT from a nested 'permissions' object
+      setCanEdit(employeeMenu.canEdit || false);
+      setCanCreate(employeeMenu.canCreate || false);
+      
+      console.log('Permissions Set - CanEdit:', employeeMenu.canEdit, 'CanCreate:', employeeMenu.canCreate);
+    } else {
+      console.log('Employee menu not found in response');
+      setCanEdit(false);
+      setCanCreate(false);
     }
-  };
+  } catch (err) {
+    console.error('Error checking permissions:', err);
+    setCanEdit(false);
+    setCanCreate(false);
+  }
+};
+
 
   const fetchEmployees = async () => {
     try {

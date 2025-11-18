@@ -1,24 +1,16 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 
-// Auth Pages
+// Import components
 import Login from '../pages/auth/Login';
-
-// Dashboard Pages
 import Dashboard from '../pages/dashboard/Dashboard';
-
-// Employee Pages
 import EmployeeDirectory from '../pages/employees/EmployeeDirectory';
-// import EmployeeDetails from '../pages/employees/EmployeeDetails';
-// import EmployeeForm from '../pages/employees/EmployeeForm';
+import AddEmployee from '../pages/employees/AddEmployee';
 
-// Auth Helper
-import { authService } from '../services/authService';
-
-// Protected Route Wrapper
+// Protected Route Component
 export const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = authService.isAuthenticated();
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  const token = localStorage.getItem('token');
+  return token ? children : <Navigate to="/login" replace />;
 };
 
 /**
@@ -76,14 +68,14 @@ export const employeeRoutes = [
     path: '/employees/list',
     element: <EmployeeDirectory />,
   },
+  {
+    path: '/employees/add',
+    element: <AddEmployee />,
+  },
   // Add these when you create the pages:
   // {
   //   path: '/employees/:id',
   //   element: <EmployeeDetails />,
-  // },
-  // {
-  //   path: '/employees/add',
-  //   element: <EmployeeForm />,
   // },
   // {
   //   path: '/employees/edit/:id',
