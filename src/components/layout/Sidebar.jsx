@@ -32,7 +32,7 @@ import {
   ExpandMore
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api from '../services/authService'; // Import the centralized api instance
+import api from '../../services/authService'; // Import the centralized api instance
 
 const drawerWidth = 240;
 

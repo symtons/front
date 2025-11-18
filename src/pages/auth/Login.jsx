@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff, AccountCircle } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
-import { authService } from '../services/authService';
+import { authService } from '../../services/authService';
 
 // Styled components for beautiful design
 const StyledCard = styled(Card)(({ theme }) => ({

@@ -1,7 +1,7 @@
 import React from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import { authService } from '../services/authService';
+import { authService } from '../../services/authService';
 
 const Layout = ({ children }) => {
   const user = authService.getCurrentUser();

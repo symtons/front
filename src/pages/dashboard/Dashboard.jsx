@@ -20,9 +20,9 @@ import {
   Assessment as AssessmentIcon,
   Approval as ApprovalIcon
 } from '@mui/icons-material';
-import { dashboardService } from '../services/dashboardService';
-import { authService } from '../services/authService';
-import Layout from '../components/Layout';
+import { dashboardService } from '../../services/dashboardService';
+import { authService } from '../../services/authService';
+import Layout from '../../components/layout/Layout';
 
 const Dashboard = () => {
   const user = authService.getCurrentUser();
