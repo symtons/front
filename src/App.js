@@ -1,10 +1,14 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import Login from './pages/auth/Login';
-import Dashboard from './pages/dashboard/Dashboard';
-import { authService } from './services/authService';
+import {
+  ProtectedRoute,
+  publicRoutes,
+  dashboardRoutes,
+  employeeRoutes,
+  redirectRoutes,
+} from './routes';
 
 const theme = createTheme({
   palette: {
@@ -20,44 +24,49 @@ const theme = createTheme({
   },
 });
 
-// Protected Route Component
-const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = authService.isAuthenticated();
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
-};
-
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route 
-            path="/admin/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/hr/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/employee/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* Public Routes (No authentication required) */}
+          {publicRoutes.map((route, index) => (
+            <Route key={`public-${index}`} path={route.path} element={route.element} />
+          ))}
+
+          {/* Protected Dashboard Routes */}
+          {dashboardRoutes.map((route, index) => (
+            <Route
+              key={`dashboard-${index}`}
+              path={route.path}
+              element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+            />
+          ))}
+
+          {/* Protected Employee Routes */}
+          {employeeRoutes.map((route, index) => (
+            <Route
+              key={`employee-${index}`}
+              path={route.path}
+              element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+            />
+          ))}
+
+          {/* Add more route groups here as you build them */}
+          {/* Example: */}
+          {/* {attendanceRoutes.map((route, index) => (
+            <Route
+              key={`attendance-${index}`}
+              path={route.path}
+              element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+            />
+          ))} */}
+
+          {/* Redirect Routes (catch-all and home) */}
+          {redirectRoutes.map((route, index) => (
+            <Route key={`redirect-${index}`} path={route.path} element={route.element} />
+          ))}
         </Routes>
       </Router>
     </ThemeProvider>
