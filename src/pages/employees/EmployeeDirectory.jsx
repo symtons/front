@@ -1,23 +1,25 @@
+// src/pages/employees/EmployeeDirectory.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
   Button,
   Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   IconButton,
   Tooltip,
   Snackbar
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
-  Edit as EditIcon
+  Edit as EditIcon,
+  People as PeopleIcon,
+  PersonAdd as PersonAddIcon,
+  Person as PersonIcon,
+  Badge as BadgeIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../../components/layout/Layout';
+import Layout from '../../components/common/layout/Layout';
+import PageHeader from '../../components/common/layout/PageHeader';
 import SearchBar from '../../components/common/filters/SearchBar';
 import FilterBar from '../../components/common/filters/FilterBar';
 import DataTable from '../../components/common/tables/DataTable';
@@ -26,6 +28,14 @@ import UserAvatar from '../../components/common/display/UserAvatar';
 import EditEmployeeModal from './EditEmployeeModal';
 import { employeeService } from '../../services/employeeService';
 import api from '../../services/authService';
+
+// Import from models
+import {
+  EMPLOYEE_TYPE_OPTIONS,
+  EMPLOYMENT_STATUS_OPTIONS,
+  getEmployeeTypeLabel,
+  getEmploymentStatusLabel
+} from './models';
 
 const EmployeeDirectory = () => {
   const navigate = useNavigate();
@@ -45,6 +55,9 @@ const EmployeeDirectory = () => {
   // Departments list
   const [departments, setDepartments] = useState([]);
   
+  // Current user info
+  const [currentUser, setCurrentUser] = useState(null);
+  
   // User permissions
   const [canEdit, setCanEdit] = useState(false);
   const [canCreate, setCanCreate] = useState(false);
@@ -56,6 +69,7 @@ const EmployeeDirectory = () => {
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
+    fetchCurrentUser();
     fetchDepartments();
     checkPermissions();
   }, []);
@@ -63,6 +77,15 @@ const EmployeeDirectory = () => {
   useEffect(() => {
     fetchEmployees();
   }, [page, rowsPerPage, searchTerm, departmentFilter, employeeTypeFilter, statusFilter]);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await api.get('/Auth/Me');
+      setCurrentUser(response.data);
+    } catch (err) {
+      console.error('Error fetching current user:', err);
+    }
+  };
 
   const fetchDepartments = async () => {
     try {
@@ -73,64 +96,43 @@ const EmployeeDirectory = () => {
     }
   };
 
- // CORRECTED checkPermissions function for EmployeeDirectory.jsx
-// Replace the existing checkPermissions function with this code
-
-const checkPermissions = async () => {
-  try {
-    const response = await api.get('/Menu/MyMenus');
-    console.log('Menu Response:', response.data); // Debug log to see API response
-    
-    // Helper function to search recursively through menus and submenus
-    const findMenu = (menus) => {
-      for (const menu of menus) {
-        // Check if this is the employees parent menu with submenus
-        if (menu.menuName === 'employees' && menu.subMenus) {
-          // Find the 'employees-list' submenu
-          const employeeListMenu = menu.subMenus.find(
-            sub => sub.menuName === 'employees-list' || sub.menuUrl === '/employees/list'
-          );
-          if (employeeListMenu) {
-            return employeeListMenu;
+  const checkPermissions = async () => {
+    try {
+      const response = await api.get('/Menu/MyMenus');
+      
+      const findMenu = (menus) => {
+        for (const menu of menus) {
+          if (menu.menuName === 'employees' && menu.subMenus) {
+            const employeeListMenu = menu.subMenus.find(
+              sub => sub.menuName === 'employees-list' || sub.menuUrl === '/employees/list'
+            );
+            if (employeeListMenu) return employeeListMenu;
+          }
+          
+          if (menu.menuName === 'employees-list' || menu.menuUrl === '/employees/list') {
+            return menu;
+          }
+          
+          if (menu.subMenus && menu.subMenus.length > 0) {
+            const found = findMenu(menu.subMenus);
+            if (found) return found;
           }
         }
-        
-        // Also check if current menu is directly 'employees-list'
-        if (menu.menuName === 'employees-list' || menu.menuUrl === '/employees/list') {
-          return menu;
-        }
-        
-        // Recursively search submenus
-        if (menu.subMenus && menu.subMenus.length > 0) {
-          const found = findMenu(menu.subMenus);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-    
-    const employeeMenu = findMenu(response.data);
-    console.log('Found Employee Menu:', employeeMenu); // Debug log
-    
-    if (employeeMenu) {
-      // KEY FIX: Access properties directly (canEdit, canCreate)
-      // NOT from a nested 'permissions' object
-      setCanEdit(employeeMenu.canEdit || false);
-      setCanCreate(employeeMenu.canCreate || false);
+        return null;
+      };
       
-      console.log('Permissions Set - CanEdit:', employeeMenu.canEdit, 'CanCreate:', employeeMenu.canCreate);
-    } else {
-      console.log('Employee menu not found in response');
+      const employeeMenu = findMenu(response.data);
+      
+      if (employeeMenu) {
+        setCanEdit(employeeMenu.canEdit || false);
+        setCanCreate(employeeMenu.canCreate || false);
+      }
+    } catch (err) {
+      console.error('Error checking permissions:', err);
       setCanEdit(false);
       setCanCreate(false);
     }
-  } catch (err) {
-    console.error('Error checking permissions:', err);
-    setCanEdit(false);
-    setCanCreate(false);
-  }
-};
-
+  };
 
   const fetchEmployees = async () => {
     try {
@@ -190,8 +192,14 @@ const checkPermissions = async () => {
   const handleEditSuccess = (message) => {
     setSuccessMessage(message);
     setShowSuccess(true);
-    fetchEmployees(); // Refresh the list
+    fetchEmployees();
   };
+
+  // Build chips for PageHeader
+  const headerChips = currentUser ? [
+    { icon: <PersonIcon />, label: currentUser.email },
+    { icon: <BadgeIcon />, label: currentUser.role?.roleName || 'User' }
+  ] : [];
 
   // Define table columns
   const columns = [
@@ -199,7 +207,6 @@ const checkPermissions = async () => {
       id: 'employee',
       label: 'Employee',
       minWidth: 250,
-      sortable: true,
       render: (row) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <UserAvatar 
@@ -222,7 +229,6 @@ const checkPermissions = async () => {
       id: 'employeeCode',
       label: 'Employee Code',
       minWidth: 130,
-      sortable: true,
       render: (row) => (
         <Typography variant="body2">{row.employeeCode}</Typography>
       )
@@ -231,7 +237,6 @@ const checkPermissions = async () => {
       id: 'department',
       label: 'Department',
       minWidth: 150,
-      sortable: true,
       render: (row) => (
         <Typography variant="body2">
           {row.department?.departmentName || 'N/A'}
@@ -254,30 +259,25 @@ const checkPermissions = async () => {
       render: (row) => (
         <StatusChip
           status={row.employeeType}
-          label={row.employeeType === 'AdminStaff' ? 'Admin Staff' : 'Field Staff'}
-          colorMap={{
-            'AdminStaff': 'primary',
-            'FieldStaff': 'secondary'
-          }}
+          label={getEmployeeTypeLabel(row.employeeType)}
+          variant={row.employeeType === 'AdminStaff' ? 'primary' : 'secondary'}
         />
       )
     },
     {
       id: 'employmentStatus',
       label: 'Status',
-      minWidth: 100,
+      minWidth: 120,
       align: 'center',
-      sortable: true,
       render: (row) => (
-        <StatusChip status={row.employmentStatus} />
-      )
-    },
-    {
-      id: 'phoneNumber',
-      label: 'Contact',
-      minWidth: 130,
-      render: (row) => (
-        <Typography variant="body2">{row.phoneNumber || 'N/A'}</Typography>
+        <StatusChip
+          status={row.employmentStatus}
+          label={getEmploymentStatusLabel(row.employmentStatus)}
+          variant={
+            row.employmentStatus === 'Active' ? 'success' :
+            row.employmentStatus === 'OnLeave' ? 'warning' : 'error'
+          }
+        />
       )
     },
     {
@@ -286,15 +286,12 @@ const checkPermissions = async () => {
       minWidth: 100,
       align: 'center',
       render: (row) => (
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
           <Tooltip title="View Details">
             <IconButton
               size="small"
-              color="primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleViewEmployee(row.employeeId);
-              }}
+              onClick={() => handleViewEmployee(row.employeeId)}
+              sx={{ color: '#667eea' }}
             >
               <ViewIcon fontSize="small" />
             </IconButton>
@@ -303,11 +300,8 @@ const checkPermissions = async () => {
             <Tooltip title="Edit Employee">
               <IconButton
                 size="small"
-                color="secondary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEditEmployee(row.employeeId);
-                }}
+                onClick={() => handleEditEmployee(row.employeeId)}
+                sx={{ color: '#f093fb' }}
               >
                 <EditIcon fontSize="small" />
               </IconButton>
@@ -318,87 +312,81 @@ const checkPermissions = async () => {
     }
   ];
 
+  // Filter options for FilterBar
+  const filterOptions = [
+    {
+      id: 'department',
+      label: 'Department',
+      value: departmentFilter,
+      onChange: (e) => {
+        setDepartmentFilter(e.target.value);
+        setPage(0);
+      },
+      options: [
+        { value: '', label: 'All Departments' },
+        ...departments.map(dept => ({
+          value: dept.departmentId.toString(),
+          label: dept.departmentName
+        }))
+      ]
+    },
+    {
+      id: 'employeeType',
+      label: 'Employee Type',
+      value: employeeTypeFilter,
+      onChange: (e) => {
+        setEmployeeTypeFilter(e.target.value);
+        setPage(0);
+      },
+      options: [
+        { value: '', label: 'All Types' },
+        ...EMPLOYEE_TYPE_OPTIONS
+      ]
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      value: statusFilter,
+      onChange: (e) => {
+        setStatusFilter(e.target.value);
+        setPage(0);
+      },
+      options: [
+        { value: '', label: 'All Statuses' },
+        ...EMPLOYMENT_STATUS_OPTIONS
+      ]
+    }
+  ];
+
   return (
     <Layout>
-      <Box>
-        {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 600, color: '#2c3e50' }}>
-              Employee Directory
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              View and manage employee information
-            </Typography>
-          </Box>
-          {canCreate && (
-            <Button
-              variant="contained"
-              sx={{
-                background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-                color: 'white'
-              }}
-              onClick={() => navigate('/employees/add')}
-            >
-              Add Employee
-            </Button>
-          )}
-        </Box>
+      <Box sx={{ p: 3 }}>
+        {/* Page Header */}
+        <PageHeader
+          icon={PeopleIcon}
+          title="Employee Directory"
+          subtitle="Search and manage employee information across the organization"
+          chips={headerChips}
+          actionButton={canCreate ? {
+            label: 'Add Employee',
+            icon: <PersonAddIcon />,
+            onClick: () => navigate('/employees/add')
+          } : undefined}
+          backgroundColor="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+        />
 
-        {/* Filters */}
-        <FilterBar 
-          onClear={handleClearFilters} 
-          onRefresh={fetchEmployees}
-        >
+        {/* Search and Filters */}
+        <Box sx={{ mb: 3 }}>
           <SearchBar
             value={searchTerm}
             onChange={handleSearchChange}
-            placeholder="Search employees..."
+            placeholder="Search employees by name, code, or email..."
           />
-          
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Department</InputLabel>
-            <Select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              label="Department"
-            >
-              <MenuItem value="">All Departments</MenuItem>
-              {departments.map((dept) => (
-                <MenuItem key={dept.departmentId} value={dept.departmentId}>
-                  {dept.departmentName}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Employee Type</InputLabel>
-            <Select
-              value={employeeTypeFilter}
-              onChange={(e) => setEmployeeTypeFilter(e.target.value)}
-              label="Employee Type"
-            >
-              <MenuItem value="">All Types</MenuItem>
-              <MenuItem value="AdminStaff">Admin Staff</MenuItem>
-              <MenuItem value="FieldStaff">Field Staff</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              label="Status"
-            >
-              <MenuItem value="">All Status</MenuItem>
-              <MenuItem value="Active">Active</MenuItem>
-              <MenuItem value="OnLeave">On Leave</MenuItem>
-              <MenuItem value="Terminated">Terminated</MenuItem>
-            </Select>
-          </FormControl>
-        </FilterBar>
+          <FilterBar
+            filters={filterOptions}
+            onClearFilters={handleClearFilters}
+          />
+        </Box>
 
         {/* Error Alert */}
         {error && (
@@ -407,7 +395,7 @@ const checkPermissions = async () => {
           </Alert>
         )}
 
-        {/* Universal DataTable */}
+        {/* Data Table */}
         <DataTable
           columns={columns}
           data={employees}
@@ -417,7 +405,6 @@ const checkPermissions = async () => {
           totalCount={totalCount}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-          onRowClick={(row) => handleViewEmployee(row.employeeId)}
           emptyMessage="No employees found"
         />
 
@@ -434,9 +421,13 @@ const checkPermissions = async () => {
           open={showSuccess}
           autoHideDuration={6000}
           onClose={() => setShowSuccess(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
         >
-          <Alert severity="success" onClose={() => setShowSuccess(false)}>
+          <Alert 
+            onClose={() => setShowSuccess(false)} 
+            severity="success" 
+            sx={{ width: '100%' }}
+          >
             {successMessage}
           </Alert>
         </Snackbar>

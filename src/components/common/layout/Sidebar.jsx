@@ -32,7 +32,9 @@ import {
   ExpandMore
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api from '../../services/authService'; // Import the centralized api instance
+// At the top of Sidebar.jsx, add this import:
+import api from '../../../services/authService';
+import { authService } from '../../../services/authService';
 
 const drawerWidth = 240;
 

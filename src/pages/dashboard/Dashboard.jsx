@@ -22,7 +22,7 @@ import {
 } from '@mui/icons-material';
 import { dashboardService } from '../../services/dashboardService';
 import { authService } from '../../services/authService';
-import Layout from '../../components/layout/Layout';
+import Layout from '../../components/common/layout/Layout';
 
 const Dashboard = () => {
   const user = authService.getCurrentUser();

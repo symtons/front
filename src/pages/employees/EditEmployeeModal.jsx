@@ -1,4 +1,6 @@
 // src/pages/employees/EditEmployeeModal.jsx
+// NOTE: This is a MODAL, so it doesn't need PageHeader
+// PageHeader is only for full pages, not modals
 import React, { useState, useEffect } from 'react';
 import {
   Grid,
@@ -11,13 +13,21 @@ import {
   CircularProgress,
   Box,
   Typography,
-  Divider,
   Button
 } from '@mui/material';
 import { Save as SaveIcon, Close as CloseIcon } from '@mui/icons-material';
 import CustomModal from '../../components/common/feedback/CustomModal';
 import { employeeService } from '../../services/employeeService';
 import api from '../../services/authService';
+
+// Import from models
+import {
+  getInitialEmployeeFormData,
+  mapEmployeeToFormData,
+  GENDER_OPTIONS,
+  EMPLOYEE_TYPE_OPTIONS,
+  EMPLOYMENT_STATUS_OPTIONS
+} from './models';
 
 const EditEmployeeModal = ({ open, onClose, employeeId, onSuccess }) => {
   const [loading, setLoading] = useState(false);
@@ -26,29 +36,8 @@ const EditEmployeeModal = ({ open, onClose, employeeId, onSuccess }) => {
   const [departments, setDepartments] = useState([]);
   const [managers, setManagers] = useState([]);
   
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    dateOfBirth: '',
-    gender: '',
-    phoneNumber: '',
-    personalEmail: '',
-    address: '',
-    
-    city: '',
-    state: '',
-    zipCode: '',
-    employeeCode: '',
-    employeeType: '',
-    departmentId: '',
-    jobTitle: '',
-    hireDate: '',
-    managerId: '',
-    employmentStatus: '',
-    emergencyContactName: '',
-    emergencyContactRelationship: '',
-    emergencyContactPhone: ''
-  });
+  // Initialize form data using model
+  const [formData, setFormData] = useState(getInitialEmployeeFormData());
 
   useEffect(() => {
     if (open && employeeId) {
@@ -63,35 +52,10 @@ const EditEmployeeModal = ({ open, onClose, employeeId, onSuccess }) => {
       setFetchingEmployee(true);
       const employee = await employeeService.getEmployeeById(employeeId);
       
-      const formatDate = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toISOString().split('T')[0];
-      };
-
-      setFormData({
-        firstName: employee.firstName || '',
-        lastName: employee.lastName || '',
-        dateOfBirth: formatDate(employee.dateOfBirth),
-        gender: employee.gender || '',
-        phoneNumber: employee.phoneNumber || '',
-        personalEmail: employee.personalEmail || '',
-        address: employee.address || '',
-        
-        city: employee.city || '',
-        state: employee.state || '',
-        zipCode: employee.zipCode || '',
-        employeeCode: employee.employeeCode || '',
-        employeeType: employee.employeeType || '',
-        departmentId: employee.departmentId || '',
-        jobTitle: employee.jobTitle || '',
-        hireDate: formatDate(employee.hireDate),
-        managerId: employee.managerId || '',
-        employmentStatus: employee.employmentStatus || '',
-        emergencyContactName: employee.emergencyContactName || '',
-        emergencyContactRelationship: employee.emergencyContactRelationship || '',
-        emergencyContactPhone: employee.emergencyContactPhone || ''
-      });
+      // Use mapping helper - automatic mapping from API to form!
+      const mappedData = mapEmployeeToFormData(employee);
+      setFormData(mappedData);
+      
     } catch (err) {
       setError(err.message || 'Failed to load employee details');
     } finally {
@@ -255,10 +219,11 @@ const EditEmployeeModal = ({ open, onClose, employeeId, onSuccess }) => {
                   onChange={handleChange}
                   label="Gender"
                 >
-                  <MenuItem value="">Select Gender</MenuItem>
-                  <MenuItem value="Male">Male</MenuItem>
-                  <MenuItem value="Female">Female</MenuItem>
-                  <MenuItem value="Other">Other</MenuItem>
+                  {GENDER_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
@@ -285,69 +250,8 @@ const EditEmployeeModal = ({ open, onClose, employeeId, onSuccess }) => {
             </Grid>
           </Grid>
 
-          <Divider sx={{ my: 3 }} />
-
-          {/* Address */}
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#2c3e50' }}>
-            Address
-          </Typography>
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Address Line 1"
-                name="addressLine1"
-                value={formData.addressLine1}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Address Line 2"
-                name="addressLine2"
-                value={formData.addressLine2}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="City"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="State"
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Zip Code"
-                name="zipCode"
-                value={formData.zipCode}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ my: 3 }} />
-
           {/* Employment Information */}
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#2c3e50' }}>
+          <Typography variant="h6" sx={{ mb: 2, mt: 2, fontWeight: 600, color: '#2c3e50' }}>
             Employment Information
           </Typography>
           <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -371,8 +275,11 @@ const EditEmployeeModal = ({ open, onClose, employeeId, onSuccess }) => {
                   onChange={handleChange}
                   label="Employee Type"
                 >
-                  <MenuItem value="AdminStaff">Admin Staff</MenuItem>
-                  <MenuItem value="FieldStaff">Field Staff</MenuItem>
+                  {EMPLOYEE_TYPE_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
@@ -425,10 +332,10 @@ const EditEmployeeModal = ({ open, onClose, employeeId, onSuccess }) => {
                   onChange={handleChange}
                   label="Manager"
                 >
-                  <MenuItem value="">No Manager</MenuItem>
+                  <MenuItem value="">Select Manager</MenuItem>
                   {managers.map((mgr) => (
                     <MenuItem key={mgr.employeeId} value={mgr.employeeId}>
-                      {mgr.fullName} ({mgr.employeeCode})
+                      {mgr.fullName}
                     </MenuItem>
                   ))}
                 </Select>
@@ -443,18 +350,18 @@ const EditEmployeeModal = ({ open, onClose, employeeId, onSuccess }) => {
                   onChange={handleChange}
                   label="Employment Status"
                 >
-                  <MenuItem value="Active">Active</MenuItem>
-                  <MenuItem value="OnLeave">On Leave</MenuItem>
-                  <MenuItem value="Terminated">Terminated</MenuItem>
+                  {EMPLOYMENT_STATUS_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
           </Grid>
 
-          <Divider sx={{ my: 3 }} />
-
           {/* Emergency Contact */}
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#2c3e50' }}>
+          <Typography variant="h6" sx={{ mb: 2, mt: 2, fontWeight: 600, color: '#2c3e50' }}>
             Emergency Contact
           </Typography>
           <Grid container spacing={2}>

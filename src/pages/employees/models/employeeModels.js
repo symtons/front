@@ -1,6 +1,7 @@
 // ============================================
 // Employee Models & Types (JavaScript Version)
-// File: src/models/employeeModels.js
+// File: src/pages/employees/models/employeeModels.js
+// COMPLETE VERSION with Mapping Helper
 // ============================================
 
 // ============================================
@@ -47,7 +48,7 @@ export const BOOLEAN_OPTIONS = [
 ];
 
 // ============================================
-// Helper Functions
+// Helper Functions - Initialization
 // ============================================
 
 /**
@@ -132,6 +133,121 @@ export const getInitialEmployeeFilterParams = () => ({
   sortOrder: 'asc'
 });
 
+// ============================================
+// Helper Functions - Mapping (NEW!)
+// ============================================
+
+/**
+ * Map employee API response to form data structure
+ * Automatically handles date formatting and ensures all fields match the form structure
+ * @param {Object} employee - Employee object from API
+ * @returns {Object} Formatted form data ready for state
+ */
+export const mapEmployeeToFormData = (employee) => {
+  // Helper to format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
+  };
+
+  // Get the initial structure to ensure we have all fields
+  const initialData = getInitialEmployeeFormData();
+
+  // Map the employee data to form structure
+  return {
+    // Personal Information
+    firstName: employee.firstName || initialData.firstName,
+    lastName: employee.lastName || initialData.lastName,
+    middleName: employee.middleName || initialData.middleName,
+    dateOfBirth: formatDate(employee.dateOfBirth),
+    gender: employee.gender || initialData.gender,
+    maritalStatus: employee.maritalStatus || initialData.maritalStatus,
+    phoneNumber: employee.phoneNumber || initialData.phoneNumber,
+    personalEmail: employee.personalEmail || initialData.personalEmail,
+    
+    // Address
+    address: employee.address || initialData.address,
+    city: employee.city || initialData.city,
+    state: employee.state || initialData.state,
+    zipCode: employee.zipCode || initialData.zipCode,
+    country: employee.country || initialData.country,
+    
+    // Emergency Contact
+    emergencyContactName: employee.emergencyContactName || initialData.emergencyContactName,
+    emergencyContactPhone: employee.emergencyContactPhone || initialData.emergencyContactPhone,
+    emergencyContactRelationship: employee.emergencyContactRelationship || initialData.emergencyContactRelationship,
+    
+    // Employment Information
+    employeeCode: employee.employeeCode || initialData.employeeCode,
+    departmentId: employee.departmentId || initialData.departmentId,
+    managerId: employee.managerId || initialData.managerId,
+    jobTitle: employee.jobTitle || initialData.jobTitle,
+    employeeType: employee.employeeType || initialData.employeeType,
+    employmentStatus: employee.employmentStatus || initialData.employmentStatus,
+    hireDate: formatDate(employee.hireDate),
+    
+    // Compensation
+    salary: employee.salary || initialData.salary,
+    payFrequency: employee.payFrequency || initialData.payFrequency,
+    
+    // Banking
+    bankName: employee.bankName || initialData.bankName,
+    bankAccountNumber: employee.bankAccountNumber || initialData.bankAccountNumber,
+    bankRoutingNumber: employee.bankRoutingNumber || initialData.bankRoutingNumber,
+    
+    // Benefits
+    isEligibleForPTO: employee.isEligibleForPTO !== undefined ? employee.isEligibleForPTO : initialData.isEligibleForPTO,
+    ptoBalance: employee.ptoBalance || initialData.ptoBalance,
+    isEligibleForInsurance: employee.isEligibleForInsurance !== undefined ? employee.isEligibleForInsurance : initialData.isEligibleForInsurance
+  };
+};
+
+/**
+ * Alternative: Get only the fields that exist in the model
+ * Useful when you want to be explicit about which fields to include
+ * @param {Object} employee - Employee object from API
+ * @param {Array<string>} fields - Optional array of field names to include
+ * @returns {Object} Mapped form data
+ */
+export const mapEmployeeToFormDataSelective = (employee, fields = null) => {
+  const initialData = getInitialEmployeeFormData();
+  const modelKeys = Object.keys(initialData);
+  
+  // If specific fields provided, use only those
+  const keysToMap = fields ? fields.filter(f => modelKeys.includes(f)) : modelKeys;
+  
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toISOString().split('T')[0];
+  };
+
+  const mapped = {};
+  
+  keysToMap.forEach(key => {
+    // Special handling for dates
+    if (key === 'dateOfBirth' || key === 'hireDate') {
+      mapped[key] = formatDate(employee[key]);
+    }
+    // Special handling for booleans
+    else if (key === 'isEligibleForPTO' || key === 'isEligibleForInsurance') {
+      mapped[key] = employee[key] !== undefined ? employee[key] : initialData[key];
+    }
+    // Regular fields
+    else {
+      mapped[key] = employee[key] !== undefined && employee[key] !== null 
+        ? employee[key] 
+        : initialData[key];
+    }
+  });
+  
+  return mapped;
+};
+
+// ============================================
+// Helper Functions - API Preparation
+// ============================================
+
 /**
  * Prepare employee data for API submission
  * Converts form data to API request format
@@ -192,6 +308,10 @@ export const prepareEmployeeDataForAPI = (formData) => ({
   isEligibleForInsurance: formData.isEligibleForInsurance
 });
 
+// ============================================
+// Helper Functions - Validation
+// ============================================
+
 /**
  * Validate employee form data
  * @param {Object} formData - Form data to validate
@@ -242,6 +362,43 @@ const isValidEmail = (email) => {
 };
 
 /**
+ * Validate employee code format
+ * @param {string} code - Employee code
+ * @returns {boolean} True if valid
+ */
+export const isValidEmployeeCode = (code) => {
+  // Example: TPA-EMP-001
+  const codeRegex = /^[A-Z]{3}-[A-Z]{3}-\d{3}$/;
+  return codeRegex.test(code);
+};
+
+/**
+ * Validate phone number format
+ * @param {string} phone - Phone number
+ * @returns {boolean} True if valid
+ */
+export const isValidPhoneNumber = (phone) => {
+  // US phone format: 615-555-0100
+  const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
+  return phoneRegex.test(phone);
+};
+
+/**
+ * Validate ZIP code format
+ * @param {string} zip - ZIP code
+ * @returns {boolean} True if valid
+ */
+export const isValidZipCode = (zip) => {
+  // 5 digits or 5+4 format
+  const zipRegex = /^\d{5}(-\d{4})?$/;
+  return zipRegex.test(zip);
+};
+
+// ============================================
+// Helper Functions - Formatting
+// ============================================
+
+/**
  * Format employee name
  * @param {Object} employee - Employee object
  * @returns {string} Formatted full name
@@ -289,43 +446,6 @@ export const isEligibleForBenefits = (employeeType) => {
  */
 export const getDefaultPTOBalance = (employeeType) => {
   return employeeType === 'AdminStaff' ? 15 : 0;
-};
-
-// ============================================
-// Field Validation Helpers
-// ============================================
-
-/**
- * Validate employee code format
- * @param {string} code - Employee code
- * @returns {boolean} True if valid
- */
-export const isValidEmployeeCode = (code) => {
-  // Example: TPA-EMP-001
-  const codeRegex = /^[A-Z]{3}-[A-Z]{3}-\d{3}$/;
-  return codeRegex.test(code);
-};
-
-/**
- * Validate phone number format
- * @param {string} phone - Phone number
- * @returns {boolean} True if valid
- */
-export const isValidPhoneNumber = (phone) => {
-  // US phone format: 615-555-0100
-  const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
-  return phoneRegex.test(phone);
-};
-
-/**
- * Validate ZIP code format
- * @param {string} zip - ZIP code
- * @returns {boolean} True if valid
- */
-export const isValidZipCode = (zip) => {
-  // 5 digits or 5+4 format
-  const zipRegex = /^\d{5}(-\d{4})?$/;
-  return zipRegex.test(zip);
 };
 
 // ============================================
