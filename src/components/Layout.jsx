@@ -8,7 +8,7 @@ const Layout = ({ children }) => {
   const employee = JSON.parse(localStorage.getItem('employee') || '{}');
 
   return (
-    <div style={{ display: 'flex', margin: 0, padding: 0 }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', margin: 0, padding: 0 }}>
       <Header user={user} employee={employee} />
       <Sidebar user={user} employee={employee} />
       
@@ -16,16 +16,16 @@ const Layout = ({ children }) => {
         style={{
           flexGrow: 1,
           marginLeft: '240px',
-          padding: '56px 16px 16px 8px',
+          marginTop: '64px',
+          padding: '0px',
           backgroundColor: '#ecf0f1',
-          minHeight: '100vh',
+          height: 'calc(100vh - 64px)',
+          overflowY: 'auto',
           boxSizing: 'border-box',
-          overflow: 'hidden',
+          width: 'calc(100% - 240px)',
         }}
       >
-        <div style={{ margin: 0, padding: 0 }}>
-          {children}
-        </div>
+        {children}
       </main>
     </div>
   );

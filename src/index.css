@@ -20,30 +20,3 @@ code {
     monospace;
 }
 
-/* NUCLEAR OPTION - Override EVERYTHING */
-main {
-  padding: 56px 8px 16px 8px !important;
-}
-
-.dashboard-main {
-  padding: 56px 8px 16px 8px !important;
-}
-
-main.MuiBox-root {
-  padding: 56px 8px 16px 8px !important;
-}
-
-main[class*="MuiBox"] {
-  padding: 56px 8px 16px 8px !important;
-}
-
-main[class*="css-"] {
-  padding: 56px 8px 16px 8px !important;
-}
-
-/* Target any main element regardless of class */
-[class*="MuiBox-root"][class*="css-"] main,
-main.MuiBox-root.css-1jk5ujg,
-main.MuiBox-root.dashboard-main {
-  padding: 56px 8px 16px 8px !important;
-}
