@@ -12,7 +12,6 @@ import {
   IconButton,
   InputAdornment,
   Avatar,
-  Grid,
   Alert,
   CircularProgress
 } from '@mui/material';
@@ -20,7 +19,7 @@ import { Visibility, VisibilityOff, AccountCircle } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { authService } from '../../services/authService';
 
-// Styled components for beautiful design
+// Styled components
 const StyledCard = styled(Card)(({ theme }) => ({
   minHeight: '600px',
   borderRadius: '16px',
@@ -60,7 +59,7 @@ const RightPanel = styled(Box)(({ theme }) => ({
   },
 }));
 
-const LogoContainer = styled(Box)(({ theme }) => ({
+const LogoContainer = styled(Box)(({ theme}) => ({
   backgroundColor: 'white',
   borderRadius: '16px',
   padding: theme.spacing(3),
@@ -94,11 +93,24 @@ const CarouselDot = styled(Box)(({ active }) => ({
   cursor: 'pointer',
 }));
 
+// Role to URL mapping
+const getRoleBasedDashboard = (roleName) => {
+  const roleMap = {
+    'Admin': '/admin/dashboard',
+    'Executive': '/executive/dashboard',
+    'Director': '/director/dashboard',
+    'ProgramCoordinator': '/programcoordinator/dashboard',
+    'FieldOperatorManager': '/fieldoperatormanager/dashboard',
+    'FieldOperator': '/fieldoperator/dashboard',
+  };
+  
+  return roleMap[roleName] || '/admin/dashboard';
+};
+
 // Login Component
 const Login = () => {
   const navigate = useNavigate();
   
-  // React state hooks
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -131,15 +143,13 @@ const Login = () => {
       
       // Navigate based on user role
       const userRole = response.user.role;
+      const dashboardPath = getRoleBasedDashboard(userRole);
       
-      if (userRole === 'Admin') {
-        navigate('/admin/dashboard');
-      } else if (userRole === 'HRManager') {
-        navigate('/hr/dashboard');
-      } else {
-        navigate('/employee/dashboard');
-      }
+      console.log('Navigating to:', dashboardPath); // Debug log
+      navigate(dashboardPath);
+      
     } catch (err) {
+      console.error('Login error:', err);
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
