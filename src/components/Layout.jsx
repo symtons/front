@@ -1,5 +1,4 @@
 import React from 'react';
-import { Box } from '@mui/material';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { authService } from '../services/authService';
@@ -9,27 +8,26 @@ const Layout = ({ children }) => {
   const employee = JSON.parse(localStorage.getItem('employee') || '{}');
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <div style={{ display: 'flex', margin: 0, padding: 0 }}>
       <Header user={user} employee={employee} />
       <Sidebar user={user} employee={employee} />
       
-      <Box
-        component="main"
-        className="dashboard-main"
-        sx={{
+      <main
+        style={{
           flexGrow: 1,
           marginLeft: '240px',
+          padding: '56px 16px 16px 8px',
           backgroundColor: '#ecf0f1',
           minHeight: '100vh',
-          paddingTop: '56px !important',
-          paddingLeft: '8px !important',
-          paddingRight: '16px !important',
-          paddingBottom: '16px !important',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
         }}
       >
-        {children}
-      </Box>
-    </Box>
+        <div style={{ margin: 0, padding: 0 }}>
+          {children}
+        </div>
+      </main>
+    </div>
   );
 };
 

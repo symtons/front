@@ -20,20 +20,30 @@ code {
     monospace;
 }
 
-/* Force override Material-UI's massive padding */
-main.MuiBox-root.css-1jk5ujg {
-  padding: 56px 16px 16px 8px !important;
+/* NUCLEAR OPTION - Override EVERYTHING */
+main {
+  padding: 56px 8px 16px 8px !important;
+}
+
+.dashboard-main {
+  padding: 56px 8px 16px 8px !important;
 }
 
 main.MuiBox-root {
-  padding: 56px 16px 16px 8px !important;
-}
-/* Target the specific main element */
-.dashboard-main {
-  padding: 56px 16px 16px 8px !important;
+  padding: 56px 8px 16px 8px !important;
 }
 
-/* Override ALL Material-UI Box padding in main */
 main[class*="MuiBox"] {
-  padding: 56px 16px 16px 8px !important;
+  padding: 56px 8px 16px 8px !important;
+}
+
+main[class*="css-"] {
+  padding: 56px 8px 16px 8px !important;
+}
+
+/* Target any main element regardless of class */
+[class*="MuiBox-root"][class*="css-"] main,
+main.MuiBox-root.css-1jk5ujg,
+main.MuiBox-root.dashboard-main {
+  padding: 56px 8px 16px 8px !important;
 }
