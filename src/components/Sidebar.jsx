@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Drawer,
   List,
@@ -9,7 +9,9 @@ import {
   Box,
   Typography,
   Divider,
-  Avatar
+  Avatar,
+  CircularProgress,
+  Collapse
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -20,60 +22,143 @@ import {
   Settings as SettingsIcon,
   Person as PersonIcon,
   Help as HelpIcon,
-  ManageAccounts as ManageAccountsIcon
+  ManageAccounts as ManageAccountsIcon,
+  Business as BusinessIcon,
+  Schedule as ScheduleIcon,
+  EventAvailable as EventAvailableIcon,
+  Description as DescriptionIcon,
+  Analytics as AnalyticsIcon,
+  ExpandLess,
+  ExpandMore
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import api from '../services/authService'; // Import the centralized api instance
 
 const drawerWidth = 240;
+
+// Icon mapping based on MenuIcon field from database
+const iconMap = {
+  'dashboard': <DashboardIcon />,
+  'people': <PeopleIcon />,
+  'business': <BusinessIcon />,
+  'schedule': <ScheduleIcon />,
+  'event_available': <EventAvailableIcon />,
+  'description': <DescriptionIcon />,
+  'analytics': <AnalyticsIcon />,
+  'settings': <SettingsIcon />,
+  'person': <PersonIcon />,
+  'help': <HelpIcon />,
+  'manage_accounts': <ManageAccountsIcon />,
+  'event_note': <EventNoteIcon />,
+  'assessment': <AssessmentIcon />,
+  'assignment': <AssignmentIcon />,
+};
 
 const Sidebar = ({ user, employee }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [menuItems, setMenuItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [openMenus, setOpenMenus] = useState({});
 
-  // Define menu items based on role
-  const getMenuItems = () => {
-    const userRole = user?.role;
+  useEffect(() => {
+    fetchMenus();
+  }, []);
 
-    // Common items for all users
-    const commonItems = [
-      { 
-        text: 'Dashboard', 
-        icon: <DashboardIcon />, 
-        path: `/${userRole?.toLowerCase()}/dashboard` 
-      },
-    ];
+  const fetchMenus = async () => {
+    try {
+      setLoading(true);
+      
+      // Use the centralized api instance - it already has baseURL and token
+      const response = await api.get('/Menu/MyMenus');
 
-    // Admin and HR Manager items
-    if (userRole === 'Admin' || userRole === 'HRManager') {
-      return [
-        ...commonItems,
-        { text: 'Employee Management', icon: <PeopleIcon />, path: '/employees' },
-        { text: 'Leave Management', icon: <EventNoteIcon />, path: '/leave' },
-        { text: 'Reports & Analytics', icon: <AssessmentIcon />, path: '/reports' },
-        { text: 'Onboarding', icon: <AssignmentIcon />, path: '/onboarding' },
-      ];
+      setMenuItems(response.data);
+    } catch (error) {
+      console.error('Error fetching menus:', error);
+      // Fallback to basic menu if API fails
+      setMenuItems([
+        {
+          menuId: 1,
+          menuTitle: 'Dashboard',
+          menuIcon: 'dashboard',
+          menuUrl: `/${user?.role?.toLowerCase()}/dashboard`,
+          subMenus: []
+        }
+      ]);
+    } finally {
+      setLoading(false);
     }
-
-    // Employee items
-    return [
-      ...commonItems,
-      { text: 'My Profile', icon: <PersonIcon />, path: '/profile' },
-      { text: 'Leave Requests', icon: <EventNoteIcon />, path: '/leave' },
-      { text: 'Time & Attendance', icon: <AssessmentIcon />, path: '/attendance' },
-    ];
   };
 
-  const adminItems = [
-    { text: 'User Management', icon: <ManageAccountsIcon />, path: '/users' },
-    { text: 'System Settings', icon: <SettingsIcon />, path: '/settings' },
-  ];
+  const handleMenuClick = (menu) => {
+    // If menu has submenus, toggle open/close
+    if (menu.subMenus && menu.subMenus.length > 0) {
+      setOpenMenus(prev => ({
+        ...prev,
+        [menu.menuId]: !prev[menu.menuId]
+      }));
+    } else if (menu.menuUrl) {
+      // Navigate to the menu URL
+      navigate(menu.menuUrl);
+    }
+  };
+
+  const renderMenuItem = (item, isSubMenu = false) => {
+    const hasSubMenus = item.subMenus && item.subMenus.length > 0;
+    const isOpen = openMenus[item.menuId];
+    const isActive = location.pathname === item.menuUrl;
+
+    return (
+      <React.Fragment key={item.menuId}>
+        <ListItem disablePadding sx={{ mb: 0.5, pl: isSubMenu ? 2 : 0 }}>
+          <ListItemButton
+            selected={isActive}
+            onClick={() => handleMenuClick(item)}
+            sx={{
+              borderRadius: '8px',
+              '&.Mui-selected': {
+                backgroundColor: '#f59e42',
+                '&:hover': {
+                  backgroundColor: '#e08a2e',
+                },
+              },
+              '&:hover': {
+                backgroundColor: '#34495e',
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+              {iconMap[item.menuIcon] || <DashboardIcon />}
+            </ListItemIcon>
+            <ListItemText 
+              primary={item.menuTitle}
+              primaryTypographyProps={{
+                fontSize: isSubMenu ? '13px' : '14px',
+                fontWeight: isSubMenu ? 400 : 500
+              }}
+            />
+            {hasSubMenus && (
+              isOpen ? <ExpandLess sx={{ color: 'white' }} /> : <ExpandMore sx={{ color: 'white' }} />
+            )}
+          </ListItemButton>
+        </ListItem>
+
+        {/* Render submenus with collapse animation */}
+        {hasSubMenus && (
+          <Collapse in={isOpen} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              {item.subMenus.map(subItem => renderMenuItem(subItem, true))}
+            </List>
+          </Collapse>
+        )}
+      </React.Fragment>
+    );
+  };
 
   const bottomItems = [
     { text: 'My Profile', icon: <PersonIcon />, path: '/profile' },
     { text: 'Help & Support', icon: <HelpIcon />, path: '/help' },
   ];
-
-  const menuItems = getMenuItems();
 
   return (
     <Drawer
@@ -90,7 +175,7 @@ const Sidebar = ({ user, employee }) => {
         },
       }}
     >
-      {/* Logo Section - FIXED */}
+      {/* Logo Section */}
       <Box 
         sx={{ 
           p: 3, 
@@ -151,118 +236,52 @@ const Sidebar = ({ user, employee }) => {
       <Divider sx={{ backgroundColor: '#34495e' }} />
 
       {/* Main Menu */}
-      <List sx={{ px: 1 }}>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => navigate(item.path)}
-              sx={{
-                borderRadius: '8px',
-                '&.Mui-selected': {
-                  backgroundColor: '#f59e42',
-                  '&:hover': {
-                    backgroundColor: '#e08a2e',
-                  },
-                },
-                '&:hover': {
-                  backgroundColor: '#34495e',
-                },
-              }}
-            >
-              <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText 
-                primary={item.text}
-                primaryTypographyProps={{
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-              />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-
-      {/* Admin Section */}
-      {user?.role === 'Admin' && (
-        <>
-          <Divider sx={{ backgroundColor: '#34495e', mt: 2 }} />
-          <Typography 
-            variant="caption" 
-            sx={{ px: 2, pt: 2, pb: 1, color: '#95a5a6', fontWeight: 600, fontSize: '11px' }}
-          >
-            ADMINISTRATION
-          </Typography>
-          <List sx={{ px: 1 }}>
-            {adminItems.map((item) => (
-              <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
-                <ListItemButton
-                  selected={location.pathname === item.path}
-                  onClick={() => navigate(item.path)}
-                  sx={{
-                    borderRadius: '8px',
-                    '&.Mui-selected': {
-                      backgroundColor: '#f59e42',
-                    },
-                    '&:hover': {
-                      backgroundColor: '#34495e',
-                    },
-                  }}
-                >
-                  <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={item.text}
-                    primaryTypographyProps={{
-                      fontSize: '14px',
-                      fontWeight: 500
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <CircularProgress size={30} sx={{ color: 'white' }} />
+        </Box>
+      ) : (
+        <List sx={{ px: 1, flexGrow: 1, overflowY: 'auto' }}>
+          {menuItems.map(item => renderMenuItem(item))}
+        </List>
       )}
 
       {/* Bottom Items */}
-      <Box sx={{ flexGrow: 1 }} />
-      <Divider sx={{ backgroundColor: '#34495e' }} />
-      <List sx={{ px: 1, pb: 2 }}>
-        {bottomItems.map((item) => (
-          <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
-            <ListItemButton
-              onClick={() => navigate(item.path)}
-              sx={{
-                borderRadius: '8px',
-                '&:hover': {
-                  backgroundColor: '#34495e',
-                },
-              }}
-            >
-              <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText 
-                primary={item.text}
-                primaryTypographyProps={{
-                  fontSize: '14px',
-                  fontWeight: 500
+      <Box sx={{ mt: 'auto' }}>
+        <Divider sx={{ backgroundColor: '#34495e' }} />
+        <List sx={{ px: 1, pb: 2 }}>
+          {bottomItems.map((item) => (
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                onClick={() => navigate(item.path)}
+                sx={{
+                  borderRadius: '8px',
+                  '&:hover': {
+                    backgroundColor: '#34495e',
+                  },
                 }}
-              />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
+              >
+                <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText 
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontSize: '14px',
+                    fontWeight: 500
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
 
-      {/* Version */}
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Typography variant="caption" sx={{ color: '#7f8c8d', fontSize: '11px' }}>
-          TPA HR System v1.0
-        </Typography>
+        {/* Version */}
+        <Box sx={{ p: 2, textAlign: 'center' }}>
+          <Typography variant="caption" sx={{ color: '#7f8c8d', fontSize: '11px' }}>
+            TPA HR System v1.0
+          </Typography>
+        </Box>
       </Box>
     </Drawer>
   );
