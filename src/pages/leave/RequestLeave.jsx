@@ -1,12 +1,11 @@
 // src/pages/leave/RequestLeave.jsx
-// Page for submitting new leave requests
+// Page for submitting new leave requests - STYLED TO MATCH EMPLOYEE MODULE
 
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
+  Box,
   Paper,
   Typography,
-  Box,
   Grid,
   TextField,
   Button,
@@ -15,44 +14,36 @@ import {
   Step,
   StepLabel,
   Divider,
-  CircularProgress
+  Card,
+  CardContent,
+  Chip
 } from '@mui/material';
 import {
   Send as SubmitIcon,
   ArrowBack as BackIcon,
   ArrowForward as NextIcon,
-  CheckCircle as SuccessIcon
+  CheckCircle as SuccessIcon,
+  EventAvailable as LeaveIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { LeaveTypeSelector, PTOBalanceCard } from '../leave/components';
-import { DateRangePicker } from '../../components/common';
+import Layout from '../../components/common/layout/Layout';
+import PageHeader from '../../components/common/layout/PageHeader';
+import Loading from '../../components/common/feedback/Loading';
+import { LeaveTypeSelector, PTOBalanceCard } from './components';
 import {
   calculateTotalDays,
   validateLeaveRequestForm,
-  prepareLeaveRequestForAPI,
   getTodayString
-} from '../leave/models/leaveModels';
-
-/**
- * RequestLeave Page
- * 
- * Multi-step form for submitting leave requests:
- * Step 1: Select Leave Type
- * Step 2: Select Dates
- * Step 3: Add Details & Review
- * Step 4: Confirmation
- */
+} from './models/leaveModels';
+import leaveService from '../../services/leaveService';
+import { authService } from '../../services/authService';
 
 const RequestLeave = () => {
   const navigate = useNavigate();
   
-  // User info (from auth context or API)
-  const [currentUser, setCurrentUser] = useState({
-    employeeId: 1,
-    employeeName: 'John Doe',
-    employeeType: 'Admin Staff', // or 'Field Staff'
-    email: 'john.doe@tpa.com'
-  });
+  // Get current user from localStorage
+  const [currentUser, setCurrentUser] = useState(null);
+  const [employee, setEmployee] = useState(null);
 
   // PTO Balance
   const [ptoBalance, setPtoBalance] = useState(null);
@@ -69,7 +60,8 @@ const RequestLeave = () => {
     startDate: getTodayString(),
     endDate: getTodayString(),
     reason: '',
-    totalDays: 0
+    totalDays: 0,
+    isHalfDay: false
   });
 
   // Submission State
@@ -81,110 +73,87 @@ const RequestLeave = () => {
   // Steps
   const steps = ['Select Leave Type', 'Choose Dates', 'Review & Submit'];
 
-  // Load PTO Balance
+  // Load current user on mount
+  useEffect(() => {
+    const user = authService.getCurrentUser();
+    const empData = JSON.parse(localStorage.getItem('employee'));
+    
+    if (user && empData) {
+      setCurrentUser(user);
+      setEmployee(empData);
+    } else {
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  // Load PTO Balance - REAL API CALL
   useEffect(() => {
     const fetchPTOBalance = async () => {
+      if (!employee) return;
+
       try {
         setLoadingBalance(true);
-        // TODO: Replace with actual API call
-        // const response = await leaveService.getPTOBalance(currentUser.employeeId);
+        const response = await leaveService.getPTOBalance(employee.employeeId);
         
-        // Mock data
-        setTimeout(() => {
-          setPtoBalance({
-            total: 15,
-            available: 10.5,
-            used: 3,
-            pending: 1.5,
-            accrualRate: 1.25
-          });
-          setLoadingBalance(false);
-        }, 1000);
+        setPtoBalance({
+          total: response.totalPTODays || 0,
+          available: response.remainingPTODays || 0,
+          used: response.usedPTODays || 0,
+          pending: 0,
+          accrualRate: response.accrualRate || 0
+        });
+        
+        setLoadingBalance(false);
       } catch (error) {
         console.error('Error fetching PTO balance:', error);
         setLoadingBalance(false);
+        
+        if (error.message?.includes('not eligible')) {
+          setPtoBalance({
+            total: 0,
+            available: 0,
+            used: 0,
+            pending: 0,
+            accrualRate: 0
+          });
+        }
       }
     };
 
-    if (currentUser.employeeType === 'Admin Staff') {
-      fetchPTOBalance();
-    } else {
-      setLoadingBalance(false);
+    if (employee) {
+      if (employee.employmentType === 'FullTime') {
+        fetchPTOBalance();
+      } else {
+        setLoadingBalance(false);
+        setPtoBalance({
+          total: 0,
+          available: 0,
+          used: 0,
+          pending: 0,
+          accrualRate: 0
+        });
+      }
     }
-  }, [currentUser]);
+  }, [employee]);
 
-  // Load Leave Types
+  // Load Leave Types - REAL API CALL
   useEffect(() => {
     const fetchLeaveTypes = async () => {
       try {
         setLoadingTypes(true);
-        // TODO: Replace with actual API call
-        // const response = await leaveService.getLeaveTypes();
-        
-        // Mock data
-        setTimeout(() => {
-          setLeaveTypes([
-            {
-              leaveTypeId: 1,
-              typeName: 'PTO',
-              description: 'Paid Time Off for vacation and personal days',
-              isPaidLeave: true,
-              requiresApproval: true,
-              maxDaysPerYear: 15,
-              color: '#5B8FCC',
-              isActive: true
-            },
-            {
-              leaveTypeId: 2,
-              typeName: 'Sick Leave',
-              description: 'Medical leave for illness or medical appointments',
-              isPaidLeave: true,
-              requiresApproval: false,
-              maxDaysPerYear: null,
-              color: '#e74c3c',
-              isActive: true
-            },
-            {
-              leaveTypeId: 3,
-              typeName: 'Unpaid Leave',
-              description: 'Time off without pay',
-              isPaidLeave: false,
-              requiresApproval: true,
-              maxDaysPerYear: null,
-              color: '#95a5a6',
-              isActive: true
-            },
-            {
-              leaveTypeId: 4,
-              typeName: 'Bereavement',
-              description: 'Leave for family bereavement',
-              isPaidLeave: true,
-              requiresApproval: true,
-              maxDaysPerYear: 5,
-              color: '#34495e',
-              isActive: true
-            },
-            {
-              leaveTypeId: 5,
-              typeName: 'Jury Duty',
-              description: 'Leave for jury duty service',
-              isPaidLeave: true,
-              requiresApproval: true,
-              maxDaysPerYear: null,
-              color: '#3498db',
-              isActive: true
-            }
-          ]);
-          setLoadingTypes(false);
-        }, 1000);
+        const response = await leaveService.getLeaveTypes();
+        setLeaveTypes(response);
+        setLoadingTypes(false);
       } catch (error) {
         console.error('Error fetching leave types:', error);
         setLoadingTypes(false);
       }
     };
 
-    fetchLeaveTypes();
-  }, []);
+    if (employee) {
+      fetchLeaveTypes();
+    }
+  }, [employee]);
 
   // Calculate total days when dates change
   useEffect(() => {
@@ -196,7 +165,6 @@ const RequestLeave = () => {
 
   // Handle Next Step
   const handleNext = () => {
-    // Validate current step
     const validation = validateCurrentStep();
     
     if (validation.isValid) {
@@ -218,18 +186,15 @@ const RequestLeave = () => {
     const errors = {};
 
     if (activeStep === 0) {
-      // Step 1: Leave Type Selection
       if (!formData.leaveTypeId) {
         errors.leaveType = 'Please select a leave type';
       }
     } else if (activeStep === 1) {
-      // Step 2: Date Selection
-      const dateValidation = validateLeaveRequestForm(formData, ptoBalance, currentUser.employeeType);
+      const dateValidation = validateLeaveRequestForm(formData, ptoBalance, employee?.employmentType);
       if (!dateValidation.isValid) {
         return dateValidation;
       }
     } else if (activeStep === 2) {
-      // Step 3: Reason (optional for some types)
       const selectedType = leaveTypes.find(t => t.leaveTypeId === formData.leaveTypeId);
       if (selectedType?.requiresApproval && !formData.reason?.trim()) {
         errors.reason = 'Please provide a reason for your leave request';
@@ -242,10 +207,9 @@ const RequestLeave = () => {
     };
   };
 
-  // Handle Submit
+  // Handle Submit - REAL API CALL
   const handleSubmit = async () => {
-    // Final validation
-    const validation = validateLeaveRequestForm(formData, ptoBalance, currentUser.employeeType);
+    const validation = validateLeaveRequestForm(formData, ptoBalance, employee?.employmentType);
     
     if (!validation.isValid) {
       setValidationErrors(validation.errors);
@@ -256,25 +220,22 @@ const RequestLeave = () => {
       setSubmitting(true);
       setSubmitError(null);
 
-      // Prepare data for API
-      const requestData = prepareLeaveRequestForAPI({
-        ...formData,
-        employeeId: currentUser.employeeId
-      });
+      const requestData = {
+        leaveTypeId: formData.leaveTypeId,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        reason: formData.reason || null,
+        isHalfDay: formData.isHalfDay
+      };
 
-      // TODO: Replace with actual API call
-      // const response = await leaveService.submitLeaveRequest(requestData);
-      
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await leaveService.submitLeaveRequest(requestData);
 
       setSubmitSuccess(true);
       setSubmitting(false);
 
-      // Redirect after 3 seconds
       setTimeout(() => {
         navigate('/leave/my-requests');
-      }, 3000);
+      }, 2000);
 
     } catch (error) {
       console.error('Error submitting leave request:', error);
@@ -290,167 +251,142 @@ const RequestLeave = () => {
   const renderStepContent = () => {
     switch (activeStep) {
       case 0:
-        // Step 1: Select Leave Type
         return (
           <Box>
-            <Typography variant="h6" sx={{ mb: 3 }}>
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#2c3e50' }}>
               What type of leave would you like to request?
             </Typography>
-
-            <LeaveTypeSelector
-              leaveTypes={leaveTypes}
-              selectedTypeId={formData.leaveTypeId}
-              onChange={(typeId) => setFormData(prev => ({ ...prev, leaveTypeId: typeId }))}
-              employeeType={currentUser.employeeType}
-              loading={loadingTypes}
-              error={validationErrors.leaveType}
-            />
+            
+            {loadingTypes ? (
+              <Loading />
+            ) : (
+              <LeaveTypeSelector
+                leaveTypes={leaveTypes}
+                selectedTypeId={formData.leaveTypeId}
+                onSelect={(typeId) => setFormData(prev => ({ ...prev, leaveTypeId: typeId }))}
+                employeeType={employee?.employmentType}
+              />
+            )}
+            
+            {validationErrors.leaveType && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {validationErrors.leaveType}
+              </Alert>
+            )}
           </Box>
         );
 
       case 1:
-        // Step 2: Choose Dates
         return (
           <Box>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              Select your leave dates
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Choose the start and end dates for your {selectedLeaveType?.typeName} request
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#2c3e50' }}>
+              When do you need time off?
             </Typography>
 
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <TextField
+                  fullWidth
                   label="Start Date"
                   type="date"
-                  fullWidth
                   value={formData.startDate}
                   onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
                   InputLabelProps={{ shrink: true }}
                   inputProps={{ min: getTodayString() }}
-                  error={Boolean(validationErrors.startDate)}
-                  helperText={validationErrors.startDate}
                 />
               </Grid>
+
               <Grid item xs={12} md={6}>
                 <TextField
+                  fullWidth
                   label="End Date"
                   type="date"
-                  fullWidth
                   value={formData.endDate}
                   onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
                   InputLabelProps={{ shrink: true }}
-                  inputProps={{ min: formData.startDate || getTodayString() }}
-                  error={Boolean(validationErrors.endDate)}
-                  helperText={validationErrors.endDate}
+                  inputProps={{ min: formData.startDate }}
                 />
+              </Grid>
+
+              <Grid item xs={12}>
+                <Card sx={{ bgcolor: '#E8F4F8', border: '1px solid #B3E0ED' }}>
+                  <CardContent>
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: '#2c3e50' }}>
+                      Total Days: {formData.totalDays} day(s)
+                    </Typography>
+                  </CardContent>
+                </Card>
               </Grid>
             </Grid>
 
-            {/* Duration Display */}
-            {formData.totalDays > 0 && (
-              <Alert severity="info" sx={{ mt: 3 }}>
-                <Typography variant="body2">
-                  <strong>Total Duration:</strong> {formData.totalDays} {formData.totalDays === 1 ? 'day' : 'days'}
-                </Typography>
-                {selectedLeaveType?.isPaidLeave && currentUser.employeeType === 'Admin Staff' && (
-                  <Typography variant="body2" sx={{ mt: 0.5 }}>
-                    This will deduct {formData.totalDays} days from your PTO balance
-                  </Typography>
-                )}
-              </Alert>
-            )}
-
-            {/* Balance Warning */}
-            {selectedLeaveType?.isPaidLeave && 
-             currentUser.employeeType === 'Admin Staff' && 
-             ptoBalance && 
-             formData.totalDays > ptoBalance.available && (
-              <Alert severity="warning" sx={{ mt: 2 }}>
-                You have {ptoBalance.available} days available. This request exceeds your current balance.
+            {validationErrors.dates && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {validationErrors.dates}
               </Alert>
             )}
           </Box>
         );
 
       case 2:
-        // Step 3: Review & Submit
         return (
           <Box>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              Review your leave request
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Please review the details and add any additional information
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#2c3e50' }}>
+              Review Your Request
             </Typography>
 
-            {/* Summary Card */}
-            <Paper sx={{ p: 3, mb: 3, bgcolor: 'grey.50' }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Leave Type
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                    {selectedLeaveType?.typeName}
-                  </Typography>
+            <Card elevation={2} sx={{ mb: 3 }}>
+              <CardContent>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                      Leave Type
+                    </Typography>
+                    <Chip 
+                      label={selectedLeaveType?.typeName}
+                      sx={{ 
+                        bgcolor: selectedLeaveType?.color || '#5B8FCC',
+                        color: 'white',
+                        fontWeight: 600
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                      Start Date
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{formData.startDate}</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                      End Date
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{formData.endDate}</Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                      Total Days
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#5B8FCC' }}>
+                      {formData.totalDays} day(s)
+                    </Typography>
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Duration
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                    {formData.totalDays} {formData.totalDays === 1 ? 'day' : 'days'}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Start Date
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                    {new Date(formData.startDate).toLocaleDateString('en-US', { 
-                      weekday: 'short', 
-                      year: 'numeric', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    End Date
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                    {new Date(formData.endDate).toLocaleDateString('en-US', { 
-                      weekday: 'short', 
-                      year: 'numeric', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Paper>
+              </CardContent>
+            </Card>
 
-            {/* Reason Input */}
             <TextField
-              label={selectedLeaveType?.requiresApproval ? "Reason for Leave *" : "Reason for Leave (Optional)"}
+              fullWidth
+              label="Reason (optional)"
               multiline
               rows={4}
-              fullWidth
               value={formData.reason}
               onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
-              placeholder="Please provide details about your leave request..."
-              error={Boolean(validationErrors.reason)}
-              helperText={validationErrors.reason || 'Provide a clear explanation for your leave request'}
-              sx={{ mb: 2 }}
+              placeholder="Provide a reason for your leave request..."
             />
 
-            {/* Approval Notice */}
-            {selectedLeaveType?.requiresApproval && (
-              <Alert severity="info">
-                This leave request requires approval from your manager. You will receive a notification once it has been reviewed.
+            {validationErrors.reason && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {validationErrors.reason}
               </Alert>
             )}
           </Box>
@@ -461,120 +397,127 @@ const RequestLeave = () => {
     }
   };
 
-  // Success Screen
+  // Show success message
   if (submitSuccess) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <SuccessIcon sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
-          <Typography variant="h4" sx={{ mb: 2, color: 'success.main' }}>
-            Request Submitted Successfully!
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Your leave request has been submitted and is now pending approval.
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Redirecting to My Requests...
-          </Typography>
-        </Paper>
-      </Container>
+      <Layout>
+        <Box>
+          <Paper sx={{ p: 4, textAlign: 'center', maxWidth: 600, mx: 'auto', mt: 4 }}>
+            <SuccessIcon sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
+            <Typography variant="h4" sx={{ mb: 2, fontWeight: 600, color: '#2c3e50' }}>
+              Request Submitted!
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Your leave request has been submitted successfully and is pending approval.
+            </Typography>
+            <Button variant="contained" onClick={() => navigate('/leave/my-requests')}>
+              View My Requests
+            </Button>
+          </Paper>
+        </Box>
+      </Layout>
+    );
+  }
+
+  if (!employee) {
+    return (
+      <Layout>
+        <Loading />
+      </Layout>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-          Request Time Off
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Submit a new leave request following the steps below
-        </Typography>
-      </Box>
+    <Layout>
+      <Box>
+        {/* Page Header - Matches Employee Module */}
+        <PageHeader
+          title="Request Time Off"
+          subtitle="Submit a new leave request following the steps below"
+          icon={<LeaveIcon />}
+          backgroundColor="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+        />
 
-      <Grid container spacing={3}>
-        {/* Left Column - PTO Balance (Admin Staff Only) */}
-        {currentUser.employeeType === 'Admin Staff' && (
-          <Grid item xs={12} md={4}>
-            <PTOBalanceCard
-              balance={ptoBalance}
-              loading={loadingBalance}
-              employeeType={currentUser.employeeType}
-            />
-          </Grid>
-        )}
-
-        {/* Right Column - Request Form */}
-        <Grid item xs={12} md={currentUser.employeeType === 'Admin Staff' ? 8 : 12}>
-          <Paper sx={{ p: 4 }}>
-            {/* Stepper */}
-            <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-              {steps.map((label) => (
-                <Step key={label}>
-                  <StepLabel>{label}</StepLabel>
-                </Step>
-              ))}
-            </Stepper>
-
-            <Divider sx={{ mb: 3 }} />
-
-            {/* Step Content */}
-            {renderStepContent()}
-
-            {/* Error Message */}
-            {submitError && (
-              <Alert severity="error" sx={{ mt: 3 }}>
-                {submitError}
-              </Alert>
+        <Grid container spacing={3}>
+          {/* Left Column - PTO Balance */}
+          <Grid item xs={12} md={3}>
+            {employee.employmentType === 'FullTime' && (
+              <PTOBalanceCard
+                balance={ptoBalance}
+                loading={loadingBalance}
+              />
             )}
+          </Grid>
 
-            {/* Navigation Buttons */}
-            <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
-              <Button
-                onClick={() => navigate('/leave/my-requests')}
-                startIcon={<BackIcon />}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
+          {/* Right Column - Form */}
+          <Grid item xs={12} md={9}>
+            <Card elevation={2}>
+              <CardContent sx={{ p: 4 }}>
+                {/* Stepper */}
+                <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+                  {steps.map((label) => (
+                    <Step key={label}>
+                      <StepLabel>{label}</StepLabel>
+                    </Step>
+                  ))}
+                </Stepper>
 
-              <Box sx={{ flex: 1 }} />
+                {/* Error Alert */}
+                {submitError && (
+                  <Alert severity="error" sx={{ mb: 3 }}>
+                    {submitError}
+                  </Alert>
+                )}
 
-              {activeStep > 0 && (
-                <Button
-                  onClick={handleBack}
-                  disabled={submitting}
-                >
-                  Back
-                </Button>
-              )}
+                {/* Step Content */}
+                {renderStepContent()}
 
-              {activeStep < steps.length - 1 ? (
-                <Button
-                  variant="contained"
-                  onClick={handleNext}
-                  endIcon={<NextIcon />}
-                  disabled={submitting}
-                >
-                  Next
-                </Button>
-              ) : (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleSubmit}
-                  startIcon={submitting ? <CircularProgress size={20} /> : <SubmitIcon />}
-                  disabled={submitting}
-                >
-                  {submitting ? 'Submitting...' : 'Submit Request'}
-                </Button>
-              )}
-            </Box>
-          </Paper>
+                <Divider sx={{ my: 3 }} />
+
+                {/* Navigation Buttons */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Button
+                    disabled={activeStep === 0}
+                    onClick={handleBack}
+                    startIcon={<BackIcon />}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Back
+                  </Button>
+
+                  {activeStep === steps.length - 1 ? (
+                    <Button
+                      variant="contained"
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                      startIcon={submitting ? null : <SubmitIcon />}
+                      sx={{ 
+                        textTransform: 'none',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                      }}
+                    >
+                      {submitting ? 'Submitting...' : 'Submit Request'}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      onClick={handleNext}
+                      endIcon={<NextIcon />}
+                      sx={{ 
+                        textTransform: 'none',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                      }}
+                    >
+                      Next
+                    </Button>
+                  )}
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
-    </Container>
+      </Box>
+    </Layout>
   );
 };
 

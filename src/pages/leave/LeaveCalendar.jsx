@@ -1,5 +1,5 @@
 // src/pages/leave/LeaveCalendar.jsx
-// Calendar view of all leave requests
+// Calendar view of all leave requests - CONNECTED TO API
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -26,29 +26,22 @@ import {
   ViewDay as DayIcon,
   Event as EventIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import Layout from '../../components/common/layout/Layout';
 import {
   getLeaveTypeColor,
   getLeaveTypeIcon,
   formatDate
-} from '../leave/models/leaveModels';
-
-/**
- * LeaveCalendar Page
- * 
- * Visual calendar view of leave requests:
- * - Month/Week/Day view
- * - Color-coded by leave type
- * - Click to view details
- * - Legend for leave types
- * 
- * Note: This is a simplified calendar implementation.
- * For production, consider using libraries like:
- * - react-big-calendar
- * - fullcalendar
- * - @mui/x-date-pickers
- */
+} from './models/leaveModels';
+import leaveService from '../../services/leaveService';
+import { authService } from '../../services/authService';
 
 const LeaveCalendar = () => {
+  const navigate = useNavigate();
+
+  // Get current user
+  const [currentUser, setCurrentUser] = useState(null);
+  const [employee, setEmployee] = useState(null);
 
   // View mode
   const [viewMode, setViewMode] = useState('month'); // month, week, day
@@ -64,65 +57,58 @@ const LeaveCalendar = () => {
   // Leave types for legend
   const [leaveTypes, setLeaveTypes] = useState([]);
 
-  // Load leave data
+  // Load current user on mount
   useEffect(() => {
-    fetchLeaveData();
-    fetchLeaveTypes();
-  }, [currentDate, viewMode]);
+    const user = authService.getCurrentUser();
+    const empData = JSON.parse(localStorage.getItem('employee'));
+    
+    if (user && empData) {
+      setCurrentUser(user);
+      setEmployee(empData);
+    } else {
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  // Load leave data when date or view changes
+  useEffect(() => {
+    if (employee) {
+      fetchLeaveData();
+      fetchLeaveTypes();
+    }
+  }, [currentDate, viewMode, employee]);
 
   const fetchLeaveData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // TODO: Replace with actual API call
-      // Get date range based on view mode
-      // const response = await leaveService.getLeaveCalendar(startDate, endDate);
+      // Calculate date range based on view mode
+      let startDate, endDate;
       
-      // Mock data
-      setTimeout(() => {
-        const mockLeaves = [
-          {
-            leaveRequestId: 1,
-            employeeName: 'John Doe',
-            leaveTypeName: 'PTO',
-            startDate: '2025-11-20',
-            endDate: '2025-11-22',
-            totalDays: 3,
-            status: 'Approved'
-          },
-          {
-            leaveRequestId: 2,
-            employeeName: 'Alice Johnson',
-            leaveTypeName: 'Sick Leave',
-            startDate: '2025-11-25',
-            endDate: '2025-11-25',
-            totalDays: 1,
-            status: 'Approved'
-          },
-          {
-            leaveRequestId: 3,
-            employeeName: 'Bob Wilson',
-            leaveTypeName: 'PTO',
-            startDate: '2025-12-01',
-            endDate: '2025-12-03',
-            totalDays: 3,
-            status: 'Pending'
-          },
-          {
-            leaveRequestId: 4,
-            employeeName: 'Carol Davis',
-            leaveTypeName: 'Bereavement',
-            startDate: '2025-11-28',
-            endDate: '2025-11-29',
-            totalDays: 2,
-            status: 'Approved'
-          }
-        ];
+      if (viewMode === 'month') {
+        startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      } else if (viewMode === 'week') {
+        const day = currentDate.getDay();
+        startDate = new Date(currentDate);
+        startDate.setDate(currentDate.getDate() - day);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+      } else {
+        startDate = new Date(currentDate);
+        endDate = new Date(currentDate);
+      }
 
-        setLeaves(mockLeaves);
-        setLoading(false);
-      }, 1000);
+      // Format dates for API
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+
+      // ✅ REAL API CALL
+      const response = await leaveService.getLeaveCalendar(startDateStr, endDateStr);
+      
+      setLeaves(response);
+      setLoading(false);
 
     } catch (error) {
       console.error('Error fetching leave calendar:', error);
@@ -132,14 +118,13 @@ const LeaveCalendar = () => {
   };
 
   const fetchLeaveTypes = async () => {
-    // Mock leave types for legend
-    setLeaveTypes([
-      { typeName: 'PTO', color: '#5B8FCC' },
-      { typeName: 'Sick Leave', color: '#e74c3c' },
-      { typeName: 'Unpaid Leave', color: '#95a5a6' },
-      { typeName: 'Bereavement', color: '#34495e' },
-      { typeName: 'Jury Duty', color: '#3498db' }
-    ]);
+    try {
+      // ✅ REAL API CALL
+      const response = await leaveService.getLeaveTypes();
+      setLeaveTypes(response);
+    } catch (error) {
+      console.error('Error fetching leave types:', error);
+    }
   };
 
   // Navigation
@@ -286,7 +271,7 @@ const LeaveCalendar = () => {
                             <Box
                               key={idx}
                               sx={{
-                                bgcolor: getLeaveTypeColor(leave.leaveTypeName),
+                                bgcolor: getLeaveTypeColor(leave.leaveType),
                                 color: 'white',
                                 px: 0.5,
                                 py: 0.25,
@@ -298,7 +283,7 @@ const LeaveCalendar = () => {
                                 textOverflow: 'ellipsis'
                               }}
                             >
-                              {getLeaveTypeIcon(leave.leaveTypeName)} {leave.employeeName.split(' ')[0]}
+                              {getLeaveTypeIcon(leave.leaveType)} {leave.employeeName || leave.employee?.firstName}
                             </Box>
                           ))}
                         </>
@@ -340,14 +325,14 @@ const LeaveCalendar = () => {
                       sx={{ 
                         width: 4, 
                         height: 60, 
-                        bgcolor: getLeaveTypeColor(leave.leaveTypeName),
+                        bgcolor: getLeaveTypeColor(leave.leaveType),
                         borderRadius: 1
                       }} 
                     />
                     <Box sx={{ flex: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                         <Typography variant="h6">
-                          {getLeaveTypeIcon(leave.leaveTypeName)} {leave.leaveTypeName}
+                          {getLeaveTypeIcon(leave.leaveType)} {leave.leaveType}
                         </Typography>
                         <Chip 
                           label={leave.status} 
@@ -356,7 +341,7 @@ const LeaveCalendar = () => {
                         />
                       </Box>
                       <Typography variant="body2" color="text.secondary">
-                        <strong>{leave.employeeName}</strong> • {formatDate(leave.startDate)} - {formatDate(leave.endDate)} ({leave.totalDays} days)
+                        <strong>{leave.employeeName || leave.employee?.firstName}</strong> • {formatDate(leave.startDate)} - {formatDate(leave.endDate)} ({leave.totalDays} days)
                       </Typography>
                     </Box>
                   </Box>
@@ -369,165 +354,170 @@ const LeaveCalendar = () => {
     );
   };
 
+  if (!employee) {
+    return (
+      <Layout>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
+          <CircularProgress />
+        </Container>
+      </Layout>
+    );
+  }
+
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-          Leave Calendar
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          View all scheduled and pending leave requests
-        </Typography>
-      </Box>
+    <Layout>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        {/* Header */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+            Leave Calendar
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            View all scheduled and pending leave requests
+          </Typography>
+        </Box>
 
-      <Grid container spacing={3}>
-        {/* Main Calendar Area */}
-        <Grid item xs={12} md={9}>
-          {/* Calendar Controls */}
-          <Paper sx={{ p: 2, mb: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-              {/* Navigation */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Button
-                  variant="outlined"
+        <Grid container spacing={3}>
+          {/* Main Calendar Area */}
+          <Grid item xs={12} md={9}>
+            {/* Calendar Controls */}
+            <Paper sx={{ p: 2, mb: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+                {/* Navigation */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<PrevIcon />}
+                    onClick={handlePrevious}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleToday}
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    endIcon={<NextIcon />}
+                    onClick={handleNext}
+                  >
+                    Next
+                  </Button>
+                </Box>
+
+                {/* Current View Title */}
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  {getViewTitle()}
+                </Typography>
+
+                {/* View Mode Toggle */}
+                <ToggleButtonGroup
+                  value={viewMode}
+                  exclusive
+                  onChange={(e, newMode) => newMode && setViewMode(newMode)}
                   size="small"
-                  startIcon={<PrevIcon />}
-                  onClick={handlePrevious}
                 >
-                  Previous
-                </Button>
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={handleToday}
-                >
-                  Today
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  endIcon={<NextIcon />}
-                  onClick={handleNext}
-                >
-                  Next
-                </Button>
+                  <ToggleButton value="month">
+                    <CalendarIcon sx={{ mr: 0.5 }} fontSize="small" />
+                    Month
+                  </ToggleButton>
+                  <ToggleButton value="week">
+                    <WeekIcon sx={{ mr: 0.5 }} fontSize="small" />
+                    Week
+                  </ToggleButton>
+                  <ToggleButton value="day">
+                    <DayIcon sx={{ mr: 0.5 }} fontSize="small" />
+                    Day
+                  </ToggleButton>
+                </ToggleButtonGroup>
               </Box>
+            </Paper>
 
-              {/* Current View Title */}
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                {getViewTitle()}
+            {/* Error State */}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+
+            {/* Calendar View */}
+            {viewMode === 'month' ? renderMonthView() : renderListView()}
+          </Grid>
+
+          {/* Right Sidebar - Legend & Info */}
+          <Grid item xs={12} md={3}>
+            {/* Legend */}
+            <Paper sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                Leave Types
               </Typography>
-
-              {/* View Mode Toggle */}
-              <ToggleButtonGroup
-                value={viewMode}
-                exclusive
-                onChange={(e, newMode) => newMode && setViewMode(newMode)}
-                size="small"
-              >
-                <ToggleButton value="month">
-                  <CalendarIcon sx={{ mr: 0.5 }} fontSize="small" />
-                  Month
-                </ToggleButton>
-                <ToggleButton value="week">
-                  <WeekIcon sx={{ mr: 0.5 }} fontSize="small" />
-                  Week
-                </ToggleButton>
-                <ToggleButton value="day">
-                  <DayIcon sx={{ mr: 0.5 }} fontSize="small" />
-                  Day
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-          </Paper>
-
-          {/* Error State */}
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          {/* Calendar View */}
-          {viewMode === 'month' ? renderMonthView() : renderListView()}
-        </Grid>
-
-        {/* Right Sidebar - Legend & Info */}
-        <Grid item xs={12} md={3}>
-          {/* Legend */}
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-              Leave Types
-            </Typography>
-            {leaveTypes.map(type => (
-              <Box 
-                key={type.typeName} 
-                sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 1, 
-                  mb: 1.5 
-                }}
-              >
+              {leaveTypes.map(type => (
                 <Box 
+                  key={type.leaveTypeId} 
                   sx={{ 
-                    width: 16, 
-                    height: 16, 
-                    bgcolor: type.color, 
-                    borderRadius: 1 
-                  }} 
-                />
-                <Typography variant="body2">
-                  {getLeaveTypeIcon(type.typeName)} {type.typeName}
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1, 
+                    mb: 1.5 
+                  }}
+                >
+                  <Box 
+                    sx={{ 
+                      width: 16, 
+                      height: 16, 
+                      bgcolor: type.color, 
+                      borderRadius: 1 
+                    }} 
+                  />
+                  <Typography variant="body2">
+                    {getLeaveTypeIcon(type.typeName)} {type.typeName}
+                  </Typography>
+                </Box>
+              ))}
+            </Paper>
+
+            {/* Quick Stats */}
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                This {viewMode === 'month' ? 'Month' : viewMode === 'week' ? 'Week' : 'Day'}
+              </Typography>
+              <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.light', borderRadius: 1, mb: 2 }}>
+                <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.dark' }}>
+                  {leaves.length}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Leave Requests
                 </Typography>
               </Box>
-            ))}
-          </Paper>
-
-          {/* Quick Stats */}
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-              This Month
-            </Typography>
-            <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.light', borderRadius: 1, mb: 2 }}>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.dark' }}>
-                {leaves.length}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Leave Requests
-              </Typography>
-            </Box>
-            
-            <Divider sx={{ my: 2 }} />
-            
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                Approved:
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {leaves.filter(l => l.status === 'Approved').length}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body2" color="text.secondary">
-                Pending:
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {leaves.filter(l => l.status === 'Pending').length}
-              </Typography>
-            </Box>
-          </Paper>
-
-          {/* Note about calendar library */}
-          <Alert severity="info" sx={{ mt: 3 }}>
-            <Typography variant="caption">
-              <strong>Note:</strong> This is a simplified calendar view. For production, consider integrating a full-featured calendar library like react-big-calendar or FullCalendar.
-            </Typography>
-          </Alert>
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Approved:
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {leaves.filter(l => l.status === 'Approved').length}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Pending:
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {leaves.filter(l => l.status === 'Pending').length}
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
         </Grid>
-      </Grid>
-    </Container>
+      </Container>
+    </Layout>
   );
 };
 

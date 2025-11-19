@@ -7,6 +7,7 @@ import {
   publicRoutes,
   dashboardRoutes,
   employeeRoutes,
+  leaveRoutes,        // ✅ ADD THIS
   redirectRoutes,
   profileRoutes,
 } from './routes';
@@ -44,13 +45,16 @@ function App() {
               element={<ProtectedRoute>{route.element}</ProtectedRoute>}
             />
           ))}
+
+          {/* Protected Profile Routes */}
           {profileRoutes.map((route, index) => (
-  <Route
-    key={`profile-${index}`}
-    path={route.path}
-    element={<ProtectedRoute>{route.element}</ProtectedRoute>}
-  />
-))}
+            <Route
+              key={`profile-${index}`}
+              path={route.path}
+              element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+            />
+          ))}
+
           {/* Protected Employee Routes */}
           {employeeRoutes.map((route, index) => (
             <Route
@@ -60,15 +64,14 @@ function App() {
             />
           ))}
 
-          {/* Add more route groups here as you build them */}
-          {/* Example: */}
-          {/* {attendanceRoutes.map((route, index) => (
+          {/* ✅ PROTECTED LEAVE ROUTES - ADD THIS SECTION */}
+          {leaveRoutes.map((route, index) => (
             <Route
-              key={`attendance-${index}`}
+              key={`leave-${index}`}
               path={route.path}
               element={<ProtectedRoute>{route.element}</ProtectedRoute>}
             />
-          ))} */}
+          ))}
 
           {/* Redirect Routes (catch-all and home) */}
           {redirectRoutes.map((route, index) => (
