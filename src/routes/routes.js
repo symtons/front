@@ -7,6 +7,7 @@ import Dashboard from '../pages/dashboard/Dashboard';
 import EmployeeDirectory from '../pages/employees/EmployeeDirectory';
 import AddEmployee from '../pages/employees/AddEmployee';
 import ViewEmployee from '../pages/employees/ViewEmployee';
+import MyProfile from '../pages/profile/MyProfile';
 
 // Protected Route Component
 export const ProtectedRoute = ({ children }) => {
@@ -30,7 +31,16 @@ export const publicRoutes = [
     element: <Login />,
   },
 ];
-
+export const profileRoutes = [
+  {
+    path: '/profile',
+    element: <MyProfile />,
+  },
+  {
+    path: '/settings/profile',
+    element: <MyProfile />,
+  },
+];
 // Dashboard Routes (Role-based)
 export const dashboardRoutes = [
   {
@@ -145,6 +155,7 @@ export const allRoutes = [
   ...attendanceRoutes,
   ...leaveRoutes,
   ...settingsRoutes,
+  ...profileRoutes,
   ...redirectRoutes,
 ];
 

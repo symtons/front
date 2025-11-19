@@ -8,6 +8,7 @@ import {
   dashboardRoutes,
   employeeRoutes,
   redirectRoutes,
+  profileRoutes,
 } from './routes';
 
 const theme = createTheme({
@@ -43,7 +44,13 @@ function App() {
               element={<ProtectedRoute>{route.element}</ProtectedRoute>}
             />
           ))}
-
+          {profileRoutes.map((route, index) => (
+  <Route
+    key={`profile-${index}`}
+    path={route.path}
+    element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+  />
+))}
           {/* Protected Employee Routes */}
           {employeeRoutes.map((route, index) => (
             <Route
