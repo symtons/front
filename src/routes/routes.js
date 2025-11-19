@@ -6,6 +6,7 @@ import Login from '../pages/auth/Login';
 import Dashboard from '../pages/dashboard/Dashboard';
 import EmployeeDirectory from '../pages/employees/EmployeeDirectory';
 import AddEmployee from '../pages/employees/AddEmployee';
+import ViewEmployee from '../pages/employees/ViewEmployee';
 
 // Protected Route Component
 export const ProtectedRoute = ({ children }) => {
@@ -71,6 +72,11 @@ export const employeeRoutes = [
   {
     path: '/employees/add',
     element: <AddEmployee />,
+  },
+  ,
+  {
+    path: '/employees/:id',        // ← ADD THIS
+    element: <ViewEmployee />,     // ← ADD THIS
   },
   // Add these when you create the pages:
   // {
