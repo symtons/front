@@ -8,6 +8,12 @@ import EmployeeDirectory from '../pages/employees/EmployeeDirectory';
 import AddEmployee from '../pages/employees/AddEmployee';
 import ViewEmployee from '../pages/employees/ViewEmployee';
 import MyProfile from '../pages/profile/MyProfile';
+import {
+  RequestLeave,
+  MyRequests,
+  ApproveRequests,
+  LeaveCalendar
+} from '../pages/leave';
 
 // Protected Route Component
 export const ProtectedRoute = ({ children }) => {
@@ -111,17 +117,7 @@ export const attendanceRoutes = [
   // },
 ];
 
-// Leave Management Routes (to be added later)
-export const leaveRoutes = [
-  // {
-  //   path: '/leave',
-  //   element: <LeaveList />,
-  // },
-  // {
-  //   path: '/leave/request',
-  //   element: <LeaveRequest />,
-  // },
-];
+
 
 // Settings Routes (to be added later)
 export const settingsRoutes = [
@@ -144,6 +140,24 @@ export const redirectRoutes = [
   {
     path: '*',
     element: <Navigate to="/login" replace />,
+  },
+];
+export const leaveRoutes = [
+  {
+    path: '/leave/request',
+    element: <RequestLeave />,
+  },
+  {
+    path: '/leave/my-requests',
+    element: <MyRequests />,
+  },
+  {
+    path: '/leave/approve',
+    element: <ApproveRequests />,
+  },
+  {
+    path: '/leave/calendar',
+    element: <LeaveCalendar />,
   },
 ];
 
