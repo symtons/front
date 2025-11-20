@@ -1,438 +1,460 @@
 // src/pages/leave/MyRequests.jsx
-// Page for viewing employee's own leave requests - CONNECTED TO API
-
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
-  Paper,
-  Typography,
   Box,
-  Grid,
-  Tabs,
-  Tab,
-  TextField,
-  MenuItem,
-  CircularProgress,
+  Typography,
   Alert,
-  Chip,
-  Button
+  Snackbar,
+  Grid,
+  CircularProgress
 } from '@mui/material';
 import {
-  FilterList as FilterIcon,
-  Search as SearchIcon,
-  Refresh as RefreshIcon
+  EventAvailable as LeaveIcon,
+  AddCircle as AddIcon,
+  Person as PersonIcon,
+  Badge as BadgeIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+
+// Universal Components
 import Layout from '../../components/common/layout/Layout';
-import { PTOBalanceCard, LeaveRequestCard } from './components';
+import PageHeader from '../../components/common/layout/PageHeader';
+import SearchBar from '../../components/common/filters/SearchBar';
+import FilterBar from '../../components/common/filters/FilterBar';
 import { EmptyState } from '../../components/common';
+
+// Leave-Specific Components
+import { LeaveRequestCard, PTOBalanceCard } from './components';
+
+// Services
+import leaveService from '../../services/leaveService';
+
+// Models
 import {
-  filterByStatus,
-  sortLeaveRequests,
-  calculateLeaveStats,
+  LEAVE_STATUS,
   LEAVE_STATUS_OPTIONS
 } from './models/leaveModels';
-import leaveService from '../../services/leaveService';
-import { authService } from '../../services/authService';
 
 const MyRequests = () => {
   const navigate = useNavigate();
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [filteredRequests, setFilteredRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   
-  // Get current user
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState('');
+  
+  // Leave types list
+  const [leaveTypes, setLeaveTypes] = useState([]);
+  
+  // Current user info
   const [currentUser, setCurrentUser] = useState(null);
-  const [employee, setEmployee] = useState(null);
-
+  
   // PTO Balance
   const [ptoBalance, setPtoBalance] = useState(null);
   const [loadingBalance, setLoadingBalance] = useState(true);
+  
+  // Success message
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  // Leave Requests
-  const [requests, setRequests] = useState([]);
-  const [filteredRequests, setFilteredRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Filters
-  const [activeTab, setActiveTab] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('requestedAt');
-  const [sortOrder, setSortOrder] = useState('desc');
-
-  // Stats
-  const [stats, setStats] = useState({
-    total: 0,
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-    cancelled: 0,
-    totalDays: 0
-  });
-
-  // Submission State
-  const [submitting, setSubmitting] = useState(false);
-
-  // Load current user on mount
+  // Fetch current user
   useEffect(() => {
-    const user = authService.getCurrentUser();
-    const empData = JSON.parse(localStorage.getItem('employee'));
-    
-    if (user && empData) {
-      setCurrentUser(user);
-      setEmployee(empData);
-    } else {
-      navigate('/login');
-    }
-  }, [navigate]);
+    const user = JSON.parse(localStorage.getItem('user'));
+    const employee = JSON.parse(localStorage.getItem('employee'));
+    setCurrentUser({ ...user, ...employee });
+  }, []);
 
-  // Load PTO Balance - REAL API CALL
+  // Fetch PTO Balance
   useEffect(() => {
-    const fetchPTOBalance = async () => {
-      if (!employee) return;
+    fetchPTOBalance();
+  }, []);
 
-      try {
-        setLoadingBalance(true);
-        
-        // ✅ REAL API CALL
-        const response = await leaveService.getPTOBalance(employee.employeeId);
-        
-        setPtoBalance({
-          total: response.totalPTODays || 0,
-          available: response.remainingPTODays || 0,
-          used: response.usedPTODays || 0,
-          pending: 0,
-          accrualRate: response.accrualRate || 0
-        });
-        
-        setLoadingBalance(false);
-      } catch (error) {
-        console.error('Error fetching PTO balance:', error);
-        setLoadingBalance(false);
-        
-        if (error.message?.includes('not eligible')) {
-          setPtoBalance({
-            total: 0,
-            available: 0,
-            used: 0,
-            pending: 0,
-            accrualRate: 0
-          });
-        }
-      }
-    };
-
-    if (employee) {
-      if (employee.employmentType === 'FullTime') {
-        fetchPTOBalance();
-      } else {
-        setLoadingBalance(false);
-        setPtoBalance({
-          total: 0,
-          available: 0,
-          used: 0,
-          pending: 0,
-          accrualRate: 0
-        });
-      }
-    }
-  }, [employee]);
-
-  // Load Leave Requests - REAL API CALL
+  // Fetch leave types
   useEffect(() => {
-    if (employee) {
-      fetchLeaveRequests();
+    fetchLeaveTypes();
+  }, []);
+
+  // Fetch leave requests
+  useEffect(() => {
+    fetchLeaveRequests();
+  }, []);
+
+  // Apply filters whenever filter states change
+  useEffect(() => {
+    applyFilters();
+  }, [searchTerm, statusFilter, leaveTypeFilter, leaveRequests]);
+
+  const fetchPTOBalance = async () => {
+    try {
+      setLoadingBalance(true);
+      const response = await leaveService.getMyBalance();
+      setPtoBalance(response);
+    } catch (err) {
+      console.error('Error fetching PTO balance:', err);
+    } finally {
+      setLoadingBalance(false);
     }
-  }, [employee]);
+  };
+
+  const fetchLeaveTypes = async () => {
+    try {
+      const response = await leaveService.getLeaveTypes();
+      setLeaveTypes(response);
+    } catch (err) {
+      console.error('Error fetching leave types:', err);
+    }
+  };
 
   const fetchLeaveRequests = async () => {
+    setLoading(true);
+    setError('');
+    
     try {
-      setLoading(true);
-      setError(null);
-
-      // ✅ REAL API CALL
-      const response = await leaveService.getMyRequests(employee.employeeId);
+      const response = await leaveService.getMyRequests();
+      let data = Array.isArray(response) ? response : [];
       
-      setRequests(response);
-      setFilteredRequests(response);
-      setStats(calculateLeaveStats(response));
-      setLoading(false);
-
-    } catch (error) {
-      console.error('Error fetching leave requests:', error);
-      setError('Failed to load leave requests. Please try again.');
+      // Sort by requested date (newest first)
+      data.sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
+      
+      setLeaveRequests(data);
+    } catch (err) {
+      console.error('Error fetching leave requests:', err);
+      setError(err.message || 'Failed to load leave requests');
+    } finally {
       setLoading(false);
     }
   };
 
-  // Apply Filters
-  useEffect(() => {
-    let filtered = [...requests];
-
-    // Tab filter
-    if (activeTab !== 'all') {
-      const tabStatus = activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
-      filtered = filterByStatus(filtered, tabStatus);
+  const applyFilters = () => {
+    let filtered = [...leaveRequests];
+    
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(req => {
+        const leaveTypeName = (req.leaveType || '').toLowerCase();
+        const reason = (req.reason || '').toLowerCase();
+        const search = searchTerm.toLowerCase();
+        return leaveTypeName.includes(search) || reason.includes(search);
+      });
     }
-
-    // Status dropdown filter
+    
+    // Filter by status
     if (statusFilter) {
-      filtered = filterByStatus(filtered, statusFilter);
+      filtered = filtered.filter(req => req.status === statusFilter);
     }
-
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(req => 
-        req.leaveType?.toLowerCase().includes(query) ||
-        req.reason?.toLowerCase().includes(query) ||
-        req.status?.toLowerCase().includes(query)
-      );
+    
+    // Filter by leave type
+    if (leaveTypeFilter) {
+      filtered = filtered.filter(req => req.leaveType === leaveTypeFilter);
     }
-
-    // Sort
-    filtered = sortLeaveRequests(filtered, sortBy, sortOrder);
-
+    
     setFilteredRequests(filtered);
-  }, [requests, activeTab, statusFilter, searchQuery, sortBy, sortOrder]);
-
-  // Handle Tab Change
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
   };
 
-  // Handle Cancel - REAL API CALL
-  const handleCancel = async (request) => {
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('');
+    setLeaveTypeFilter('');
+  };
+
+  const handleViewRequest = (leaveRequestId) => {
+    console.log('View request:', leaveRequestId);
+    // TODO: Navigate to view details page or open modal
+  };
+
+  const handleCancelRequest = async (leaveRequestId) => {
     if (!window.confirm('Are you sure you want to cancel this leave request?')) {
       return;
     }
 
     try {
-      setSubmitting(true);
-
-      // ✅ REAL API CALL
-      await leaveService.cancelRequest(request.leaveRequestId);
-
-      // Refresh the list
-      await fetchLeaveRequests();
-
-      setSubmitting(false);
-      alert('Leave request cancelled successfully!');
-
-    } catch (error) {
-      console.error('Error cancelling request:', error);
-      alert('Failed to cancel request. Please try again.');
-      setSubmitting(false);
+      await leaveService.cancelRequest(leaveRequestId);
+      setSuccessMessage('Leave request cancelled successfully');
+      setShowSuccess(true);
+      fetchLeaveRequests();
+    } catch (err) {
+      console.error('Error cancelling request:', err);
+      setError(err.message || 'Failed to cancel leave request');
     }
   };
 
-  // Handle View Details
-  const handleViewDetails = (request) => {
-    console.log('View details:', request);
-    // TODO: Open detailed view modal
+  const handleRequestLeave = () => {
+    navigate('/leave/request');
   };
 
-  if (!employee) {
-    return (
-      <Layout>
-        <Container maxWidth="xl" sx={{ py: 4 }}>
-          <CircularProgress />
-        </Container>
-      </Layout>
-    );
-  }
+  // Header chips
+  const headerChips = currentUser ? [
+    { icon: <PersonIcon />, label: currentUser.email },
+    { icon: <BadgeIcon />, label: currentUser.role?.roleName || currentUser.role || 'User' }
+  ] : [];
+
+  // Filter options
+  const filterOptions = [
+    {
+      id: 'status',
+      label: 'Status',
+      value: statusFilter,
+      onChange: (e) => setStatusFilter(e.target.value),
+      options: [
+        { value: '', label: 'All Statuses' },
+        ...LEAVE_STATUS_OPTIONS.filter(opt => opt.value !== '')
+      ]
+    },
+    {
+      id: 'leaveType',
+      label: 'Leave Type',
+      value: leaveTypeFilter,
+      onChange: (e) => setLeaveTypeFilter(e.target.value),
+      options: [
+        { value: '', label: 'All Types' },
+        ...leaveTypes.map(type => ({
+          value: type.typeName,
+          label: type.typeName
+        }))
+      ]
+    }
+  ];
+
+  // Calculate stats
+  const stats = {
+    total: leaveRequests.length,
+    pending: leaveRequests.filter(r => r.status === LEAVE_STATUS.PENDING).length,
+    approved: leaveRequests.filter(r => r.status === LEAVE_STATUS.APPROVED).length,
+    rejected: leaveRequests.filter(r => r.status === LEAVE_STATUS.REJECTED).length
+  };
 
   return (
     <Layout>
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-            My Leave Requests
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            View and manage your leave requests
-          </Typography>
+      <Box sx={{ p: 3 }}>
+        {/* Page Header */}
+        <PageHeader
+          icon={LeaveIcon}
+          title="My Leave Requests"
+          subtitle="View and manage your leave requests"
+          chips={headerChips}
+          actionButton={{
+            label: 'Request Leave',
+            icon: <AddIcon />,
+            onClick: handleRequestLeave
+          }}
+          backgroundColor="linear-gradient(135deg, #6AB4A8 0%, #559089 100%)"
+        />
+
+        {/* PTO Balance Card - Full Width on Top */}
+        <Box sx={{ mb: 3 }}>
+          <PTOBalanceCard
+            balance={ptoBalance}
+            loading={loadingBalance}
+            onRequestLeave={handleRequestLeave}
+          />
         </Box>
 
-        <Grid container spacing={3}>
-          {/* Left Column - PTO Balance & Stats */}
-          <Grid item xs={12} md={3}>
-            {/* PTO Balance */}
-            {employee.employmentType === 'FullTime' && (
-              <PTOBalanceCard
-                balance={ptoBalance}
-                loading={loadingBalance}
-              />
-            )}
-
-            {/* Quick Stats */}
-            <Paper sx={{ p: 3, mt: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                Overview
+        {/* Statistics Cards Row */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {/* Total Requests */}
+          <Grid item xs={6} sm={6} md={3}>
+            <Box sx={{
+              p: 2.5,
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: '#fff',
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.2)',
+              transition: 'transform 0.2s',
+              '&:hover': { transform: 'translateY(-4px)' },
+              textAlign: 'center'
+            }}>
+              <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, display: 'block', mb: 1 }}>
+                Total Requests
               </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.light', borderRadius: 1 }}>
-                    <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.dark' }}>
-                      {stats.total}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Total Requests
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={4}>
-                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'warning.light', borderRadius: 1 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: 'warning.dark' }}>
-                      {stats.pending}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Pending
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={4}>
-                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'success.light', borderRadius: 1 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.dark' }}>
-                      {stats.approved}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Approved
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={4}>
-                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'error.light', borderRadius: 1 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: 'error.dark' }}>
-                      {stats.rejected}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Rejected
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-            </Paper>
+              <Typography variant="h3" sx={{ fontWeight: 700 }}>
+                {stats.total}
+              </Typography>
+            </Box>
           </Grid>
 
-          {/* Right Column - Requests List */}
-          <Grid item xs={12} md={9}>
-            <Paper sx={{ p: 3 }}>
-              {/* Tabs */}
-              <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
-                <Tab label="All" value="all" />
-                <Tab 
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      Pending
-                      {stats.pending > 0 && (
-                        <Chip label={stats.pending} size="small" color="warning" />
-                      )}
-                    </Box>
-                  } 
-                  value="pending" 
-                />
-                <Tab label="Approved" value="approved" />
-                <Tab label="Rejected" value="rejected" />
-                <Tab label="Cancelled" value="cancelled" />
-              </Tabs>
+          {/* Pending */}
+          <Grid item xs={6} sm={6} md={3}>
+            <Box sx={{
+              p: 2.5,
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              color: '#fff',
+              boxShadow: '0 4px 12px rgba(240, 147, 251, 0.2)',
+              transition: 'transform 0.2s',
+              '&:hover': { transform: 'translateY(-4px)' },
+              textAlign: 'center'
+            }}>
+              <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, display: 'block', mb: 1 }}>
+                Pending
+              </Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700 }}>
+                {stats.pending}
+              </Typography>
+            </Box>
+          </Grid>
 
-              {/* Filters */}
-              <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-                <TextField
-                  placeholder="Search..."
-                  size="small"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  InputProps={{
-                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                  }}
-                  sx={{ flex: 1, minWidth: 250 }}
-                />
+          {/* Approved */}
+          <Grid item xs={6} sm={6} md={3}>
+            <Box sx={{
+              p: 2.5,
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              color: '#fff',
+              boxShadow: '0 4px 12px rgba(79, 172, 254, 0.2)',
+              transition: 'transform 0.2s',
+              '&:hover': { transform: 'translateY(-4px)' },
+              textAlign: 'center'
+            }}>
+              <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, display: 'block', mb: 1 }}>
+                Approved
+              </Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700 }}>
+                {stats.approved}
+              </Typography>
+            </Box>
+          </Grid>
 
-                <TextField
-                  select
-                  size="small"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  sx={{ minWidth: 150 }}
-                  InputProps={{
-                    startAdornment: <FilterIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                  }}
-                >
-                  {LEAVE_STATUS_OPTIONS.map(option => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-
-                <Button
-                  variant="outlined"
-                  startIcon={<RefreshIcon />}
-                  onClick={fetchLeaveRequests}
-                  disabled={loading}
-                >
-                  Refresh
-                </Button>
-
-                <Button
-                  variant="contained"
-                  onClick={() => navigate('/leave/request')}
-                >
-                  New Request
-                </Button>
-              </Box>
-
-              {/* Loading State */}
-              {loading && (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <CircularProgress />
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                    Loading requests...
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Error State */}
-              {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
-                </Alert>
-              )}
-
-              {/* Empty State */}
-              {!loading && !error && filteredRequests.length === 0 && (
-                <EmptyState
-                  title="No leave requests found"
-                  message={
-                    activeTab === 'all'
-                      ? "You haven't submitted any leave requests yet"
-                      : `No ${activeTab} leave requests found`
-                  }
-                  actionLabel="Request Leave"
-                  onAction={() => navigate('/leave/request')}
-                />
-              )}
-
-              {/* Requests List */}
-              {!loading && !error && filteredRequests.length > 0 && (
-                <Box>
-                  {filteredRequests.map(request => (
-                    <LeaveRequestCard
-                      key={request.leaveRequestId}
-                      request={request}
-                      viewMode="employee"
-                      onCancel={handleCancel}
-                      onView={handleViewDetails}
-                    />
-                  ))}
-                </Box>
-              )}
-            </Paper>
+          {/* Rejected */}
+          <Grid item xs={6} sm={6} md={3}>
+            <Box sx={{
+              p: 2.5,
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+              color: '#fff',
+              boxShadow: '0 4px 12px rgba(250, 112, 154, 0.2)',
+              transition: 'transform 0.2s',
+              '&:hover': { transform: 'translateY(-4px)' },
+              textAlign: 'center'
+            }}>
+              <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, display: 'block', mb: 1 }}>
+                Rejected
+              </Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700 }}>
+                {stats.rejected}
+              </Typography>
+            </Box>
           </Grid>
         </Grid>
-      </Container>
+
+        {/* Search and Filters */}
+        <Box sx={{ mb: 3 }}>
+          <SearchBar
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Search by leave type or reason..."
+          />
+          <FilterBar
+            filters={filterOptions}
+            onClearFilters={handleClearFilters}
+          />
+        </Box>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
+
+        {/* Section Header */}
+        <Box sx={{ 
+          mb: 2, 
+          pb: 1, 
+          borderBottom: '2px solid #e0e0e0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#2c3e50' }}>
+              Leave Requests
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {loading ? 'Loading...' : `${filteredRequests.length} ${filteredRequests.length === 1 ? 'request' : 'requests'} found`}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Loading State */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* Leave Request Cards (using Leave component) */}
+        {!loading && filteredRequests.length > 0 && (
+          <Grid container spacing={2}>
+            {filteredRequests.map((request) => (
+              <Grid item xs={12} key={request.leaveRequestId}>
+                <LeaveRequestCard
+                  request={{
+                    leaveRequestId: request.leaveRequestId,
+                    leaveTypeName: request.leaveType,
+                    startDate: request.startDate,
+                    endDate: request.endDate,
+                    totalDays: request.totalDays,
+                    reason: request.reason,
+                    status: request.status,
+                    requestedAt: request.requestedAt,
+                    approverName: request.approvedBy,
+                    approvedAt: request.approvedAt,
+                    rejectionReason: request.rejectionReason
+                  }}
+                  viewMode="employee"
+                  onCancel={request.canCancel ? () => handleCancelRequest(request.leaveRequestId) : null}
+                  onView={() => handleViewRequest(request.leaveRequestId)}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        )}
+
+        {/* Empty State (using universal component) */}
+        {!loading && filteredRequests.length === 0 && (
+          <EmptyState
+            icon={LeaveIcon}
+            title="No Leave Requests Found"
+            description={
+              searchTerm || statusFilter || leaveTypeFilter
+                ? "Try adjusting your filters to see more results"
+                : "You haven't submitted any leave requests yet"
+            }
+            actionButton={
+              !searchTerm && !statusFilter && !leaveTypeFilter
+                ? {
+                    label: 'Request Leave',
+                    onClick: handleRequestLeave
+                  }
+                : undefined
+            }
+          />
+        )}
+
+        {/* Success Snackbar */}
+        <Snackbar
+          open={showSuccess}
+          autoHideDuration={6000}
+          onClose={() => setShowSuccess(false)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <Alert 
+            onClose={() => setShowSuccess(false)} 
+            severity="success" 
+            sx={{ width: '100%' }}
+          >
+            {successMessage}
+          </Alert>
+        </Snackbar>
+      </Box>
     </Layout>
   );
 };

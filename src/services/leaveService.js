@@ -1,51 +1,57 @@
 // src/services/leaveService.js
-// Leave Management API Service
+// Leave Management API Service - CORRECTED VERSION
 
 import api from './authService';
 
 /**
  * Leave Management Service
  * 
- * Handles all API calls for leave management:
- * - PTO Balance
- * - Leave Types
- * - Submit/Cancel Requests
- * - Approval Workflow
- * - Calendar Data
+ * Handles all API calls for leave management matching backend LeaveController endpoints
  */
 
 const leaveService = {
   
   // ============================================
-  // PTO BALANCE
+  // LEAVE REQUESTS
   // ============================================
 
   /**
-   * Get PTO balance for an employee
-   * GET /api/Leave/Balance/{employeeId}
+   * Get all leave requests for current logged-in user
+   * GET /api/Leave/MyRequests
+   * No parameters needed - uses JWT token to identify user
    */
-  getPTOBalance: async (employeeId) => {
+  getMyRequests: async () => {
     try {
-      const response = await api.get(`/Leave/Balance/${employeeId}`);
+      const response = await api.get('/Leave/MyRequests');
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to load PTO balance' };
+      throw error.response?.data || { message: 'Failed to load leave requests' };
     }
   },
 
   /**
-   * Adjust employee PTO balance (Admin only)
-   * POST /api/Leave/Balance/{employeeId}/Adjust
+   * Submit a new leave request
+   * POST /api/Leave/Request
    */
-  adjustPTOBalance: async (employeeId, adjustment, reason) => {
+  submitLeaveRequest: async (requestData) => {
     try {
-      const response = await api.post(`/Leave/Balance/${employeeId}/Adjust`, {
-        adjustment,
-        reason
-      });
+      const response = await api.post('/Leave/Request', requestData);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to adjust PTO balance' };
+      throw error.response?.data || { message: 'Failed to submit leave request' };
+    }
+  },
+
+  /**
+   * Cancel a pending leave request
+   * DELETE /api/Leave/Cancel/{id}
+   */
+  cancelRequest: async (leaveRequestId) => {
+    try {
+      const response = await api.delete(`/Leave/Cancel/${leaveRequestId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to cancel leave request' };
     }
   },
 
@@ -66,169 +72,31 @@ const leaveService = {
     }
   },
 
-  /**
-   * Get leave type by ID
-   * GET /api/Leave/Types/{leaveTypeId}
-   */
-  getLeaveTypeById: async (leaveTypeId) => {
-    try {
-      const response = await api.get(`/Leave/Types/${leaveTypeId}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load leave type' };
-    }
-  },
-
-  /**
-   * Create a new leave type (Admin only)
-   * POST /api/Leave/Types
-   */
-  createLeaveType: async (leaveTypeData) => {
-    try {
-      const response = await api.post('/Leave/Types', leaveTypeData);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to create leave type' };
-    }
-  },
-
-  /**
-   * Update a leave type (Admin only)
-   * PUT /api/Leave/Types/{leaveTypeId}
-   */
-  updateLeaveType: async (leaveTypeId, updateData) => {
-    try {
-      const response = await api.put(`/Leave/Types/${leaveTypeId}`, updateData);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to update leave type' };
-    }
-  },
-
-  /**
-   * Delete/Deactivate a leave type (Admin only)
-   * DELETE /api/Leave/Types/{leaveTypeId}
-   */
-  deleteLeaveType: async (leaveTypeId) => {
-    try {
-      const response = await api.delete(`/Leave/Types/${leaveTypeId}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to delete leave type' };
-    }
-  },
-
   // ============================================
-  // SUBMIT & MANAGE REQUESTS (Employee)
-  // ============================================
-
-  /**
-   * Submit a new leave request
-   * POST /api/Leave/Request
-   */
-  submitLeaveRequest: async (requestData) => {
-    try {
-      const response = await api.post('/Leave/Request', requestData);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to submit leave request' };
-    }
-  },
-
-  /**
-   * Get all leave requests for an employee
-   * GET /api/Leave/Requests/Employee/{employeeId}
-   */
-  getMyRequests: async (employeeId) => {
-    try {
-      const response = await api.get(`/Leave/Requests/Employee/${employeeId}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load leave requests' };
-    }
-  },
-
-  /**
-   * Get a specific leave request by ID
-   * GET /api/Leave/Request/{leaveRequestId}
-   */
-  getRequestById: async (leaveRequestId) => {
-    try {
-      const response = await api.get(`/Leave/Request/${leaveRequestId}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load leave request' };
-    }
-  },
-
-  /**
-   * Cancel a pending leave request
-   * PUT /api/Leave/Request/{leaveRequestId}/Cancel
-   */
-  cancelRequest: async (leaveRequestId) => {
-    try {
-      const response = await api.put(`/Leave/Request/${leaveRequestId}/Cancel`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to cancel leave request' };
-    }
-  },
-
-  /**
-   * Update a pending leave request
-   * PUT /api/Leave/Request/{leaveRequestId}
-   */
-  updateRequest: async (leaveRequestId, updateData) => {
-    try {
-      const response = await api.put(`/Leave/Request/${leaveRequestId}`, updateData);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to update leave request' };
-    }
-  },
-
-  // ============================================
-  // APPROVAL WORKFLOW (Manager/Admin)
+  // APPROVAL WORKFLOW (Directors/Executives)
   // ============================================
 
   /**
    * Get all pending requests for approval
-   * GET /api/Leave/Requests/Pending
+   * GET /api/Leave/PendingApprovals
    */
-  getPendingRequests: async (roleLevel) => {
+  getPendingApprovals: async () => {
     try {
-      const response = await api.get('/Leave/Requests/Pending', {
-        params: { roleLevel }
-      });
+      const response = await api.get('/Leave/PendingApprovals');
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to load pending requests' };
-    }
-  },
-
-  /**
-   * Get all leave requests (for managers)
-   * GET /api/Leave/Requests
-   */
-  getAllRequests: async (filters = {}) => {
-    try {
-      const response = await api.get('/Leave/Requests', {
-        params: filters
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load leave requests' };
+      throw error.response?.data || { message: 'Failed to load pending approvals' };
     }
   },
 
   /**
    * Approve a leave request
-   * PUT /api/Leave/Request/{leaveRequestId}/Approve
+   * PUT /api/Leave/Approve/{id}
    */
-  approveRequest: async (leaveRequestId, approvedBy) => {
+  approveRequest: async (leaveRequestId, approvalNotes = '') => {
     try {
-      const response = await api.put(`/Leave/Request/${leaveRequestId}/Approve`, {
-        approvedBy
+      const response = await api.put(`/Leave/Approve/${leaveRequestId}`, {
+        approvalNotes
       });
       return response.data;
     } catch (error) {
@@ -238,12 +106,11 @@ const leaveService = {
 
   /**
    * Reject a leave request
-   * PUT /api/Leave/Request/{leaveRequestId}/Reject
+   * PUT /api/Leave/Reject/{id}
    */
-  rejectRequest: async (leaveRequestId, rejectedBy, rejectionReason) => {
+  rejectRequest: async (leaveRequestId, rejectionReason) => {
     try {
-      const response = await api.put(`/Leave/Request/${leaveRequestId}/Reject`, {
-        rejectedBy,
+      const response = await api.put(`/Leave/Reject/${leaveRequestId}`, {
         rejectionReason
       });
       return response.data;
@@ -252,129 +119,37 @@ const leaveService = {
     }
   },
 
+  // ============================================
+  // PTO BALANCE
+  // ============================================
+
   /**
-   * Bulk approve multiple requests
-   * POST /api/Leave/Requests/BulkApprove
+   * Get PTO balance for current user
+   * GET /api/Leave/MyBalance
    */
-  bulkApprove: async (requestIds, approvedBy) => {
+  getMyBalance: async () => {
     try {
-      const response = await api.post('/Leave/Requests/BulkApprove', {
-        requestIds,
-        approvedBy
-      });
+      const response = await api.get('/Leave/MyBalance');
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to bulk approve requests' };
+      throw error.response?.data || { message: 'Failed to load PTO balance' };
     }
   },
 
   // ============================================
-  // CALENDAR & REPORTING
+  // CALENDAR & STATISTICS
   // ============================================
 
   /**
-   * Get leave calendar data for a date range
-   * GET /api/Leave/Calendar
-   */
-  getLeaveCalendar: async (startDate, endDate) => {
-    try {
-      const response = await api.get('/Leave/Calendar', {
-        params: { startDate, endDate }
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load leave calendar' };
-    }
-  },
-
-  /**
-   * Get leave statistics for reporting
+   * Get leave statistics (if endpoint exists)
    * GET /api/Leave/Statistics
    */
-  getLeaveStatistics: async (params = {}) => {
+  getStatistics: async () => {
     try {
-      const response = await api.get('/Leave/Statistics', {
-        params
-      });
+      const response = await api.get('/Leave/Statistics');
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to load leave statistics' };
-    }
-  },
-
-  /**
-   * Export leave data to CSV/Excel
-   * GET /api/Leave/Export
-   */
-  exportLeaveData: async (filters = {}, format = 'csv') => {
-    try {
-      const response = await api.get('/Leave/Export', {
-        params: { ...filters, format },
-        responseType: 'blob'
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to export leave data' };
-    }
-  },
-
-  // ============================================
-  // EMPLOYEE MANAGEMENT
-  // ============================================
-
-  /**
-   * Get list of employees (for filters/dropdowns)
-   * GET /api/Employee/Directory
-   */
-  getEmployees: async () => {
-    try {
-      const response = await api.get('/Employee/Directory');
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load employees' };
-    }
-  },
-
-  /**
-   * Get employee details with leave info
-   * GET /api/Leave/Employee/{employeeId}
-   */
-  getEmployeeLeaveInfo: async (employeeId) => {
-    try {
-      const response = await api.get(`/Leave/Employee/${employeeId}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load employee leave info' };
-    }
-  },
-
-  // ============================================
-  // NOTIFICATIONS
-  // ============================================
-
-  /**
-   * Get leave notifications for current user
-   * GET /api/Leave/Notifications/{userId}
-   */
-  getNotifications: async (userId) => {
-    try {
-      const response = await api.get(`/Leave/Notifications/${userId}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load notifications' };
-    }
-  },
-
-  /**
-   * Mark notification as read
-   * PUT /api/Leave/Notifications/{notificationId}/Read
-   */
-  markNotificationRead: async (notificationId) => {
-    try {
-      const response = await api.put(`/Leave/Notifications/${notificationId}/Read`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to mark notification as read' };
+      throw error.response?.data || { message: 'Failed to load statistics' };
     }
   }
 };
