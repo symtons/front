@@ -1,5 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
+import JobApplicationForm from '../pages/recruitment/JobApplicationForm';
 
 // Import components
 import Login from '../pages/auth/Login';
@@ -35,6 +36,10 @@ export const publicRoutes = [
   {
     path: '/login',
     element: <Login />,
+  },
+  {
+    path: '/apply',  // Public application page
+    element: <JobApplicationForm />,
   },
 ];
 export const profileRoutes = [

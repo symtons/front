@@ -1,9 +1,9 @@
 // src/pages/recruitment/models/jobApplicationModels.js
 /**
- * Job Application Models, Constants, and Helper Functions
+ * Comprehensive Job Application Models - Matching TPA Paper Form
  * 
  * This file contains all data structures, validation logic, and helper functions
- * for the Job Application module, following the established patterns in the project.
+ * for the complete TPA job application process
  */
 
 // ============================================
@@ -11,7 +11,7 @@
 // ============================================
 
 /**
- * Gender options for application form
+ * Gender options
  */
 export const GENDER_OPTIONS = [
   { value: '', label: 'Select Gender' },
@@ -22,69 +22,72 @@ export const GENDER_OPTIONS = [
 ];
 
 /**
- * Employee type preference options
+ * Employment type options
  */
-export const EMPLOYEE_TYPE_OPTIONS = [
-  { value: '', label: 'Select Employee Type' },
-  { value: 'AdminStaff', label: 'Admin Staff' },
-  { value: 'FieldStaff', label: 'Field Staff' }
+export const EMPLOYMENT_TYPE_OPTIONS = [
+  { value: '', label: 'Select Employment Type' },
+  { value: 'FullTime', label: 'Full Time' },
+  { value: 'PartTime', label: 'Part Time' },
+  { value: 'Temporary', label: 'Temporary' }
 ];
 
 /**
- * Education level options
+ * Salary type options
  */
-export const EDUCATION_LEVEL_OPTIONS = [
-  { value: '', label: 'Select Education Level' },
-  { value: 'HighSchool', label: 'High School Diploma/GED' },
-  { value: 'Associate', label: 'Associate Degree' },
-  { value: 'Bachelor', label: 'Bachelor\'s Degree' },
-  { value: 'Master', label: 'Master\'s Degree' },
-  { value: 'PhD', label: 'Doctorate (PhD)' },
+export const SALARY_TYPE_OPTIONS = [
+  { value: '', label: 'Select Salary Type' },
+  { value: 'Hourly', label: 'Hourly' },
+  { value: 'Yearly', label: 'Yearly' }
+];
+
+/**
+ * Location preferences
+ */
+export const LOCATION_OPTIONS = [
+  { value: 'Nashville', label: 'Nashville' },
+  { value: 'Franklin', label: 'Franklin' },
+  { value: 'Shelbyville', label: 'Shelbyville' },
+  { value: 'Waynesboro', label: 'Waynesboro' },
   { value: 'Other', label: 'Other' }
 ];
 
 /**
- * Department preference options (should match backend Departments)
+ * Shift preferences
  */
-export const DEPARTMENT_OPTIONS = [
-  { value: '', label: 'Select Department' },
-  { value: 'Nursing', label: 'Nursing' },
-  { value: 'EventManagement', label: 'Event Management' },
-  { value: 'HR', label: 'Human Resources' },
-  { value: 'IT', label: 'Information Technology' },
-  { value: 'Finance', label: 'Finance' },
-  { value: 'Programs', label: 'Programs' }
+export const SHIFT_OPTIONS = [
+  { value: '1stShift', label: '1st Shift' },
+  { value: '2ndShift', label: '2nd Shift' },
+  { value: '3rdShift', label: '3rd Shift' },
+  { value: 'WeekendsOnly', label: 'Weekends Only' }
 ];
 
 /**
- * How did you hear about us options
+ * Days of the week
  */
-export const HOW_HEARD_OPTIONS = [
-  { value: '', label: 'Select an option' },
-  { value: 'Website', label: 'Company Website' },
-  { value: 'LinkedIn', label: 'LinkedIn' },
-  { value: 'Indeed', label: 'Indeed' },
-  { value: 'Glassdoor', label: 'Glassdoor' },
-  { value: 'Referral', label: 'Employee Referral' },
-  { value: 'JobFair', label: 'Job Fair' },
-  { value: 'SocialMedia', label: 'Social Media' },
-  { value: 'Other', label: 'Other' }
+export const DAYS_OF_WEEK = [
+  { value: 'Monday', label: 'Mon' },
+  { value: 'Tuesday', label: 'Tues' },
+  { value: 'Wednesday', label: 'Wed' },
+  { value: 'Thursday', label: 'Thurs' },
+  { value: 'Friday', label: 'Fri' },
+  { value: 'Saturday', label: 'Sat' },
+  { value: 'Sunday', label: 'Sun' }
 ];
 
 /**
- * Availability type options
+ * Education levels
  */
-export const AVAILABILITY_OPTIONS = [
-  { value: '', label: 'Select Availability' },
-  { value: 'FullTime', label: 'Full-Time' },
-  { value: 'PartTime', label: 'Part-Time' },
-  { value: 'Either', label: 'Either Full-Time or Part-Time' }
+export const EDUCATION_LEVELS = [
+  { value: 'ElementarySchool', label: 'Elementary School' },
+  { value: 'HighSchool', label: 'High School' },
+  { value: 'UndergraduateCollege', label: 'Undergraduate College/University' },
+  { value: 'GraduateProfessional', label: 'Graduate/Professional' }
 ];
 
 /**
- * US States options
+ * US States
  */
-export const STATE_OPTIONS = [
+export const US_STATES = [
   { value: '', label: 'Select State' },
   { value: 'AL', label: 'Alabama' },
   { value: 'AK', label: 'Alaska' },
@@ -138,59 +141,174 @@ export const STATE_OPTIONS = [
   { value: 'WY', label: 'Wyoming' }
 ];
 
-/**
- * Application status constants
- */
-export const APPLICATION_STATUS = {
-  SUBMITTED: 'Submitted',
-  UNDER_REVIEW: 'UnderReview',
-  PENDING: 'Pending',
-  APPROVED: 'Approved',
-  REJECTED: 'Rejected'
-};
-
 // ============================================
-// INITIAL FORM DATA
+// INITIAL FORM DATA STRUCTURE
 // ============================================
 
 /**
- * Get initial empty form data structure
- * @returns {Object} Initial form data
+ * Get initial empty form data structure matching paper form
  */
 export const getInitialApplicationFormData = () => ({
-  // Personal Information
-  firstName: '',
+  // Step 1: Personal Information
+  applicationDate: new Date().toISOString().split('T')[0],
   lastName: '',
+  firstName: '',
   middleName: '',
-  dateOfBirth: '',
-  gender: '',
-  phoneNumber: '',
-  email: '',
-  address: '',
+  homeAddress: '',
+  aptNumber: '',
   city: '',
   state: '',
   zipCode: '',
-  country: 'USA',
+  socialSecurityNumber: '',
+  driversLicenseNumber: '',
+  driversLicenseState: '',
+  phoneNumber: '',
+  cellNumber: '',
+  emergencyContactPerson: '',
+  emergencyContactRelationship: '',
+  emergencyContactAddress: '',
+  emergencyContactPhone: '',
 
-  // Position Details
-  positionAppliedFor: '',
-  departmentPreference: '',
-  preferredEmployeeType: '',
-  expectedStartDate: '',
-  desiredSalary: '',
+  // Step 2: Position & Availability
+  position1: '',
+  position2: '',
+  salaryDesired: '',
+  salaryType: '', // Hourly or Yearly
+  availableStartDate: '',
+  employmentSought: '', // FullTime, PartTime, Temporary
+  desiredLocations: [], // Array of selected locations
+  desiredLocationOther: '',
+  shiftPreferences: [], // Array of selected shifts
+  daysAvailable: [], // Array of selected days
 
-  // Experience & Qualifications
-  yearsOfExperience: '',
-  educationLevel: '',
-  certifications: '',
-  previousEmployer: '',
-  skills: '',
+  // Step 3: Background & Eligibility Questions
+  previouslyAppliedToTPA: null, // true/false
+  previouslyAppliedWhen: '',
+  previouslyWorkedForTPA: null,
+  previouslyWorkedWhen: '',
+  familyMembersAtTPA: null,
+  familyMembersWho: '',
+  usCitizenOrResident: null,
+  alienNumber: '',
+  legallyEntitledToWork: null,
+  eighteenOrOlder: null,
+  servedInArmedForces: null,
+  convictedOfCrime: null,
+  crimeDetails: [], // Array of {date, charge, statusOrOutcome}
+  nameOnAbuseRegistry: null,
+  foundGuiltyOfAbuse: null,
+  healthcareLicenseIssues: null,
 
-  // Additional Information
-  howDidYouHear: '',
-  availabilityType: '',
-  willingToRelocate: false,
-  additionalNotes: ''
+  // Step 4: Education
+  educationHistory: [
+    // {
+    //   level: 'HighSchool', // ElementarySchool, HighSchool, UndergraduateCollege, GraduateProfessional
+    //   schoolName: '',
+    //   location: '',
+    //   yearsCompleted: '',
+    //   hasDiploma: null,
+    //   majorMinor: '',
+    //   specializedTraining: ''
+    // }
+  ],
+  specialSkillsKnowledge: '',
+  typingSpeedWPM: '',
+
+  // Step 5: Licenses & Certifications
+  licensesAndCertifications: [
+    // {
+    //   type: '',
+    //   state: '',
+    //   idNumber: '',
+    //   expirationDate: ''
+    // }
+  ],
+  diddTrainingClasses: '',
+
+  // Step 6: Professional References
+  references: [
+    {
+      firstName: '',
+      lastName: '',
+      phoneNumber: '',
+      email: '',
+      yearsKnown: ''
+    },
+    {
+      firstName: '',
+      lastName: '',
+      phoneNumber: '',
+      email: '',
+      yearsKnown: ''
+    },
+    {
+      firstName: '',
+      lastName: '',
+      phoneNumber: '',
+      email: '',
+      yearsKnown: ''
+    }
+  ],
+
+  // Step 7: Employment History
+  employmentHistory: [
+    // {
+    //   employer: '',
+    //   address: '',
+    //   city: '',
+    //   state: '',
+    //   zipCode: '',
+    //   telephoneNumber: '',
+    //   jobTitle: '',
+    //   supervisor: '',
+    //   employedFrom: '',
+    //   employedTo: '',
+    //   startingPay: '',
+    //   finalPay: '',
+    //   workPerformed: '',
+    //   stillEmployed: null,
+    //   reasonForLeaving: '',
+    //   eligibleForRehire: null
+    // }
+  ],
+
+  // Step 8: Background Check Authorization & Disclosures
+  backgroundCheckConsent: false,
+  backgroundCheckDate: '',
+  backgroundCheckSignature: '',
+  
+  // New York specific (if applicable)
+  nyApplicant: false,
+  nyConsentToReport: false,
+  
+  // Minnesota/Oklahoma specific
+  mnOkApplicant: false,
+  mnOkConsentToReport: false,
+  
+  // California specific
+  caApplicant: false,
+  caConsentToReport: false,
+  
+  // Reference check authorization
+  referenceCheckConsent: false,
+  referenceCheckSSNLast4: '',
+  referenceCheckDate: '',
+  referenceCheckSignature: '',
+  
+  // DIDD/TennCare authorization
+  hasNoAbuseCaseAgainstMe: null,
+  hasAbuseCaseAgainstMe: null,
+  diddAuthorizationConsent: false,
+  diddFullName: '',
+  diddSSN: '',
+  diddDOB: '',
+  diddDriverLicense: '',
+  diddWitnessName: '',
+  
+  // Protection from harm statement
+  protectionNoAbuseCase: null,
+  protectionHasAbuseCase: null,
+  protectionAuthorizationConsent: false
 });
 
 // ============================================
@@ -199,408 +317,476 @@ export const getInitialApplicationFormData = () => ({
 
 /**
  * Validate email format
- * @param {string} email - Email address
- * @returns {boolean} True if valid
  */
 export const isValidEmail = (email) => {
+  if (!email) return true; // Optional field
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
 /**
- * Validate phone number format (US format)
- * @param {string} phone - Phone number
- * @returns {boolean} True if valid
+ * Validate phone number format
  */
-export const isValidPhoneNumber = (phone) => {
-  const cleaned = phone.replace(/\D/g, '');
-  return cleaned.length === 10;
+export const isValidPhone = (phone) => {
+  if (!phone) return false;
+  const phoneRegex = /^\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$/;
+  return phoneRegex.test(phone);
 };
 
 /**
- * Validate ZIP code format
- * @param {string} zipCode - ZIP code
- * @returns {boolean} True if valid
+ * Validate SSN format (XXX-XX-XXXX)
+ */
+export const isValidSSN = (ssn) => {
+  if (!ssn) return false;
+  const ssnRegex = /^\d{3}-?\d{2}-?\d{4}$/;
+  return ssnRegex.test(ssn);
+};
+
+/**
+ * Validate zip code
  */
 export const isValidZipCode = (zipCode) => {
-  const cleaned = zipCode.replace(/\D/g, '');
-  return cleaned.length === 5 || cleaned.length === 9;
+  if (!zipCode) return false;
+  const zipRegex = /^\d{5}(-\d{4})?$/;
+  return zipRegex.test(zipCode);
 };
 
 /**
- * Validate date is in the past (for date of birth)
- * @param {string} dateString - Date string (YYYY-MM-DD)
- * @returns {boolean} True if valid
+ * Validate date format
  */
-export const isValidDateOfBirth = (dateString) => {
-  if (!dateString) return false;
-  const date = new Date(dateString);
-  const today = new Date();
-  const minAge = 16; // Minimum age requirement
-  const maxAge = 100;
-  
-  const age = (today - date) / (1000 * 60 * 60 * 24 * 365.25);
-  return age >= minAge && age <= maxAge;
+export const isValidDate = (date) => {
+  if (!date) return false;
+  const dateObj = new Date(date);
+  return dateObj instanceof Date && !isNaN(dateObj);
 };
 
 /**
- * Validate date is in the future (for expected start date)
- * @param {string} dateString - Date string (YYYY-MM-DD)
- * @returns {boolean} True if valid
- */
-export const isValidFutureDate = (dateString) => {
-  if (!dateString) return true; // Optional field
-  const date = new Date(dateString);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return date >= today;
-};
-
-/**
- * Validate personal information section
- * @param {Object} formData - Form data
- * @returns {Object} Validation errors
+ * Validate Step 1 - Personal Information
  */
 export const validatePersonalInfo = (formData) => {
   const errors = {};
 
-  // Required fields
-  if (!formData.firstName?.trim()) {
-    errors.firstName = 'First name is required';
+  if (!formData.firstName?.trim()) errors.firstName = 'First name is required';
+  if (!formData.lastName?.trim()) errors.lastName = 'Last name is required';
+  if (!formData.homeAddress?.trim()) errors.homeAddress = 'Home address is required';
+  if (!formData.city?.trim()) errors.city = 'City is required';
+  if (!formData.state) errors.state = 'State is required';
+  if (!formData.zipCode?.trim()) {
+    errors.zipCode = 'Zip code is required';
+  } else if (!isValidZipCode(formData.zipCode)) {
+    errors.zipCode = 'Invalid zip code format';
   }
-  if (!formData.lastName?.trim()) {
-    errors.lastName = 'Last name is required';
+  
+  if (!formData.socialSecurityNumber?.trim()) {
+    errors.socialSecurityNumber = 'Social Security Number is required';
+  } else if (!isValidSSN(formData.socialSecurityNumber)) {
+    errors.socialSecurityNumber = 'Invalid SSN format (XXX-XX-XXXX)';
   }
-  if (!formData.email?.trim()) {
-    errors.email = 'Email is required';
-  } else if (!isValidEmail(formData.email)) {
-    errors.email = 'Invalid email format';
+  
+  if (!formData.driversLicenseNumber?.trim()) {
+    errors.driversLicenseNumber = 'Driver\'s License Number is required';
   }
+  if (!formData.driversLicenseState) {
+    errors.driversLicenseState = 'Driver\'s License State is required';
+  }
+  
   if (!formData.phoneNumber?.trim()) {
     errors.phoneNumber = 'Phone number is required';
-  } else if (!isValidPhoneNumber(formData.phoneNumber)) {
-    errors.phoneNumber = 'Invalid phone number (10 digits required)';
+  } else if (!isValidPhone(formData.phoneNumber)) {
+    errors.phoneNumber = 'Invalid phone number format';
+  }
+  
+  if (formData.cellNumber && !isValidPhone(formData.cellNumber)) {
+    errors.cellNumber = 'Invalid cell number format';
+  }
+  
+  if (!formData.emergencyContactPerson?.trim()) {
+    errors.emergencyContactPerson = 'Emergency contact person is required';
+  }
+  if (!formData.emergencyContactRelationship?.trim()) {
+    errors.emergencyContactRelationship = 'Emergency contact relationship is required';
+  }
+  if (!formData.emergencyContactPhone?.trim()) {
+    errors.emergencyContactPhone = 'Emergency contact phone is required';
+  } else if (!isValidPhone(formData.emergencyContactPhone)) {
+    errors.emergencyContactPhone = 'Invalid emergency contact phone format';
   }
 
-  // Optional but validated if provided
-  if (formData.dateOfBirth && !isValidDateOfBirth(formData.dateOfBirth)) {
-    errors.dateOfBirth = 'Must be at least 16 years old';
-  }
-  if (formData.zipCode && !isValidZipCode(formData.zipCode)) {
-    errors.zipCode = 'Invalid ZIP code format';
-  }
-
-  return errors;
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
 };
 
 /**
- * Validate position information section
- * @param {Object} formData - Form data
- * @returns {Object} Validation errors
+ * Validate Step 2 - Position & Availability
  */
 export const validatePositionInfo = (formData) => {
   const errors = {};
 
-  if (!formData.positionAppliedFor?.trim()) {
-    errors.positionAppliedFor = 'Position is required';
+  if (!formData.position1?.trim()) {
+    errors.position1 = 'At least one position is required';
   }
-  if (!formData.preferredEmployeeType) {
-    errors.preferredEmployeeType = 'Employee type is required';
+  
+  if (!formData.salaryDesired) {
+    errors.salaryDesired = 'Desired salary is required';
+  }
+  
+  if (!formData.salaryType) {
+    errors.salaryType = 'Salary type is required';
+  }
+  
+  if (!formData.availableStartDate) {
+    errors.availableStartDate = 'Available start date is required';
+  }
+  
+  if (!formData.employmentSought) {
+    errors.employmentSought = 'Employment type is required';
+  }
+  
+  if (!formData.desiredLocations || formData.desiredLocations.length === 0) {
+    errors.desiredLocations = 'At least one location preference is required';
+  }
+  
+  if (!formData.shiftPreferences || formData.shiftPreferences.length === 0) {
+    errors.shiftPreferences = 'At least one shift preference is required';
+  }
+  
+  if (!formData.daysAvailable || formData.daysAvailable.length === 0) {
+    errors.daysAvailable = 'At least one available day is required';
   }
 
-  // Optional but validated if provided
-  if (formData.expectedStartDate && !isValidFutureDate(formData.expectedStartDate)) {
-    errors.expectedStartDate = 'Start date must be today or in the future';
-  }
-  if (formData.desiredSalary && (isNaN(formData.desiredSalary) || formData.desiredSalary < 0)) {
-    errors.desiredSalary = 'Invalid salary amount';
-  }
-  if (formData.yearsOfExperience && (isNaN(formData.yearsOfExperience) || formData.yearsOfExperience < 0)) {
-    errors.yearsOfExperience = 'Invalid years of experience';
-  }
-
-  return errors;
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
 };
 
 /**
- * Validate complete application form
- * @param {Object} formData - Complete form data
- * @returns {Object} { isValid: boolean, errors: Object }
+ * Validate Step 3 - Background Questions
  */
-export const validateApplicationForm = (formData) => {
-  const personalErrors = validatePersonalInfo(formData);
-  const positionErrors = validatePositionInfo(formData);
+export const validateBackgroundQuestions = (formData) => {
+  const errors = {};
 
-  const allErrors = { ...personalErrors, ...positionErrors };
+  if (formData.previouslyAppliedToTPA === null) {
+    errors.previouslyAppliedToTPA = 'This field is required';
+  }
+  
+  if (formData.previouslyWorkedForTPA === null) {
+    errors.previouslyWorkedForTPA = 'This field is required';
+  }
+  
+  if (formData.familyMembersAtTPA === null) {
+    errors.familyMembersAtTPA = 'This field is required';
+  }
+  
+  if (formData.usCitizenOrResident === null) {
+    errors.usCitizenOrResident = 'This field is required';
+  }
+  
+  if (formData.legallyEntitledToWork === null) {
+    errors.legallyEntitledToWork = 'This field is required';
+  }
+  
+  if (formData.eighteenOrOlder === null) {
+    errors.eighteenOrOlder = 'This field is required';
+  }
+  
+  if (formData.servedInArmedForces === null) {
+    errors.servedInArmedForces = 'This field is required';
+  }
+  
+  if (formData.convictedOfCrime === null) {
+    errors.convictedOfCrime = 'This field is required';
+  }
+  
+  if (formData.nameOnAbuseRegistry === null) {
+    errors.nameOnAbuseRegistry = 'This field is required';
+  }
+  
+  if (formData.foundGuiltyOfAbuse === null) {
+    errors.foundGuiltyOfAbuse = 'This field is required';
+  }
+  
+  if (formData.healthcareLicenseIssues === null) {
+    errors.healthcareLicenseIssues = 'This field is required';
+  }
 
   return {
-    isValid: Object.keys(allErrors).length === 0,
-    errors: allErrors
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+};
+
+/**
+ * Validate Step 6 - References
+ */
+export const validateReferences = (formData) => {
+  const errors = {};
+  
+  // At least one reference required (first reference must be complete)
+  const ref1 = formData.references[0];
+  if (!ref1.firstName?.trim()) {
+    errors.reference1FirstName = 'First reference first name is required';
+  }
+  if (!ref1.lastName?.trim()) {
+    errors.reference1LastName = 'First reference last name is required';
+  }
+  if (!ref1.phoneNumber?.trim()) {
+    errors.reference1PhoneNumber = 'First reference phone number is required';
+  } else if (!isValidPhone(ref1.phoneNumber)) {
+    errors.reference1PhoneNumber = 'Invalid phone number format';
+  }
+  if (ref1.email && !isValidEmail(ref1.email)) {
+    errors.reference1Email = 'Invalid email format';
+  }
+  if (!ref1.yearsKnown || ref1.yearsKnown < 1) {
+    errors.reference1YearsKnown = 'Years known is required (minimum 5 for first reference)';
+  } else if (ref1.yearsKnown < 5) {
+    errors.reference1YearsKnown = 'First reference must have known you for at least 5 years';
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+};
+
+/**
+ * Validate Step 8 - Authorizations
+ */
+export const validateAuthorizations = (formData) => {
+  const errors = {};
+
+  if (!formData.backgroundCheckConsent) {
+    errors.backgroundCheckConsent = 'You must consent to background check';
+  }
+  
+  if (!formData.referenceCheckConsent) {
+    errors.referenceCheckConsent = 'You must consent to reference check';
+  }
+  
+  if (!formData.referenceCheckSSNLast4?.trim()) {
+    errors.referenceCheckSSNLast4 = 'Last 4 digits of SSN required';
+  } else if (!/^\d{4}$/.test(formData.referenceCheckSSNLast4)) {
+    errors.referenceCheckSSNLast4 = 'Must be exactly 4 digits';
+  }
+  
+  if (formData.hasNoAbuseCaseAgainstMe === null && formData.hasAbuseCaseAgainstMe === null) {
+    errors.abuseCase = 'You must select one option';
+  }
+  
+  if (!formData.diddAuthorizationConsent) {
+    errors.diddAuthorizationConsent = 'You must consent to DIDD/TennCare authorization';
+  }
+  
+  if (!formData.diddFullName?.trim()) {
+    errors.diddFullName = 'Full name is required';
+  }
+  
+  if (!formData.diddSSN?.trim()) {
+    errors.diddSSN = 'SSN is required';
+  } else if (!isValidSSN(formData.diddSSN)) {
+    errors.diddSSN = 'Invalid SSN format';
+  }
+  
+  if (!formData.diddDOB) {
+    errors.diddDOB = 'Date of birth is required';
+  }
+  
+  if (!formData.diddDriverLicense?.trim()) {
+    errors.diddDriverLicense = 'Driver license or ID# is required';
+  }
+  
+  if (formData.protectionNoAbuseCase === null && formData.protectionHasAbuseCase === null) {
+    errors.protectionAbuseCase = 'You must select one option';
+  }
+  
+  if (!formData.protectionAuthorizationConsent) {
+    errors.protectionAuthorizationConsent = 'You must consent to protection from harm verification';
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
   };
 };
 
 // ============================================
-// FORMATTING FUNCTIONS
+// HELPER/FORMATTING FUNCTIONS
 // ============================================
 
 /**
- * Format phone number to (XXX) XXX-XXXX
- * @param {string} phone - Phone number
- * @returns {string} Formatted phone number
+ * Format phone number for display
  */
 export const formatPhoneNumber = (phone) => {
+  if (!phone) return '';
   const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.length !== 10) return phone;
-  
-  return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-};
-
-/**
- * Format ZIP code to XXXXX or XXXXX-XXXX
- * @param {string} zipCode - ZIP code
- * @returns {string} Formatted ZIP code
- */
-export const formatZipCode = (zipCode) => {
-  const cleaned = zipCode.replace(/\D/g, '');
-  if (cleaned.length === 5) {
-    return cleaned;
-  } else if (cleaned.length === 9) {
-    return `${cleaned.slice(0, 5)}-${cleaned.slice(5)}`;
+  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+  if (match) {
+    return '(' + match[1] + ') ' + match[2] + '-' + match[3];
   }
-  return zipCode;
+  return phone;
 };
 
 /**
- * Format currency amount
- * @param {number|string} amount - Amount to format
- * @returns {string} Formatted currency
+ * Format SSN for display (XXX-XX-XXXX)
+ */
+export const formatSSN = (ssn) => {
+  if (!ssn) return '';
+  const cleaned = ssn.replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{3})(\d{2})(\d{4})$/);
+  if (match) {
+    return match[1] + '-' + match[2] + '-' + match[3];
+  }
+  return ssn;
+};
+
+/**
+ * Format currency for display
  */
 export const formatCurrency = (amount) => {
-  if (!amount && amount !== 0) return '';
+  if (!amount) return '';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
+    currency: 'USD'
   }).format(amount);
 };
 
 /**
- * Format date to readable string
- * @param {string} dateString - ISO date string
- * @returns {string} Formatted date
+ * Format date for display
  */
-export const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+export const formatDate = (date) => {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('en-US');
 };
 
 /**
- * Format full name from parts
- * @param {string} firstName - First name
- * @param {string} middleName - Middle name
- * @param {string} lastName - Last name
- * @returns {string} Full name
+ * Format full name
  */
 export const formatFullName = (firstName, middleName, lastName) => {
   const parts = [firstName, middleName, lastName].filter(Boolean);
   return parts.join(' ');
 };
 
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
-
 /**
- * Get employee type label
- * @param {string} type - Employee type value
- * @returns {string} Display label
+ * Get state label from value
  */
-export const getEmployeeTypeLabel = (type) => {
-  const option = EMPLOYEE_TYPE_OPTIONS.find(opt => opt.value === type);
-  return option ? option.label : type;
-};
-
-/**
- * Get education level label
- * @param {string} level - Education level value
- * @returns {string} Display label
- */
-export const getEducationLevelLabel = (level) => {
-  const option = EDUCATION_LEVEL_OPTIONS.find(opt => opt.value === level);
-  return option ? option.label : level;
-};
-
-/**
- * Get application status color
- * @param {string} status - Application status
- * @returns {string} Color for status chip
- */
-export const getApplicationStatusColor = (status) => {
-  const colors = {
-    'Submitted': 'info',
-    'UnderReview': 'warning',
-    'Pending': 'warning',
-    'Approved': 'success',
-    'Rejected': 'error'
-  };
-  return colors[status] || 'default';
-};
-
-/**
- * Calculate application completion percentage
- * @param {Object} formData - Form data
- * @returns {number} Completion percentage (0-100)
- */
-export const calculateCompletionPercentage = (formData) => {
-  const requiredFields = [
-    'firstName',
-    'lastName',
-    'email',
-    'phoneNumber',
-    'positionAppliedFor',
-    'preferredEmployeeType'
-  ];
-
-  const optionalImportantFields = [
-    'dateOfBirth',
-    'address',
-    'city',
-    'state',
-    'zipCode',
-    'departmentPreference',
-    'yearsOfExperience',
-    'educationLevel'
-  ];
-
-  const allFields = [...requiredFields, ...optionalImportantFields];
-  
-  const filledFields = allFields.filter(field => {
-    const value = formData[field];
-    return value !== null && value !== undefined && value !== '';
-  });
-
-  return Math.round((filledFields.length / allFields.length) * 100);
+export const getStateLabel = (stateValue) => {
+  const state = US_STATES.find(s => s.value === stateValue);
+  return state ? state.label : stateValue;
 };
 
 /**
  * Prepare application data for API submission
- * @param {Object} formData - Raw form data
- * @returns {Object} Formatted data for API
+ */
+// FIXED prepareApplicationForAPI function
+// Add this to your jobApplicationModels.js file (replace the existing function)
+
+/**
+ * Prepare application data for API submission
+ * Safely handles undefined values and converts arrays to JSON strings
  */
 export const prepareApplicationForAPI = (formData) => {
+  // Helper function to safely stringify
+  const safeStringify = (value) => {
+    if (!value || (Array.isArray(value) && value.length === 0)) {
+      return null;
+    }
+    return typeof value === 'string' ? value : JSON.stringify(value);
+  };
+
   return {
     // Personal Information
-    firstName: formData.firstName?.trim(),
-    lastName: formData.lastName?.trim(),
-    middleName: formData.middleName?.trim() || null,
+    applicationDate: formData.applicationDate || null,
+    firstName: formData.firstName || '',
+    lastName: formData.lastName || '',
+    middleName: formData.middleName || null,
     dateOfBirth: formData.dateOfBirth || null,
     gender: formData.gender || null,
-    phoneNumber: formData.phoneNumber?.trim(),
-    email: formData.email?.trim(),
-    address: formData.address?.trim() || null,
-    city: formData.city?.trim() || null,
-    state: formData.state || null,
-    zipCode: formData.zipCode?.trim() || null,
-    country: formData.country?.trim() || 'USA',
+    phoneNumber: formData.phoneNumber || '',
+    cellNumber: formData.cellNumber || null,
+    email: formData.email || '',
+    address: formData.address || '',
+    aptNumber: formData.aptNumber || null,
+    city: formData.city || '',
+    state: formData.state || '',
+    zipCode: formData.zipCode || '',
+    country: formData.country || 'USA',
+    socialSecurityNumber: formData.socialSecurityNumber || null,
+    driversLicenseNumber: formData.driversLicenseNumber || null,
+    driversLicenseState: formData.driversLicenseState || null,
+    emergencyContactPerson: formData.emergencyContactPerson || null,
+    emergencyContactRelationship: formData.emergencyContactRelationship || null,
+    emergencyContactAddress: formData.emergencyContactAddress || null,
+    emergencyContactPhone: formData.emergencyContactPhone || null,
 
-    // Position Details
-    positionAppliedFor: formData.positionAppliedFor?.trim(),
-    departmentPreference: formData.departmentPreference || null,
-    preferredEmployeeType: formData.preferredEmployeeType,
-    expectedStartDate: formData.expectedStartDate || null,
-    desiredSalary: formData.desiredSalary ? parseFloat(formData.desiredSalary) : null,
+    // Position Details - Map to API expected names
+    position1: formData.position1 || formData.positionAppliedFor || '',
+    position2: formData.position2 || null,
+    salaryDesired: formData.salaryDesired || formData.desiredSalary || null,
+    salaryType: formData.salaryType || null,
+    availableStartDate: formData.availableStartDate || formData.expectedStartDate || null,
+    employmentSought: formData.employmentSought || null,
+    desiredLocations: safeStringify(formData.desiredLocations),
+    desiredLocationOther: formData.desiredLocationOther || null,
+    shiftPreferences: safeStringify(formData.shiftPreferences),
+    daysAvailable: safeStringify(formData.daysAvailable),
 
-    // Experience & Qualifications
-    yearsOfExperience: formData.yearsOfExperience ? parseInt(formData.yearsOfExperience) : null,
-    educationLevel: formData.educationLevel || null,
-    certifications: formData.certifications?.trim() || null,
-    previousEmployer: formData.previousEmployer?.trim() || null,
-    skills: formData.skills?.trim() || null,
+    // Background Questions
+    previouslyAppliedToTPA: formData.previouslyAppliedToTPA,
+    previouslyAppliedWhen: formData.previouslyAppliedWhen || null,
+    previouslyWorkedForTPA: formData.previouslyWorkedForTPA,
+    previouslyWorkedWhen: formData.previouslyWorkedWhen || null,
+    familyMembersAtTPA: formData.familyMembersAtTPA,
+    familyMembersWho: formData.familyMembersWho || null,
+    usCitizenOrResident: formData.usCitizenOrResident,
+    alienNumber: formData.alienNumber || null,
+    legallyEntitledToWork: formData.legallyEntitledToWork,
+    eighteenOrOlder: formData.eighteenOrOlder,
+    servedInArmedForces: formData.servedInArmedForces,
+    convictedOfCrime: formData.convictedOfCrime,
+    crimeDetails: safeStringify(formData.crimeDetails),
+    nameOnAbuseRegistry: formData.nameOnAbuseRegistry,
+    foundGuiltyOfAbuse: formData.foundGuiltyOfAbuse,
+    healthcareLicenseIssues: formData.healthcareLicenseIssues,
 
-    // Additional Information
-    howDidYouHear: formData.howDidYouHear || null,
-    availabilityType: formData.availabilityType || null,
-    willingToRelocate: formData.willingToRelocate || false,
-    additionalNotes: formData.additionalNotes?.trim() || null
+    // Education
+    educationHistory: safeStringify(formData.educationHistory),
+    specialSkillsKnowledge: formData.specialSkillsKnowledge || null,
+    typingSpeedWPM: formData.typingSpeedWPM || null,
+
+    // Licenses
+    licensesAndCertifications: safeStringify(formData.licensesAndCertifications),
+    diddTrainingClasses: formData.diddTrainingClasses || null,
+
+    // References
+    references: safeStringify(formData.references),
+
+    // Employment History
+    employmentHistory: safeStringify(formData.employmentHistory),
+
+    // Authorizations
+    backgroundCheckConsent: formData.backgroundCheckConsent || false,
+    backgroundCheckDate: formData.backgroundCheckDate || null,
+    backgroundCheckSignature: formData.backgroundCheckSignature || null,
+    nyApplicant: formData.nyApplicant || false,
+    mnOkApplicant: formData.mnOkApplicant || false,
+    caApplicant: formData.caApplicant || false,
+    referenceCheckConsent: formData.referenceCheckConsent || false,
+    referenceCheckSSNLast4: formData.referenceCheckSSNLast4 || null,
+    referenceCheckDate: formData.referenceCheckDate || null,
+    referenceCheckSignature: formData.referenceCheckSignature || null,
+    hasNoAbuseCaseAgainstMe: formData.hasNoAbuseCaseAgainstMe,
+    hasAbuseCaseAgainstMe: formData.hasAbuseCaseAgainstMe,
+    diddAuthorizationConsent: formData.diddAuthorizationConsent || false,
+    diddFullName: formData.diddFullName || null,
+    diddSSN: formData.diddSSN || null,
+    diddDOB: formData.diddDOB || null,
+    diddDriverLicense: formData.diddDriverLicense || null,
+    diddWitnessName: formData.diddWitnessName || null,
+    protectionNoAbuseCase: formData.protectionNoAbuseCase,
+    protectionHasAbuseCase: formData.protectionHasAbuseCase,
+    protectionAuthorizationConsent: formData.protectionAuthorizationConsent || false
   };
-};
-
-/**
- * Get today's date in YYYY-MM-DD format
- * @returns {string} Today's date
- */
-export const getTodayString = () => {
-  return new Date().toISOString().split('T')[0];
-};
-
-/**
- * Get minimum date for date of birth (16 years ago)
- * @returns {string} Minimum date in YYYY-MM-DD format
- */
-export const getMinDateOfBirth = () => {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() - 100);
-  return date.toISOString().split('T')[0];
-};
-
-/**
- * Get maximum date for date of birth (16 years ago for minimum age)
- * @returns {string} Maximum date in YYYY-MM-DD format
- */
-export const getMaxDateOfBirth = () => {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() - 16);
-  return date.toISOString().split('T')[0];
-};
-
-// ============================================
-// EXPORT ALL
-// ============================================
-
-export default {
-  // Constants
-  GENDER_OPTIONS,
-  EMPLOYEE_TYPE_OPTIONS,
-  EDUCATION_LEVEL_OPTIONS,
-  DEPARTMENT_OPTIONS,
-  HOW_HEARD_OPTIONS,
-  AVAILABILITY_OPTIONS,
-  STATE_OPTIONS,
-  APPLICATION_STATUS,
-
-  // Initial Data
-  getInitialApplicationFormData,
-
-  // Validation
-  isValidEmail,
-  isValidPhoneNumber,
-  isValidZipCode,
-  isValidDateOfBirth,
-  isValidFutureDate,
-  validatePersonalInfo,
-  validatePositionInfo,
-  validateApplicationForm,
-
-  // Formatting
-  formatPhoneNumber,
-  formatZipCode,
-  formatCurrency,
-  formatDate,
-  formatFullName,
-
-  // Helpers
-  getEmployeeTypeLabel,
-  getEducationLevelLabel,
-  getApplicationStatusColor,
-  calculateCompletionPercentage,
-  prepareApplicationForAPI,
-  getTodayString,
-  getMinDateOfBirth,
-  getMaxDateOfBirth
 };

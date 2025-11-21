@@ -1,35 +1,84 @@
 // src/pages/recruitment/components/PersonalInfoSection.jsx
 /**
- * PersonalInfoSection Component
+ * PersonalInfoSection Component - Step 1
  * 
- * Step 1 of job application form - Personal Information
+ * Comprehensive personal information matching TPA paper form
+ * Includes: Name, Address, SSN, Driver's License, Emergency Contact
  */
 
 import React from 'react';
-import { Grid, TextField, MenuItem, Typography } from '@mui/material';
 import {
-  GENDER_OPTIONS,
-  STATE_OPTIONS,
-  getMaxDateOfBirth
-} from '../models/jobApplicationModels';
+  Grid,
+  TextField,
+  Typography,
+  MenuItem,
+  Alert,
+  Box
+} from '@mui/material';
+import { US_STATES } from '../models/jobApplicationModels';
 
 const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
+  
+  const handleChange = (e) => {
+    onChange(e);
+  };
+
   return (
     <>
-      <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#333' }}>
+      <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, color: '#333' }}>
         Personal Information
       </Typography>
 
+      <Alert severity="info" sx={{ mb: 3 }}>
+        Please fill out this application completely. All information must be entered on the application form 
+        to be considered for employment - even if resume is attached. Application will be kept on file for 90 days.
+      </Alert>
+
       <Grid container spacing={3}>
-        {/* Name Fields */}
+        {/* Application Date */}
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Application Date"
+            name="applicationDate"
+            type="date"
+            value={formData.applicationDate || ''}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+            required
+            error={!!errors.applicationDate}
+            helperText={errors.applicationDate}
+          />
+        </Grid>
+
+        {/* Name Section */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+            Name
+          </Typography>
+        </Grid>
+
         <Grid item xs={12} sm={4}>
           <TextField
             fullWidth
+            label="Last Name"
+            name="lastName"
+            value={formData.lastName || ''}
+            onChange={handleChange}
             required
+            error={!!errors.lastName}
+            helperText={errors.lastName}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
             label="First Name"
             name="firstName"
-            value={formData.firstName}
-            onChange={onChange}
+            value={formData.firstName || ''}
+            onChange={handleChange}
+            required
             error={!!errors.firstName}
             helperText={errors.firstName}
           />
@@ -40,97 +89,38 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
             fullWidth
             label="Middle Name"
             name="middleName"
-            value={formData.middleName}
-            onChange={onChange}
+            value={formData.middleName || ''}
+            onChange={handleChange}
+          />
+        </Grid>
+
+        {/* Home Address Section */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, mt: 2 }}>
+            Home Address
+          </Typography>
+        </Grid>
+
+        <Grid item xs={12} sm={8}>
+          <TextField
+            fullWidth
+            label="Street Address"
+            name="homeAddress"
+            value={formData.homeAddress || ''}
+            onChange={handleChange}
+            required
+            error={!!errors.homeAddress}
+            helperText={errors.homeAddress}
           />
         </Grid>
 
         <Grid item xs={12} sm={4}>
           <TextField
             fullWidth
-            required
-            label="Last Name"
-            name="lastName"
-            value={formData.lastName}
-            onChange={onChange}
-            error={!!errors.lastName}
-            helperText={errors.lastName}
-          />
-        </Grid>
-
-        {/* Date of Birth and Gender */}
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            type="date"
-            label="Date of Birth"
-            name="dateOfBirth"
-            value={formData.dateOfBirth}
-            onChange={onChange}
-            error={!!errors.dateOfBirth}
-            helperText={errors.dateOfBirth || 'Must be at least 16 years old'}
-            InputLabelProps={{ shrink: true }}
-            inputProps={{
-              max: getMaxDateOfBirth()
-            }}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            select
-            label="Gender"
-            name="gender"
-            value={formData.gender}
-            onChange={onChange}
-          >
-            {GENDER_OPTIONS.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-
-        {/* Contact Information */}
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            required
-            type="tel"
-            label="Phone Number"
-            name="phoneNumber"
-            value={formData.phoneNumber}
-            onChange={onChange}
-            error={!!errors.phoneNumber}
-            helperText={errors.phoneNumber || '10 digits (e.g., 6155551234)'}
-            placeholder="6155551234"
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            required
-            type="email"
-            label="Email Address"
-            name="email"
-            value={formData.email}
-            onChange={onChange}
-            error={!!errors.email}
-            helperText={errors.email}
-          />
-        </Grid>
-
-        {/* Address */}
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Street Address"
-            name="address"
-            value={formData.address}
-            onChange={onChange}
+            label="Apt #"
+            name="aptNumber"
+            value={formData.aptNumber || ''}
+            onChange={handleChange}
           />
         </Grid>
 
@@ -139,41 +129,202 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
             fullWidth
             label="City"
             name="city"
-            value={formData.city}
-            onChange={onChange}
+            value={formData.city || ''}
+            onChange={handleChange}
+            required
+            error={!!errors.city}
+            helperText={errors.city}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={3}>
+          <TextField
+            select
+            fullWidth
+            label="State"
+            name="state"
+            value={formData.state || ''}
+            onChange={handleChange}
+            required
+            error={!!errors.state}
+            helperText={errors.state}
+          >
+            {US_STATES.map(state => (
+              <MenuItem key={state.value} value={state.value}>
+                {state.label}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="Zip Code"
+            name="zipCode"
+            value={formData.zipCode || ''}
+            onChange={handleChange}
+            required
+            error={!!errors.zipCode}
+            helperText={errors.zipCode}
+          />
+        </Grid>
+
+        {/* SSN and Driver's License Section */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, mt: 2 }}>
+            Identification
+          </Typography>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Social Security Number"
+            name="socialSecurityNumber"
+            value={formData.socialSecurityNumber || ''}
+            onChange={handleChange}
+            placeholder="XXX-XX-XXXX"
+            required
+            error={!!errors.socialSecurityNumber}
+            helperText={errors.socialSecurityNumber || 'Format: XXX-XX-XXXX'}
           />
         </Grid>
 
         <Grid item xs={12} sm={4}>
           <TextField
             fullWidth
+            label="Driver's License #"
+            name="driversLicenseNumber"
+            value={formData.driversLicenseNumber || ''}
+            onChange={handleChange}
+            required
+            error={!!errors.driversLicenseNumber}
+            helperText={errors.driversLicenseNumber}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={2}>
+          <TextField
             select
+            fullWidth
             label="State"
-            name="state"
-            value={formData.state}
-            onChange={onChange}
+            name="driversLicenseState"
+            value={formData.driversLicenseState || ''}
+            onChange={handleChange}
+            required
+            error={!!errors.driversLicenseState}
+            helperText={errors.driversLicenseState}
           >
-            {STATE_OPTIONS.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
+            {US_STATES.map(state => (
+              <MenuItem key={state.value} value={state.value}>
+                {state.value}
               </MenuItem>
             ))}
           </TextField>
         </Grid>
 
-        <Grid item xs={12} sm={3}>
+        {/* Contact Information */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, mt: 2 }}>
+            Contact Information
+          </Typography>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="ZIP Code"
-            name="zipCode"
-            value={formData.zipCode}
-            onChange={onChange}
-            error={!!errors.zipCode}
-            helperText={errors.zipCode}
-            placeholder="12345"
+            label="Phone Number"
+            name="phoneNumber"
+            value={formData.phoneNumber || ''}
+            onChange={handleChange}
+            placeholder="(XXX) XXX-XXXX"
+            required
+            error={!!errors.phoneNumber}
+            helperText={errors.phoneNumber}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Cell Number"
+            name="cellNumber"
+            value={formData.cellNumber || ''}
+            onChange={handleChange}
+            placeholder="(XXX) XXX-XXXX"
+            error={!!errors.cellNumber}
+            helperText={errors.cellNumber}
+          />
+        </Grid>
+
+        {/* Emergency Contact Section */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, mt: 2 }}>
+            Emergency Contact
+          </Typography>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Emergency Contact Person"
+            name="emergencyContactPerson"
+            value={formData.emergencyContactPerson || ''}
+            onChange={handleChange}
+            required
+            error={!!errors.emergencyContactPerson}
+            helperText={errors.emergencyContactPerson}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Relationship"
+            name="emergencyContactRelationship"
+            value={formData.emergencyContactRelationship || ''}
+            onChange={handleChange}
+            required
+            error={!!errors.emergencyContactRelationship}
+            helperText={errors.emergencyContactRelationship}
+          />
+        </Grid>
+
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Emergency Contact Address and Phone"
+            name="emergencyContactAddress"
+            value={formData.emergencyContactAddress || ''}
+            onChange={handleChange}
+            placeholder="Full address"
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Emergency Contact Phone"
+            name="emergencyContactPhone"
+            value={formData.emergencyContactPhone || ''}
+            onChange={handleChange}
+            placeholder="(XXX) XXX-XXXX"
+            required
+            error={!!errors.emergencyContactPhone}
+            helperText={errors.emergencyContactPhone}
           />
         </Grid>
       </Grid>
+
+      <Box sx={{ mt: 3, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+        <Typography variant="body2" sx={{ fontStyle: 'italic', color: '#666' }}>
+          <strong>TPA, Inc. is an Equal Opportunity Employer</strong><br />
+          Tennessee Law Prohibits Discrimination in Employment: It is illegal to discriminate against any person 
+          because of race, color, creed, religion, sex, age, handicap, or national origin in recruitment, training, 
+          hiring, discharge, promotion, or any condition, term or privilege of employment.
+        </Typography>
+      </Box>
     </>
   );
 };

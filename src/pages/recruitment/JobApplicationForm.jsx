@@ -1,18 +1,9 @@
 // src/pages/recruitment/JobApplicationForm.jsx
 /**
- * JobApplicationForm Component
+ * JobApplicationForm Component - UPDATED VERSION
  * 
- * Main page for public job applications
- * Multi-step form with file uploads and PDF download
- * 
- * Features:
- * - No authentication required (public page)
- * - Multi-step form (4 steps)
- * - File upload support
- * - Form validation
- * - API submission
- * - Automatic PDF download
- * - Success confirmation
+ * 8-Step comprehensive job application (NO FILE UPLOADS)
+ * All document uploads removed - form data only
  */
 
 import React, { useState } from 'react';
@@ -36,25 +27,42 @@ import {
   CheckCircle as SuccessIcon
 } from '@mui/icons-material';
 
-// Components
+// Import all step components
 import ApplicationFormHeader from './components/Applicationformheader';
 import ApplicationProgress from './components/ApplicationProgress';
 import PersonalInfoSection from './components/PersonalInfoSection';
 import PositionSection from './components/PositionSection';
-import DocumentsSection from './components/DocumentsSection';
-import ReviewSection from './components/ReviewSection';
+import BackgroundQuestionsSection from './components/BackgroundQuestionsSection';
+import EducationSection from './components/EducationSection';
+import LicensesSection from './components/LicensesSection';
+import ReferencesSection from './components/ReferencesSection';
+import EmploymentHistorySection from './components/EmploymentHistorySection';
+import AuthorizationsSection from './components/AuthorizationsSection';
 
-// Services and Models
-import jobApplicationService from '../../services/jobApplicationService';
+// Import services and models
 import {
   getInitialApplicationFormData,
   validatePersonalInfo,
   validatePositionInfo,
-  validateApplicationForm,
+  validateBackgroundQuestions,
+  validateReferences,
+  validateAuthorizations,
   prepareApplicationForAPI
 } from './models/jobApplicationModels';
 
-const STEPS = ['Personal Info', 'Position Details', 'Documents', 'Review & Submit'];
+// API Configuration
+const API_BASE_URL = 'https://localhost:7144/api';
+
+const STEPS = [
+  'Personal Info',
+  'Position & Availability',
+  'Background Questions',
+  'Education',
+  'Licenses & Certifications',
+  'References',
+  'Employment History',
+  'Authorizations & Submit'
+];
 
 const JobApplicationForm = () => {
   // Form state
@@ -62,90 +70,87 @@ const JobApplicationForm = () => {
   const [formData, setFormData] = useState(getInitialApplicationFormData());
   const [errors, setErrors] = useState({});
 
-  // File state
-  const [resumeFile, setResumeFile] = useState(null);
-  const [coverLetterFile, setCoverLetterFile] = useState(null);
-  const [certificationFiles, setCertificationFiles] = useState([]);
-
   // Submission state
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-
-  // Success state
   const [showSuccess, setShowSuccess] = useState(false);
   const [applicationId, setApplicationId] = useState(null);
 
-  // Handle form field change
+  // Handle form field changes
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    
     // Clear error for this field
     if (errors[name]) {
-      setErrors(prev => {
-        const { [name]: removed, ...rest } = prev;
-        return rest;
-      });
-    }
-  };
-
-  // Handle file change
-  const handleFileChange = (fileType, file) => {
-    switch (fileType) {
-      case 'resume':
-        setResumeFile(file);
-        break;
-      case 'coverLetter':
-        setCoverLetterFile(file);
-        break;
-      case 'certifications':
-        setCertificationFiles(file);
-        break;
-      default:
-        break;
-    }
-
-    // Clear file error
-    if (errors[fileType]) {
-      setErrors(prev => {
-        const { [fileType]: removed, ...rest } = prev;
-        return rest;
-      });
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
     }
   };
 
   // Validate current step
   const validateStep = (step) => {
     let stepErrors = {};
-
+    
     switch (step) {
-      case 0: // Personal Info
-        stepErrors = validatePersonalInfo(formData);
-        break;
-      case 1: // Position Details
-        stepErrors = validatePositionInfo(formData);
-        break;
-      case 2: // Documents
-        // Validate resume is uploaded
-        if (!resumeFile) {
-          stepErrors.resume = 'Resume is required';
+      case 0:
+        // Personal Information
+        const personalValidation = validatePersonalInfo(formData);
+        if (!personalValidation.isValid) {
+          stepErrors = { ...personalValidation.errors };
         }
         break;
-      case 3: // Review
-        // Validate terms agreement
-        if (!agreedToTerms) {
-          stepErrors.terms = 'You must agree to the terms before submitting';
-        }
-        // Validate everything
-        const fullValidation = validateApplicationForm(formData);
-        if (!fullValidation.isValid) {
-          stepErrors = { ...stepErrors, ...fullValidation.errors };
-        }
-        if (!resumeFile) {
-          stepErrors.resume = 'Resume is required';
+        
+      case 1:
+        // Position & Availability
+        const positionValidation = validatePositionInfo(formData);
+        if (!positionValidation.isValid) {
+          stepErrors = { ...positionValidation.errors };
         }
         break;
+        
+      case 2:
+        // Background Questions
+        const backgroundValidation = validateBackgroundQuestions(formData);
+        if (!backgroundValidation.isValid) {
+          stepErrors = { ...backgroundValidation.errors };
+        }
+        break;
+        
+      case 3:
+        // Education - Optional, no required validation
+        break;
+        
+      case 4:
+        // Licenses - Optional, no required validation
+        break;
+        
+      case 5:
+        // References
+        const referencesValidation = validateReferences(formData);
+        if (!referencesValidation.isValid) {
+          stepErrors = { ...referencesValidation.errors };
+        }
+        break;
+        
+      case 6:
+        // Employment History - Optional but recommended
+        // No validation errors, just proceed
+        break;
+        
+      case 7:
+        // Authorizations
+        const authValidation = validateAuthorizations(formData);
+        if (!authValidation.isValid) {
+          stepErrors = { ...authValidation.errors };
+        }
+        break;
+        
       default:
         break;
     }
@@ -159,25 +164,24 @@ const JobApplicationForm = () => {
     if (validateStep(activeStep)) {
       setActiveStep(prev => prev + 1);
       window.scrollTo(0, 0);
+      setErrors({}); // Clear errors when moving to next step
+    } else {
+      window.scrollTo(0, 0);
     }
   };
 
   // Handle back step
   const handleBack = () => {
     setActiveStep(prev => prev - 1);
-    window.scrollTo(0, 0);
-  };
-
-  // Handle edit from review
-  const handleEditStep = (step) => {
-    setActiveStep(step);
+    setErrors({}); // Clear errors when going back
     window.scrollTo(0, 0);
   };
 
   // Handle form submission
   const handleSubmit = async () => {
     // Final validation
-    if (!validateStep(3)) {
+    if (!validateStep(7)) {
+      window.scrollTo(0, 0);
       return;
     }
 
@@ -185,27 +189,30 @@ const JobApplicationForm = () => {
     setSubmitError(null);
 
     try {
-      // Prepare form data
+      // Prepare form data for API
       const preparedData = prepareApplicationForAPI(formData);
 
-      // Submit application with files
-      const response = await jobApplicationService.submitApplication(
-        preparedData,
-        resumeFile,
-        coverLetterFile,
-        certificationFiles
-      );
+      console.log('Submitting application data:', preparedData);
+
+      // Submit application (NO FILES - just JSON data)
+      const response = await fetch(`${API_BASE_URL}/JobApplication/Submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(preparedData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Application submitted successfully:', data);
 
       // Save application ID
-      setApplicationId(response.applicationId);
-
-      // Download PDF confirmation
-      try {
-        await jobApplicationService.downloadApplicationPDF(response.applicationId);
-      } catch (pdfError) {
-        console.error('PDF download failed:', pdfError);
-        // Don't fail the whole submission if PDF download fails
-      }
+      setApplicationId(data.applicationId);
 
       // Show success dialog
       setShowSuccess(true);
@@ -224,12 +231,10 @@ const JobApplicationForm = () => {
     setShowSuccess(false);
     // Reset form
     setFormData(getInitialApplicationFormData());
-    setResumeFile(null);
-    setCoverLetterFile(null);
-    setCertificationFiles([]);
-    setAgreedToTerms(false);
     setActiveStep(0);
     setApplicationId(null);
+    setErrors({});
+    window.scrollTo(0, 0);
   };
 
   // Render current step content
@@ -253,26 +258,49 @@ const JobApplicationForm = () => {
         );
       case 2:
         return (
-          <DocumentsSection
+          <BackgroundQuestionsSection
             formData={formData}
             onChange={handleChange}
-            resumeFile={resumeFile}
-            coverLetterFile={coverLetterFile}
-            certificationFiles={certificationFiles}
-            onFileChange={handleFileChange}
             errors={errors}
           />
         );
       case 3:
         return (
-          <ReviewSection
+          <EducationSection
             formData={formData}
-            resumeFile={resumeFile}
-            coverLetterFile={coverLetterFile}
-            certificationFiles={certificationFiles}
-            onEditStep={handleEditStep}
-            agreedToTerms={agreedToTerms}
-            onAgreeToTerms={setAgreedToTerms}
+            onChange={handleChange}
+            errors={errors}
+          />
+        );
+      case 4:
+        return (
+          <LicensesSection
+            formData={formData}
+            onChange={handleChange}
+            errors={errors}
+          />
+        );
+      case 5:
+        return (
+          <ReferencesSection
+            formData={formData}
+            onChange={handleChange}
+            errors={errors}
+          />
+        );
+      case 6:
+        return (
+          <EmploymentHistorySection
+            formData={formData}
+            onChange={handleChange}
+            errors={errors}
+          />
+        );
+      case 7:
+        return (
+          <AuthorizationsSection
+            formData={formData}
+            onChange={handleChange}
             errors={errors}
           />
         );
@@ -282,81 +310,61 @@ const JobApplicationForm = () => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f59e42 100%)',
-        py: 4,
-        px: 2
-      }}
-    >
-      <Container maxWidth="lg">
-        <Paper
-          elevation={6}
-          sx={{
-            borderRadius: 4,
-            overflow: 'hidden',
-            backgroundColor: '#fff'
-          }}
-        >
-          {/* Header */}
-          <ApplicationFormHeader />
-
+    <>
+      <ApplicationFormHeader />
+      
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Paper elevation={3} sx={{ p: 4 }}>
           {/* Progress Stepper */}
-          <Box sx={{ px: 3 }}>
-            <ApplicationProgress activeStep={activeStep} steps={STEPS} />
+          <ApplicationProgress activeStep={activeStep} steps={STEPS} />
+
+          {/* Error Alert */}
+          {submitError && (
+            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setSubmitError(null)}>
+              {submitError}
+            </Alert>
+          )}
+
+          {/* Validation Errors Alert */}
+          {Object.keys(errors).length > 0 && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                Please correct the errors below before proceeding:
+              </Typography>
+              <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                {Object.entries(errors).map(([key, message]) => (
+                  <li key={key}>
+                    <Typography variant="body2">{message}</Typography>
+                  </li>
+                ))}
+              </ul>
+            </Alert>
+          )}
+
+          {/* Step Content */}
+          <Box sx={{ mt: 3, mb: 4, minHeight: '400px' }}>
+            {renderStepContent()}
           </Box>
 
-          {/* Form Content */}
-          <Box sx={{ p: 4 }}>
-            {/* Error Alert */}
-            {submitError && (
-              <Alert severity="error" sx={{ mb: 3 }} onClose={() => setSubmitError(null)}>
-                {submitError}
-              </Alert>
-            )}
+          {/* Navigation Buttons */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+            <Button
+              variant="outlined"
+              startIcon={<BackIcon />}
+              onClick={handleBack}
+              disabled={activeStep === 0 || submitting}
+            >
+              Back
+            </Button>
 
-            {/* Step Content */}
-            {renderStepContent()}
-
-            {/* Navigation Buttons */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4, pt: 3, borderTop: '1px solid #e0e0e0' }}>
-              <Button
-                variant="outlined"
-                startIcon={<BackIcon />}
-                onClick={handleBack}
-                disabled={activeStep === 0 || submitting}
-                sx={{
-                  minWidth: 120,
-                  visibility: activeStep === 0 ? 'hidden' : 'visible'
-                }}
-              >
-                Back
-              </Button>
-
-              {activeStep === STEPS.length - 1 ? (
-                <Button
-                  variant="contained"
-                  endIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SubmitIcon />}
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  sx={{
-                    minWidth: 160,
-                    background: 'linear-gradient(90deg, #667eea 0%, #f59e42 100%)',
-                    '&:hover': {
-                      background: 'linear-gradient(90deg, #5568d3 0%, #e08a2e 100%)'
-                    }
-                  }}
-                >
-                  {submitting ? 'Submitting...' : 'Submit Application'}
-                </Button>
-              ) : (
+            <Box>
+              {activeStep < STEPS.length - 1 ? (
                 <Button
                   variant="contained"
                   endIcon={<NextIcon />}
                   onClick={handleNext}
+                  disabled={submitting}
                   sx={{
-                    minWidth: 120,
                     backgroundColor: '#667eea',
                     '&:hover': {
                       backgroundColor: '#5568d3'
@@ -365,6 +373,21 @@ const JobApplicationForm = () => {
                 >
                   Next
                 </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  endIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SubmitIcon />}
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  sx={{
+                    backgroundColor: '#4caf50',
+                    '&:hover': {
+                      backgroundColor: '#45a049'
+                    }
+                  }}
+                >
+                  {submitting ? 'Submitting...' : 'Submit Application'}
+                </Button>
               )}
             </Box>
           </Box>
@@ -372,12 +395,7 @@ const JobApplicationForm = () => {
       </Container>
 
       {/* Success Dialog */}
-      <Dialog
-        open={showSuccess}
-        onClose={handleCloseSuccess}
-        maxWidth="sm"
-        fullWidth
-      >
+      <Dialog open={showSuccess} onClose={handleCloseSuccess} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ textAlign: 'center', pt: 4 }}>
           <SuccessIcon sx={{ fontSize: 64, color: '#4caf50', mb: 2 }} />
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
@@ -386,27 +404,13 @@ const JobApplicationForm = () => {
         </DialogTitle>
         <DialogContent sx={{ textAlign: 'center', pb: 2 }}>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Thank you for applying to Tennessee Personal Assistance.
+            Thank you for applying to Tennessee Personal Assistance, Inc.
           </Typography>
-          <Typography variant="body2" sx={{ mb: 2, color: '#666' }}>
-            Your application has been received and is being reviewed by our HR team.
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            Your application ID: <strong>#{applicationId}</strong>
           </Typography>
-          {applicationId && (
-            <Box sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 1, mb: 2 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                Application ID:
-              </Typography>
-              <Typography variant="h6" sx={{ color: '#667eea', fontWeight: 700 }}>
-                {applicationId}
-              </Typography>
-            </Box>
-          )}
-          <Typography variant="body2" sx={{ color: '#666' }}>
-            A confirmation email has been sent to your email address. 
-            Please save your Application ID for future reference.
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic', color: '#999' }}>
-            Your application confirmation PDF has been downloaded automatically.
+          <Typography variant="body2" color="textSecondary">
+            We will review your application and contact you soon.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
@@ -415,7 +419,6 @@ const JobApplicationForm = () => {
             onClick={handleCloseSuccess}
             sx={{
               backgroundColor: '#667eea',
-              px: 4,
               '&:hover': {
                 backgroundColor: '#5568d3'
               }
@@ -425,7 +428,7 @@ const JobApplicationForm = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </>
   );
 };
 
