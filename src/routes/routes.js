@@ -1,6 +1,8 @@
+// src/routes/routes.js
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import JobApplicationForm from '../pages/recruitment/JobApplicationForm';
+import { ApplicationReviewDashboard } from '../pages/recruitment';
 
 // Import components
 import Login from '../pages/auth/Login';
@@ -38,10 +40,11 @@ export const publicRoutes = [
     element: <Login />,
   },
   {
-    path: '/apply',  // Public application page
+    path: '/apply',
     element: <JobApplicationForm />,
   },
 ];
+
 export const profileRoutes = [
   {
     path: '/profile',
@@ -52,6 +55,7 @@ export const profileRoutes = [
     element: <MyProfile />,
   },
 ];
+
 // Dashboard Routes (Role-based)
 export const dashboardRoutes = [
   {
@@ -94,59 +98,13 @@ export const employeeRoutes = [
     path: '/employees/add',
     element: <AddEmployee />,
   },
-  ,
   {
-    path: '/employees/:id',        // ← ADD THIS
-    element: <ViewEmployee />,     // ← ADD THIS
-  },
-  // Add these when you create the pages:
-  // {
-  //   path: '/employees/:id',
-  //   element: <EmployeeDetails />,
-  // },
-  // {
-  //   path: '/employees/edit/:id',
-  //   element: <EmployeeForm />,
-  // },
-];
-
-// Attendance Routes (to be added later)
-export const attendanceRoutes = [
-  // {
-  //   path: '/attendance',
-  //   element: <AttendanceList />,
-  // },
-  // {
-  //   path: '/attendance/clock-in',
-  //   element: <ClockIn />,
-  // },
-];
-
-
-
-// Settings Routes (to be added later)
-export const settingsRoutes = [
-  // {
-  //   path: '/settings/profile',
-  //   element: <Profile />,
-  // },
-  // {
-  //   path: '/settings/users',
-  //   element: <UserManagement />,
-  // },
-];
-
-// Redirect Routes
-export const redirectRoutes = [
-  {
-    path: '/',
-    element: <Navigate to="/login" replace />,
-  },
-  {
-    path: '*',
-    element: <Navigate to="/login" replace />,
+    path: '/employees/:id',
+    element: <ViewEmployee />,
   },
 ];
+
+// Leave Management Routes
 export const leaveRoutes = [
   {
     path: '/leave/request',
@@ -166,13 +124,40 @@ export const leaveRoutes = [
   },
 ];
 
+// Recruitment Routes
+export const recruitmentRoutes = [
+  {
+    path: '/recruitment/applications',
+    element: <ApplicationReviewDashboard />,
+  },
+];
+
+// Attendance Routes (to be added later)
+export const attendanceRoutes = [];
+
+// Settings Routes (to be added later)
+export const settingsRoutes = [];
+
+// Redirect Routes
+export const redirectRoutes = [
+  {
+    path: '/',
+    element: <Navigate to="/login" replace />,
+  },
+  {
+    path: '*',
+    element: <Navigate to="/login" replace />,
+  },
+];
+
 // Combine all routes
 export const allRoutes = [
   ...publicRoutes,
   ...dashboardRoutes,
   ...employeeRoutes,
-  ...attendanceRoutes,
   ...leaveRoutes,
+  ...recruitmentRoutes,
+  ...attendanceRoutes,
   ...settingsRoutes,
   ...profileRoutes,
   ...redirectRoutes,
