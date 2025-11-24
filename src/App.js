@@ -7,7 +7,11 @@ import {
   publicRoutes,
   dashboardRoutes,
   employeeRoutes,
-  leaveRoutes,        // ✅ ADD THIS
+  leaveRoutes,
+  recruitmentRoutes,
+  onboardingRoutes,
+  attendanceRoutes,
+  performanceRoutes,
   redirectRoutes,
   profileRoutes,
 } from './routes';
@@ -68,6 +72,42 @@ function App() {
           {leaveRoutes.map((route, index) => (
             <Route
               key={`leave-${index}`}
+              path={route.path}
+              element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+            />
+          ))}
+
+          {/* Protected Recruitment Routes */}
+          {recruitmentRoutes.map((route, index) => (
+            <Route
+              key={`recruitment-${index}`}
+              path={route.path}
+              element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+            />
+          ))}
+
+          {/* Protected Onboarding Routes */}
+          {onboardingRoutes.map((route, index) => (
+            <Route
+              key={`onboarding-${index}`}
+              path={route.path}
+              element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+            />
+          ))}
+
+          {/* Protected Attendance Routes */}
+          {attendanceRoutes.map((route, index) => (
+            <Route
+              key={`attendance-${index}`}
+              path={route.path}
+              element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+            />
+          ))}
+
+          {/* Protected Performance Routes */}
+          {performanceRoutes.map((route, index) => (
+            <Route
+              key={`performance-${index}`}
               path={route.path}
               element={<ProtectedRoute>{route.element}</ProtectedRoute>}
             />

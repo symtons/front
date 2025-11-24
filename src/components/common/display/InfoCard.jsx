@@ -42,27 +42,35 @@ const InfoCard = ({
   headerAction,
   sx = {}
 }) => {
-  // Color palette (TPA brand colors)
+  // Color palette (TPA brand colors - enhanced gradients)
   const colors = {
     blue: {
-      main: '#5B8FCC',
-      light: '#E8F4F8',
-      border: '#B3E0ED'
+      main: '#4A90E2',
+      secondary: '#357ABD',
+      light: '#E3F2FD',
+      border: '#90CAF9',
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
     },
     teal: {
-      main: '#6AB4A8',
-      light: '#E8F5F3',
-      border: '#B3DED7'
+      main: '#26A69A',
+      secondary: '#00897B',
+      light: '#E0F2F1',
+      border: '#80CBC4',
+      gradient: 'linear-gradient(135deg, #43cea2 0%, #185a9d 100%)'
     },
     gold: {
-      main: '#FDB94E',
-      light: '#FFF4E6',
-      border: '#FFE0B3'
+      main: '#FFA726',
+      secondary: '#FB8C00',
+      light: '#FFF3E0',
+      border: '#FFB74D',
+      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
     },
     gray: {
-      main: '#34495e',
-      light: '#ecf0f1',
-      border: '#bdc3c7'
+      main: '#546E7A',
+      secondary: '#37474F',
+      light: '#ECEFF1',
+      border: '#90A4AE',
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
     }
   };
 
@@ -91,37 +99,51 @@ const InfoCard = ({
         <>
           <Box
             sx={{
-              background: `linear-gradient(135deg, ${selectedColor.main} 0%, ${selectedColor.main}dd 100%)`,
+              background: selectedColor.gradient,
               color: '#fff',
-              p: 2.5,
+              p: 3,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              position: 'relative',
+              overflow: 'hidden',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '100%',
+                height: '100%',
+                background: 'radial-gradient(circle at top right, rgba(255,255,255,0.2) 0%, transparent 60%)',
+                pointerEvents: 'none'
+              }
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, position: 'relative', zIndex: 1 }}>
               {IconComponent && (
                 <Box
                   sx={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    borderRadius: 1.5,
-                    p: 1,
+                    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: 2,
+                    p: 1.5,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                   }}
                 >
-                  <IconComponent sx={{ fontSize: 28 }} />
+                  <IconComponent sx={{ fontSize: 32 }} />
                 </Box>
               )}
               <Box>
                 {title && (
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: subtitle ? 0.5 : 0 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700, mb: subtitle ? 0.5 : 0, fontSize: '1.15rem' }}>
                     {title}
                   </Typography>
                 )}
                 {subtitle && (
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="body2" sx={{ opacity: 0.95, fontSize: '0.875rem' }}>
                     {subtitle}
                   </Typography>
                 )}
@@ -130,7 +152,7 @@ const InfoCard = ({
 
             {/* Header Action (e.g., icon button, chip) */}
             {headerAction && (
-              <Box>{headerAction}</Box>
+              <Box sx={{ position: 'relative', zIndex: 1 }}>{headerAction}</Box>
             )}
           </Box>
         </>
@@ -173,9 +195,10 @@ const InfoCard = ({
                   <Typography
                     variant="body1"
                     sx={{
-                      fontWeight: item.bold ? 600 : 400,
-                      color: item.color || '#2c3e50',
-                      fontSize: item.bold ? '1.1rem' : '1rem'
+                      fontWeight: item.bold ? 700 : 400,
+                      color: item.color || selectedColor.main,
+                      fontSize: item.bold ? '2rem' : '1rem',
+                      lineHeight: 1
                     }}
                   >
                     {item.value}

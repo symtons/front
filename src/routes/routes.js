@@ -17,6 +17,20 @@ import {
   ApproveRequests,
   LeaveCalendar
 } from '../pages/leave';
+import {
+  MyTasks,
+  OnboardingMonitor,
+  EmployeeDetail
+} from '../pages/onboarding';
+import {
+  ClockInOut,
+  MyAttendance,
+  AttendanceReports,
+  AttendanceSchedule
+} from '../pages/attendance';
+import PerformanceOverview from '../pages/performance/PerformanceOverview';
+import GoalsPage from '../pages/performance/GoalsPage';
+import FeedbackPage from '../pages/performance/FeedbackPage';
 
 // Protected Route Component
 export const ProtectedRoute = ({ children }) => {
@@ -132,8 +146,61 @@ export const recruitmentRoutes = [
   },
 ];
 
-// Attendance Routes (to be added later)
-export const attendanceRoutes = [];
+// Onboarding Routes
+export const onboardingRoutes = [
+  {
+    path: '/onboarding/my-tasks',
+    element: <MyTasks />,
+  },
+  {
+    path: '/onboarding/monitor',
+    element: <OnboardingMonitor />,
+  },
+  {
+    path: '/onboarding/employee/:id',
+    element: <EmployeeDetail />,
+  },
+];
+
+// Attendance Routes
+export const attendanceRoutes = [
+  {
+    path: '/attendance/clock',
+    element: <ClockInOut />,
+  },
+  {
+    path: '/attendance/my-attendance',
+    element: <MyAttendance />,
+  },
+  {
+    path: '/attendance/schedule',
+    element: <AttendanceSchedule />,
+  },
+  {
+    path: '/attendance/reports',
+    element: <AttendanceReports />,
+  },
+];
+
+// Performance Management Routes
+export const performanceRoutes = [
+  {
+    path: '/performance',
+    element: <PerformanceOverview />,
+  },
+  {
+    path: '/performance/overview',
+    element: <PerformanceOverview />,
+  },
+  {
+    path: '/performance/goals',
+    element: <GoalsPage />,
+  },
+  {
+    path: '/performance/feedback',
+    element: <FeedbackPage />,
+  },
+];
 
 // Settings Routes (to be added later)
 export const settingsRoutes = [];
@@ -157,7 +224,9 @@ export const allRoutes = [
   ...employeeRoutes,
   ...leaveRoutes,
   ...recruitmentRoutes,
+  ...onboardingRoutes,
   ...attendanceRoutes,
+  ...performanceRoutes,
   ...settingsRoutes,
   ...profileRoutes,
   ...redirectRoutes,

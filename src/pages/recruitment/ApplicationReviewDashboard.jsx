@@ -16,7 +16,8 @@ import {
   Cancel as RejectIcon,
   NoteAdd as NotesIcon,
   Description as ApplicationIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  PersonAdd as HireIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/layout/Layout';
@@ -36,6 +37,7 @@ import api from '../../services/authService';
 import ApplicationDetailDialog from './components/ApplicationDetailDialog';
 import RejectApplicationDialog from './components/RejectApplicationDialog';
 import AddNotesDialog from './components/AddNotesDialog';
+import HireDialog from './components/HireDialog';
 
 // Import from models
 import {
@@ -88,6 +90,7 @@ const ApplicationReviewDashboard = () => {
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+  const [hireDialogOpen, setHireDialogOpen] = useState(false);
   
   // Loading states for actions
   const [approving, setApproving] = useState(false);
@@ -135,7 +138,17 @@ const ApplicationReviewDashboard = () => {
       setTotalCount(response.totalCount || 0);
       setError('');
     } catch (err) {
-      setError(err.message || 'Failed to load applications');
+      console.error('Error fetching applications:', err);
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to load applications';
+      const statusCode = err.response?.status;
+
+      if (statusCode === 401) {
+        setError('Unauthorized: Please log in with Admin, Executive, or HR Manager role');
+      } else if (statusCode === 403) {
+        setError('Access Denied: You need Admin, Executive, or HR Manager role to view applications');
+      } else {
+        setError(`Error ${statusCode || ''}: ${errorMsg}`);
+      }
       setApplications([]);
     } finally {
       setLoading(false);
@@ -269,10 +282,22 @@ const ApplicationReviewDashboard = () => {
     fetchStatistics();
   };
 
+  const handleHireClick = (application) => {
+    setSelectedApplication(application);
+    setHireDialogOpen(true);
+  };
+
+  const handleHireSuccess = (result) => {
+    setSuccessMessage(`Candidate hired successfully! Employee ID: ${result.employeeCode}`);
+    setShowSuccess(true);
+    fetchApplications();
+    fetchStatistics();
+  };
+
   // Build chips for PageHeader
   const headerChips = currentUser
     ? [
-        { icon: <ApplicationIcon />, label: currentUser.role }
+        { icon: ApplicationIcon, label: currentUser.role }
       ]
     : [];
 
@@ -375,6 +400,16 @@ const ApplicationReviewDashboard = () => {
               <NotesIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          <Tooltip title="Hire Candidate">
+            <IconButton
+              size="small"
+              color="primary"
+              onClick={() => handleHireClick(params.row)}
+              disabled={params.row.approvalStatus === 'Hired'}
+            >
+              <HireIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Box>
       )
     }
@@ -393,7 +428,7 @@ const ApplicationReviewDashboard = () => {
       <PageHeader
         title="Application Review"
         subtitle="Review and manage job applications"
-        icon={<ApplicationIcon />}
+        icon={ApplicationIcon}
         chips={headerChips}
         actions={
           <Button
@@ -414,48 +449,52 @@ const ApplicationReviewDashboard = () => {
 
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
           <InfoCard
-            icon={<ApplicationIcon />}
+            icon={ApplicationIcon}
             title="Total Applications"
             data={[
               { label: 'Count', value: stats.totalApplications, bold: true }
             ]}
             color="blue"
             elevated={true}
+            sx={{ width: '100%' }}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
           <InfoCard
-            icon={<ApplicationIcon />}
+            icon={ApplicationIcon}
             title="Pending Review"
             data={[
               { label: 'Count', value: stats.pendingApplications, bold: true }
             ]}
             color="gold"
             elevated={true}
+            sx={{ width: '100%' }}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
           <InfoCard
-            icon={<ApproveIcon />}
+            icon={ApproveIcon}
             title="Approved"
             data={[
               { label: 'Count', value: stats.approvedApplications, bold: true }
             ]}
             color="teal"
             elevated={true}
+            sx={{ width: '100%' }}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
           <InfoCard
-            icon={<RejectIcon />}
+            icon={RejectIcon}
             title="Rejected"
             data={[
               { label: 'Count', value: stats.rejectedApplications, bold: true }
             ]}
             color="gray"
             elevated={true}
+            sx={{ width: '100%' }}
           />
         </Grid>
       </Grid>
@@ -552,6 +591,14 @@ const ApplicationReviewDashboard = () => {
         onConfirm={handleAddNotesConfirm}
         application={selectedApplication}
         loading={addingNotes}
+      />
+
+      {/* Hire Dialog */}
+      <HireDialog
+        open={hireDialogOpen}
+        onClose={() => setHireDialogOpen(false)}
+        application={selectedApplication}
+        onSuccess={handleHireSuccess}
       />
 
       {/* Success Snackbar */}

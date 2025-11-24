@@ -135,19 +135,34 @@ const Login = () => {
 
     try {
       const response = await authService.login(email, password);
-      
+
       // Store remember me preference
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true');
       }
-      
+
+      // Check if user needs to complete onboarding
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+
+        // If account is in PendingOnboarding status, redirect to onboarding
+        // Note: You may need to add accountStatus to the login response if not already present
+        if (response.user.accountStatus === 'PendingOnboarding' ||
+            user.accountStatus === 'PendingOnboarding') {
+          console.log('Redirecting to onboarding...'); // Debug log
+          navigate('/onboarding/my-tasks');
+          return;
+        }
+      }
+
       // Navigate based on user role
       const userRole = response.user.role;
       const dashboardPath = getRoleBasedDashboard(userRole);
-      
+
       console.log('Navigating to:', dashboardPath); // Debug log
       navigate(dashboardPath);
-      
+
     } catch (err) {
       console.error('Login error:', err);
       setError(err.message || 'Login failed. Please check your credentials.');
