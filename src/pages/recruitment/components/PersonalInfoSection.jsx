@@ -1,9 +1,12 @@
 // src/pages/recruitment/components/PersonalInfoSection.jsx
 /**
- * PersonalInfoSection Component - Step 1
+ * PersonalInfoSection Component - Step 1 (FINAL CLEAN LAYOUT)
  * 
- * Comprehensive personal information matching TPA paper form
- * Includes: Name, Address, SSN, Driver's License, Emergency Contact
+ * CRITICAL FIX - Section headers now have:
+ * - Full-width Grid item (xs={12})
+ * - Prominent background-colored box
+ * - Clear visual separation
+ * - Consistent field alignment
  */
 
 import React from 'react';
@@ -23,6 +26,16 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
     onChange(e);
   };
 
+  // Section header style - makes headers prominent and full-width
+  const sectionHeaderStyle = {
+    py: 1,
+    px: 2,
+    backgroundColor: '#f0f4ff',
+    borderRadius: 1,
+    borderLeft: '4px solid #667eea',
+    mb: 2
+  };
+
   return (
     <>
       <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, color: '#333' }}>
@@ -35,8 +48,9 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
       </Alert>
 
       <Grid container spacing={3}>
-        {/* Application Date */}
-        <Grid item xs={12} sm={6}>
+        
+        {/* APPLICATION DATE */}
+        <Grid item xs={12} md={6}>
           <TextField
             fullWidth
             label="Application Date"
@@ -50,15 +64,18 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
             helperText={errors.applicationDate}
           />
         </Grid>
+        <Grid item xs={12} md={6} />
 
-        {/* Name Section */}
+        {/* NAME SECTION */}
         <Grid item xs={12}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-            Name
-          </Typography>
+          <Box sx={sectionHeaderStyle}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
+              Name
+            </Typography>
+          </Box>
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={4}>
           <TextField
             fullWidth
             label="Last Name"
@@ -71,7 +88,7 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={4}>
           <TextField
             fullWidth
             label="First Name"
@@ -84,7 +101,7 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={4}>
           <TextField
             fullWidth
             label="Middle Name"
@@ -94,14 +111,16 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        {/* Home Address Section */}
+        {/* HOME ADDRESS SECTION */}
         <Grid item xs={12}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, mt: 2 }}>
-            Home Address
-          </Typography>
+          <Box sx={sectionHeaderStyle}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
+              Home Address
+            </Typography>
+          </Box>
         </Grid>
 
-        <Grid item xs={12} sm={8}>
+        <Grid item xs={12} md={9}>
           <TextField
             fullWidth
             label="Street Address"
@@ -114,17 +133,17 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={3}>
           <TextField
             fullWidth
-            label="Apt #"
+            label="Apt/Unit #"
             name="aptNumber"
             value={formData.aptNumber || ''}
             onChange={handleChange}
           />
         </Grid>
 
-        <Grid item xs={12} sm={5}>
+        <Grid item xs={12} md={5}>
           <TextField
             fullWidth
             label="City"
@@ -137,7 +156,7 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        <Grid item xs={12} sm={3}>
+        <Grid item xs={12} md={4}>
           <TextField
             select
             fullWidth
@@ -157,7 +176,7 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           </TextField>
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={3}>
           <TextField
             fullWidth
             label="Zip Code"
@@ -170,14 +189,16 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        {/* SSN and Driver's License Section */}
+        {/* IDENTIFICATION SECTION */}
         <Grid item xs={12}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, mt: 2 }}>
-            Identification
-          </Typography>
+          <Box sx={sectionHeaderStyle}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
+              Identification
+            </Typography>
+          </Box>
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} md={6}>
           <TextField
             fullWidth
             label="Social Security Number"
@@ -191,7 +212,7 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={4}>
           <TextField
             fullWidth
             label="Driver's License #"
@@ -204,7 +225,7 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        <Grid item xs={12} sm={2}>
+        <Grid item xs={12} md={2}>
           <TextField
             select
             fullWidth
@@ -224,14 +245,16 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           </TextField>
         </Grid>
 
-        {/* Contact Information */}
+        {/* CONTACT INFORMATION SECTION */}
         <Grid item xs={12}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, mt: 2 }}>
-            Contact Information
-          </Typography>
+          <Box sx={sectionHeaderStyle}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
+              Contact Information
+            </Typography>
+          </Box>
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} md={6}>
           <TextField
             fullWidth
             label="Phone Number"
@@ -245,7 +268,7 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} md={6}>
           <TextField
             fullWidth
             label="Cell Number"
@@ -258,14 +281,16 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        {/* Emergency Contact Section */}
+        {/* EMERGENCY CONTACT SECTION */}
         <Grid item xs={12}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, mt: 2 }}>
-            Emergency Contact
-          </Typography>
+          <Box sx={sectionHeaderStyle}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
+              Emergency Contact
+            </Typography>
+          </Box>
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} md={6}>
           <TextField
             fullWidth
             label="Emergency Contact Person"
@@ -278,7 +303,7 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} md={6}>
           <TextField
             fullWidth
             label="Relationship"
@@ -291,10 +316,10 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="Emergency Contact Address and Phone"
+            label="Emergency Contact Address"
             name="emergencyContactAddress"
             value={formData.emergencyContactAddress || ''}
             onChange={handleChange}
@@ -302,7 +327,7 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} md={6}>
           <TextField
             fullWidth
             label="Emergency Contact Phone"
@@ -317,7 +342,7 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
         </Grid>
       </Grid>
 
-      <Box sx={{ mt: 3, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+      <Box sx={{ mt: 4, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
         <Typography variant="body2" sx={{ fontStyle: 'italic', color: '#666' }}>
           <strong>TPA, Inc. is an Equal Opportunity Employer</strong><br />
           Tennessee Law Prohibits Discrimination in Employment: It is illegal to discriminate against any person 

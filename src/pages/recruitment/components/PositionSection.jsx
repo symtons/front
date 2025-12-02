@@ -1,9 +1,11 @@
 // src/pages/recruitment/components/PositionSection.jsx
 /**
- * PositionSection Component - Step 2
+ * PositionSection Component - Step 2 (FINAL CLEAN LAYOUT)
  * 
- * Position applied for, salary, availability, location, shifts, and days
- * Matches TPA paper application form
+ * CRITICAL FIX - Section headers with prominent styling:
+ * - Full-width background-colored boxes
+ * - Clear visual separation
+ * - Professional checkbox groupings
  */
 
 import React from 'react';
@@ -17,8 +19,6 @@ import {
   FormGroup,
   FormControlLabel,
   Checkbox,
-  RadioGroup,
-  Radio,
   Alert,
   Box,
   Paper
@@ -51,6 +51,16 @@ const PositionSection = ({ formData, onChange, errors = {} }) => {
     });
   };
 
+  // Section header style
+  const sectionHeaderStyle = {
+    py: 1,
+    px: 2,
+    backgroundColor: '#f0f4ff',
+    borderRadius: 1,
+    borderLeft: '4px solid #667eea',
+    mb: 2
+  };
+
   return (
     <>
       <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, color: '#333' }}>
@@ -62,28 +72,31 @@ const PositionSection = ({ formData, onChange, errors = {} }) => {
       </Alert>
 
       <Grid container spacing={3}>
-        {/* Positions Applied For */}
+        
+        {/* POSITIONS APPLIED FOR */}
         <Grid item xs={12}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-            Position(s) Applied For
-          </Typography>
+          <Box sx={sectionHeaderStyle}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
+              Position(s) Applied For
+            </Typography>
+          </Box>
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="Position 1"
+            label="Position 1 (Primary)"
             name="position1"
             value={formData.position1 || ''}
             onChange={handleChange}
             required
             error={!!errors.position1}
-            helperText={errors.position1}
-            placeholder="Primary position of interest"
+            helperText={errors.position1 || 'Primary position of interest'}
+            placeholder="e.g., Registered Nurse, Caregiver, etc."
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} md={6}>
           <TextField
             fullWidth
             label="Position 2 (Optional)"
@@ -94,14 +107,16 @@ const PositionSection = ({ formData, onChange, errors = {} }) => {
           />
         </Grid>
 
-        {/* Salary and Employment Type */}
+        {/* COMPENSATION & EMPLOYMENT */}
         <Grid item xs={12}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, mt: 2 }}>
-            Compensation & Employment Type
-          </Typography>
+          <Box sx={sectionHeaderStyle}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
+              Compensation & Employment Type
+            </Typography>
+          </Box>
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={4}>
           <TextField
             fullWidth
             label="Salary Desired"
@@ -112,13 +127,11 @@ const PositionSection = ({ formData, onChange, errors = {} }) => {
             required
             error={!!errors.salaryDesired}
             helperText={errors.salaryDesired}
-            InputProps={{
-              startAdornment: '$'
-            }}
+            placeholder="Enter amount"
           />
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={4}>
           <TextField
             select
             fullWidth
@@ -138,7 +151,27 @@ const PositionSection = ({ formData, onChange, errors = {} }) => {
           </TextField>
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={4}>
+          <TextField
+            select
+            fullWidth
+            label="Employment Type"
+            name="employmentSought"
+            value={formData.employmentSought || ''}
+            onChange={handleChange}
+            required
+            error={!!errors.employmentSought}
+            helperText={errors.employmentSought}
+          >
+            {EMPLOYMENT_TYPE_OPTIONS.map(option => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
           <TextField
             fullWidth
             label="Available Start Date"
@@ -152,37 +185,25 @@ const PositionSection = ({ formData, onChange, errors = {} }) => {
             helperText={errors.availableStartDate}
           />
         </Grid>
+        <Grid item xs={12} md={6} />
 
-        {/* Employment Type */}
+        {/* LOCATION PREFERENCES */}
         <Grid item xs={12}>
-          <FormControl component="fieldset" error={!!errors.employmentSought}>
-            <FormLabel component="legend" sx={{ fontWeight: 600, color: '#333' }}>
-              Employment Sought <span style={{ color: '#f44336' }}>*</span>
-            </FormLabel>
-            <RadioGroup
-              row
-              name="employmentSought"
-              value={formData.employmentSought || ''}
-              onChange={handleChange}
-            >
-              <FormControlLabel value="FullTime" control={<Radio />} label="Full Time" />
-              <FormControlLabel value="PartTime" control={<Radio />} label="Part Time" />
-              <FormControlLabel value="Temporary" control={<Radio />} label="Temporary" />
-            </RadioGroup>
-            {errors.employmentSought && (
-              <Typography variant="caption" color="error">
-                {errors.employmentSought}
-              </Typography>
-            )}
-          </FormControl>
+          <Box sx={sectionHeaderStyle}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
+              Location Preferences
+            </Typography>
+          </Box>
         </Grid>
 
-        {/* Desired Location to Work */}
         <Grid item xs={12}>
-          <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
-            <FormControl component="fieldset" error={!!errors.desiredLocations} fullWidth>
-              <FormLabel component="legend" sx={{ fontWeight: 600, color: '#333', mb: 1 }}>
-                Desired Location to Work <span style={{ color: '#f44336' }}>*</span>
+          <Paper variant="outlined" sx={{ p: 2.5 }}>
+            <FormControl component="fieldset" fullWidth error={!!errors.desiredLocations}>
+              <FormLabel 
+                component="legend" 
+                sx={{ mb: 1.5, fontWeight: 500, color: 'text.primary' }}
+              >
+                Select Desired Locations (check all that apply)
               </FormLabel>
               <FormGroup row>
                 {LOCATION_OPTIONS.map(location => (
@@ -192,38 +213,54 @@ const PositionSection = ({ formData, onChange, errors = {} }) => {
                       <Checkbox
                         checked={(formData.desiredLocations || []).includes(location.value)}
                         onChange={() => handleCheckboxChange('desiredLocations', location.value)}
+                        sx={{ color: errors.desiredLocations ? 'error.main' : 'primary.main' }}
                       />
                     }
                     label={location.label}
+                    sx={{ minWidth: '160px', mb: 0.5 }}
                   />
                 ))}
               </FormGroup>
-              {(formData.desiredLocations || []).includes('Other') && (
-                <TextField
-                  fullWidth
-                  label="Other Location"
-                  name="desiredLocationOther"
-                  value={formData.desiredLocationOther || ''}
-                  onChange={handleChange}
-                  sx={{ mt: 2 }}
-                  placeholder="Please specify"
-                />
-              )}
               {errors.desiredLocations && (
-                <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
                   {errors.desiredLocations}
                 </Typography>
               )}
             </FormControl>
+
+            {(formData.desiredLocations || []).includes('Other') && (
+              <TextField
+                fullWidth
+                label="Please Specify Other Location"
+                name="desiredLocationOther"
+                value={formData.desiredLocationOther || ''}
+                onChange={handleChange}
+                sx={{ mt: 2 }}
+                required={formData.desiredLocations?.includes('Other')}
+                error={!!errors.desiredLocationOther}
+                helperText={errors.desiredLocationOther}
+              />
+            )}
           </Paper>
         </Grid>
 
-        {/* Shift Sought */}
+        {/* SHIFT PREFERENCES */}
         <Grid item xs={12}>
-          <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
-            <FormControl component="fieldset" error={!!errors.shiftPreferences} fullWidth>
-              <FormLabel component="legend" sx={{ fontWeight: 600, color: '#333', mb: 1 }}>
-                Shift Sought <span style={{ color: '#f44336' }}>*</span>
+          <Box sx={sectionHeaderStyle}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
+              Shift Preferences
+            </Typography>
+          </Box>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Paper variant="outlined" sx={{ p: 2.5 }}>
+            <FormControl component="fieldset" fullWidth error={!!errors.shiftPreferences}>
+              <FormLabel 
+                component="legend" 
+                sx={{ mb: 1.5, fontWeight: 500, color: 'text.primary' }}
+              >
+                Select Preferred Shifts (check all that apply)
               </FormLabel>
               <FormGroup row>
                 {SHIFT_OPTIONS.map(shift => (
@@ -233,14 +270,16 @@ const PositionSection = ({ formData, onChange, errors = {} }) => {
                       <Checkbox
                         checked={(formData.shiftPreferences || []).includes(shift.value)}
                         onChange={() => handleCheckboxChange('shiftPreferences', shift.value)}
+                        sx={{ color: errors.shiftPreferences ? 'error.main' : 'primary.main' }}
                       />
                     }
                     label={shift.label}
+                    sx={{ minWidth: '180px', mb: 0.5 }}
                   />
                 ))}
               </FormGroup>
               {errors.shiftPreferences && (
-                <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
                   {errors.shiftPreferences}
                 </Typography>
               )}
@@ -248,12 +287,23 @@ const PositionSection = ({ formData, onChange, errors = {} }) => {
           </Paper>
         </Grid>
 
-        {/* Days Available */}
+        {/* DAYS AVAILABLE */}
         <Grid item xs={12}>
-          <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
-            <FormControl component="fieldset" error={!!errors.daysAvailable} fullWidth>
-              <FormLabel component="legend" sx={{ fontWeight: 600, color: '#333', mb: 1 }}>
-                Days Available <span style={{ color: '#f44336' }}>*</span>
+          <Box sx={sectionHeaderStyle}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
+              Days Available to Work
+            </Typography>
+          </Box>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Paper variant="outlined" sx={{ p: 2.5 }}>
+            <FormControl component="fieldset" fullWidth error={!!errors.daysAvailable}>
+              <FormLabel 
+                component="legend" 
+                sx={{ mb: 1.5, fontWeight: 500, color: 'text.primary' }}
+              >
+                Select All Days You Can Work
               </FormLabel>
               <FormGroup row>
                 {DAYS_OF_WEEK.map(day => (
@@ -263,14 +313,16 @@ const PositionSection = ({ formData, onChange, errors = {} }) => {
                       <Checkbox
                         checked={(formData.daysAvailable || []).includes(day.value)}
                         onChange={() => handleCheckboxChange('daysAvailable', day.value)}
+                        sx={{ color: errors.daysAvailable ? 'error.main' : 'primary.main' }}
                       />
                     }
                     label={day.label}
+                    sx={{ minWidth: '110px', mb: 0.5 }}
                   />
                 ))}
               </FormGroup>
               {errors.daysAvailable && (
-                <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
                   {errors.daysAvailable}
                 </Typography>
               )}
@@ -278,14 +330,6 @@ const PositionSection = ({ formData, onChange, errors = {} }) => {
           </Paper>
         </Grid>
 
-        {/* Important Note */}
-        <Grid item xs={12}>
-          <Alert severity="warning" sx={{ mt: 2 }}>
-            <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-              *Assignment of days, shifts, and hours are based on company needs without guaranteed permanency
-            </Typography>
-          </Alert>
-        </Grid>
       </Grid>
     </>
   );
