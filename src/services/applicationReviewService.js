@@ -2,8 +2,9 @@
 import api from './authService';
 
 /**
- * Application Review Service
+ * Application Review Service - FIXED VERSION
  * Handles all API calls for HR Application Review Dashboard
+ * Fixed: Proper casing for C# backend (RejectionReason with capital R)
  */
 
 const applicationReviewService = {
@@ -21,6 +22,7 @@ const applicationReviewService = {
       const response = await api.get('/JobApplication/All', { params });
       return response.data;
     } catch (error) {
+      console.error('getAllApplications error:', error);
       throw error.response?.data || { message: 'Failed to load applications' };
     }
   },
@@ -34,6 +36,7 @@ const applicationReviewService = {
       const response = await api.get(`/JobApplication/${id}`);
       return response.data;
     } catch (error) {
+      console.error('getApplicationById error:', error);
       throw error.response?.data || { message: 'Failed to load application details' };
     }
   },
@@ -47,6 +50,7 @@ const applicationReviewService = {
       const response = await api.get('/JobApplication/Statistics');
       return response.data;
     } catch (error) {
+      console.error('getStatistics error:', error);
       throw error.response?.data || { message: 'Failed to load statistics' };
     }
   },
@@ -58,14 +62,23 @@ const applicationReviewService = {
   /**
    * Reject application with reason
    * POST /api/JobApplication/{id}/Reject
+   * FIXED: Backend expects RejectionReason with capital R
    */
   rejectApplication: async (id, rejectionReason) => {
     try {
+      console.log('=== rejectApplication ===');
+      console.log('ID:', id);
+      console.log('Reason:', rejectionReason);
+      
       const response = await api.post(`/JobApplication/${id}/Reject`, {
-        rejectionReason
+        RejectionReason: rejectionReason  // ← CAPITAL R for C# backend
       });
+      
+      console.log('Rejection successful:', response.data);
       return response.data;
     } catch (error) {
+      console.error('rejectApplication error:', error);
+      console.error('Error response:', error.response?.data);
       throw error.response?.data || { message: 'Failed to reject application' };
     }
   },
@@ -76,11 +89,17 @@ const applicationReviewService = {
    */
   addNotes: async (id, notes) => {
     try {
+      console.log('=== addNotes ===');
+      console.log('ID:', id);
+      console.log('Notes:', notes);
+      
       const response = await api.post(`/JobApplication/${id}/Notes`, {
-        notes
+        Notes: notes  // ← Capital N for C# backend
       });
+      
       return response.data;
     } catch (error) {
+      console.error('addNotes error:', error);
       throw error.response?.data || { message: 'Failed to add notes' };
     }
   },
@@ -91,12 +110,18 @@ const applicationReviewService = {
    */
   updateApprovalStatus: async (id, approvalStatus, notes = '') => {
     try {
+      console.log('=== updateApprovalStatus ===');
+      console.log('ID:', id);
+      console.log('Status:', approvalStatus);
+      
       const response = await api.put(`/JobApplication/${id}/Approval`, {
-        approvalStatus,
-        notes
+        ApprovalStatus: approvalStatus,  // ← Capital A and S for C# backend
+        Notes: notes || ''  // ← Capital N
       });
+      
       return response.data;
     } catch (error) {
+      console.error('updateApprovalStatus error:', error);
       throw error.response?.data || { message: 'Failed to update approval status' };
     }
   },
@@ -108,11 +133,12 @@ const applicationReviewService = {
   updateStatus: async (id, status, notes = '') => {
     try {
       const response = await api.put(`/JobApplication/${id}/Status`, {
-        status,
-        notes
+        Status: status,  // ← Capital S
+        Notes: notes || ''  // ← Capital N
       });
       return response.data;
     } catch (error) {
+      console.error('updateStatus error:', error);
       throw error.response?.data || { message: 'Failed to update status' };
     }
   }

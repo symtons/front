@@ -1,6 +1,10 @@
-// src/pages/recruitment/components/ApplicationDetailDialog.jsx
+// ApplicationDetailDialog with debugging and better N/A handling
 import React, { useState, useEffect } from 'react';
 import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Box,
   Tabs,
   Tab,
@@ -10,10 +14,9 @@ import {
   TableCell,
   Typography,
   Chip,
-  CircularProgress,
-  Alert,
   Button,
-  Divider
+  Divider,
+  IconButton
 } from '@mui/material';
 import {
   CheckCircle as ApproveIcon,
@@ -21,63 +24,16 @@ import {
   NoteAdd as NotesIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
-import CustomModal from '../../../components/common/feedback/CustomModal';
-import StatusChip from '../../../components/common/display/StatusChip';
-import applicationReviewService from '../../../services/applicationReviewService';
-import {
-  getStatusColor,
-  getApprovalStatusColor,
-  formatApplicationDate,
-  formatPhoneNumber,
-  formatFullName,
-  formatAddress
-} from '../models/applicationReviewModels';
 
-/**
- * ApplicationDetailDialog Component
- * 
- * Full application details with tabs
- * 
- * Props:
- * - open: boolean
- * - onClose: function
- * - applicationId: number
- * - onApprove: function
- * - onReject: function
- * - onAddNotes: function
- */
-
-const ApplicationDetailDialog = ({
-  open,
-  onClose,
-  applicationId,
-  onApprove,
-  onReject,
-  onAddNotes
-}) => {
+const ApplicationDetailDialog = ({ open, onClose, application, onApprove, onReject, onAddNotes }) => {
   const [activeTab, setActiveTab] = useState(0);
-  const [application, setApplication] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
+  // Debug logging
   useEffect(() => {
-    if (open && applicationId) {
-      fetchApplicationDetails();
-    }
-  }, [open, applicationId]);
-
-  const fetchApplicationDetails = async () => {
-    try {
-      setLoading(true);
-      const data = await applicationReviewService.getApplicationById(applicationId);
-      setApplication(data);
-      setError('');
-    } catch (err) {
-      setError(err.message || 'Failed to load application details');
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.log('=== ApplicationDetailDialog ===');
+    console.log('open:', open);
+    console.log('application:', application);
+  }, [open, application]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -85,372 +41,289 @@ const ApplicationDetailDialog = ({
 
   const handleClose = () => {
     setActiveTab(0);
-    setApplication(null);
     onClose();
   };
 
-  // Action buttons for modal
-  const modalActions = application && (
-    <Box sx={{ display: 'flex', gap: 1 }}>
-      <Button onClick={handleClose} startIcon={<CloseIcon />}>
-        Close
-      </Button>
-      <Button
-        variant="outlined"
-        startIcon={<NotesIcon />}
-        onClick={() => onAddNotes(application)}
-      >
-        Add Notes
-      </Button>
-      <Button
-        variant="contained"
-        color="error"
-        startIcon={<RejectIcon />}
-        onClick={() => onReject(application)}
-        disabled={application.approvalStatus !== 'Pending'}
-      >
-        Reject
-      </Button>
-      <Button
-        variant="contained"
-        color="success"
-        startIcon={<ApproveIcon />}
-        onClick={() => onApprove(application)}
-        disabled={application.approvalStatus !== 'Pending'}
-      >
-        Approve
-      </Button>
-    </Box>
-  );
+  // If no application, don't render
+  if (!application) {
+    console.log('No application provided to dialog');
+    return null;
+  }
 
   return (
-    <CustomModal
+    <Dialog
       open={open}
       onClose={handleClose}
-      title="Application Details"
-      subtitle={
-        application
-          ? `${formatFullName(
-              application.firstName,
-              application.middleName,
-              application.lastName
-            )} - ${application.position1 || 'N/A'}`
-          : ''
-      }
-      size="full"
-      actions={modalActions}
+      maxWidth="lg"
+      fullWidth
+      PaperProps={{
+        sx: {
+          minHeight: '80vh',
+          maxHeight: '90vh'
+        }
+      }}
     >
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
-          <CircularProgress />
+      {/* Dialog Header */}
+      <DialogTitle sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        borderBottom: '1px solid #e0e0e0',
+        pb: 2
+      }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            Application Details
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {application.fullName || `${application.firstName || ''} ${application.lastName || ''}`.trim() || 'Applicant'} 
+            {' - '}
+            {application.positionAppliedFor || application.position1 || 'Position Not Specified'}
+          </Typography>
         </Box>
-      ) : error ? (
-        <Alert severity="error">{error}</Alert>
-      ) : application ? (
-        <>
-          {/* Status Header */}
-          <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
-            <StatusChip
-              label={application.status || 'Submitted'}
-              variant={getStatusColor(application.status)}
-            />
-            <StatusChip
-              label={application.approvalStatus || 'Pending'}
-              variant={getApprovalStatusColor(application.approvalStatus)}
-            />
-            <Typography variant="body2" color="text.secondary">
-              Submitted: {formatApplicationDate(application.submissionDate || application.applicationDate)}
-            </Typography>
-          </Box>
+        <IconButton onClick={handleClose}>
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
 
-          {/* Tabs */}
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-            <Tabs value={activeTab} onChange={handleTabChange}>
-              <Tab label="Personal Info" />
-              <Tab label="Position & Background" />
-              <Tab label="Education" />
-              <Tab label="References" />
-              <Tab label="Employment History" />
-              <Tab label="Authorizations" />
-              <Tab label="Review Notes" />
-            </Tabs>
-          </Box>
+      {/* Status Chips */}
+      <Box sx={{ px: 3, pt: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
+        <Chip
+          label={application.approvalStatus || 'Pending'}
+          color={
+            application.approvalStatus === 'Approved' ? 'success' :
+            application.approvalStatus === 'Rejected' ? 'error' : 'warning'
+          }
+          size="small"
+        />
+        <Typography variant="body2" color="text.secondary">
+          Application ID: {application.applicationId || 'N/A'}
+        </Typography>
+      </Box>
 
-          {/* Tab Panels */}
-          {activeTab === 0 && <PersonalInfoTab application={application} />}
-          {activeTab === 1 && <PositionBackgroundTab application={application} />}
-          {activeTab === 2 && <EducationTab application={application} />}
-          {activeTab === 3 && <ReferencesTab application={application} />}
-          {activeTab === 4 && <EmploymentHistoryTab application={application} />}
-          {activeTab === 5 && <AuthorizationsTab application={application} />}
-          {activeTab === 6 && <ReviewNotesTab application={application} />}
-        </>
-      ) : null}
-    </CustomModal>
+      {/* Tabs */}
+      <Box sx={{ px: 3, borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={handleTabChange}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            '& .Mui-selected': { color: '#667eea' },
+            '& .MuiTabs-indicator': { backgroundColor: '#667eea' }
+          }}
+        >
+          <Tab label="Personal" />
+          <Tab label="Position" />
+          <Tab label="Education" />
+          <Tab label="Licenses" />
+          <Tab label="References" />
+          <Tab label="Employment" />
+          <Tab label="Notes" />
+        </Tabs>
+      </Box>
+
+      {/* Dialog Content */}
+      <DialogContent sx={{ p: 3 }}>
+        {activeTab === 0 && <PersonalTab app={application} />}
+        {activeTab === 1 && <PositionTab app={application} />}
+        {activeTab === 2 && <EducationTab app={application} />}
+        {activeTab === 3 && <LicensesTab app={application} />}
+        {activeTab === 4 && <ReferencesTab app={application} />}
+        {activeTab === 5 && <EmploymentTab app={application} />}
+        {activeTab === 6 && <NotesTab app={application} />}
+      </DialogContent>
+
+      {/* Dialog Actions */}
+      <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid #e0e0e0' }}>
+        <Button onClick={handleClose} startIcon={<CloseIcon />}>
+          Close
+        </Button>
+        <Box sx={{ flex: 1 }} />
+        <Button
+          variant="outlined"
+          startIcon={<NotesIcon />}
+          onClick={() => { handleClose(); onAddNotes(application); }}
+          sx={{ color: '#FDB94E', borderColor: '#FDB94E' }}
+        >
+          Add Notes
+        </Button>
+        {application.approvalStatus === 'Pending' && (
+          <>
+            <Button
+              variant="contained"
+              startIcon={<RejectIcon />}
+              onClick={() => { handleClose(); onReject(application); }}
+              sx={{ backgroundColor: '#f44336', '&:hover': { backgroundColor: '#d32f2f' } }}
+            >
+              Reject
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<ApproveIcon />}
+              onClick={() => { handleClose(); onApprove(application); }}
+              sx={{ backgroundColor: '#6AB4A8', '&:hover': { backgroundColor: '#559089' } }}
+            >
+              Approve
+            </Button>
+          </>
+        )}
+      </DialogActions>
+    </Dialog>
   );
 };
 
-// ============================================
-// TAB COMPONENTS
-// ============================================
+// Helper function to safely get value
+const getValue = (value) => value || 'Not Provided';
 
-const PersonalInfoTab = ({ application }) => (
+// Tabs
+const PersonalTab = ({ app }) => (
   <Box>
-    <Table>
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Personal Information</Typography>
+    <Table size="small">
       <TableBody>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Full Name</TableCell>
-          <TableCell>
-            {formatFullName(application.firstName, application.middleName, application.lastName)}
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Date of Birth</TableCell>
-          <TableCell>{formatApplicationDate(application.dateOfBirth)}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Gender</TableCell>
-          <TableCell>{application.gender || 'N/A'}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Phone Numbers</TableCell>
-          <TableCell>
-            Cell: {formatPhoneNumber(application.cellPhone)}
-            <br />
-            Home: {formatPhoneNumber(application.homePhone)}
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-          <TableCell>{application.email || 'N/A'}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Address</TableCell>
-          <TableCell>{formatAddress(application)}</TableCell>
-        </TableRow>
+        <Row label="Full Name" value={app.fullName || `${app.firstName || ''} ${app.middleName || ''} ${app.lastName || ''}`.trim()} />
+        <Row label="Email" value={app.email} />
+        <Row label="Phone" value={app.phoneNumber} />
+        <Row label="Cell" value={app.cellNumber} />
+        <Row label="Address" value={app.homeAddress} />
+        <Row label="City" value={app.city} />
+        <Row label="State" value={app.state} />
+        <Row label="Zip" value={app.zipCode} />
+        <Row label="SSN" value={app.socialSecurityNumber ? '***-**-' + app.socialSecurityNumber.slice(-4) : 'Not Provided'} />
+        <Row label="Driver's License" value={app.driversLicenseNumber} />
+        <Row label="License State" value={app.driversLicenseState} />
       </TableBody>
     </Table>
-  </Box>
-);
-
-const PositionBackgroundTab = ({ application }) => (
-  <Box>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-      Position Applied For
-    </Typography>
-    <Table>
-      <TableBody>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Primary Position</TableCell>
-          <TableCell>{application.position1 || 'N/A'}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Secondary Position</TableCell>
-          <TableCell>{application.position2 || 'N/A'}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Desired Salary</TableCell>
-          <TableCell>{application.desiredSalary || 'N/A'}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Available Start Date</TableCell>
-          <TableCell>{formatApplicationDate(application.availableStartDate)}</TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
-
     <Divider sx={{ my: 3 }} />
-
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-      Background Questions
-    </Typography>
-    <Table>
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Emergency Contact</Typography>
+    <Table size="small">
       <TableBody>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Legally Authorized to Work in US</TableCell>
-          <TableCell>
-            <Chip
-              label={application.legallyAuthorizedToWork ? 'Yes' : 'No'}
-              color={application.legallyAuthorizedToWork ? 'success' : 'error'}
-              size="small"
-            />
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Over 18 Years Old</TableCell>
-          <TableCell>
-            <Chip
-              label={application.over18 ? 'Yes' : 'No'}
-              color={application.over18 ? 'success' : 'error'}
-              size="small"
-            />
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Valid Driver License</TableCell>
-          <TableCell>
-            <Chip
-              label={application.hasDriverLicense ? 'Yes' : 'No'}
-              color={application.hasDriverLicense ? 'success' : 'default'}
-              size="small"
-            />
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Felony Conviction</TableCell>
-          <TableCell>
-            <Chip
-              label={application.hasFelonyConviction ? 'Yes' : 'No'}
-              color={application.hasFelonyConviction ? 'warning' : 'success'}
-              size="small"
-            />
-            {application.felonyDetails && (
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                {application.felonyDetails}
-              </Typography>
-            )}
-          </TableCell>
-        </TableRow>
+        <Row label="Name" value={app.emergencyContactPerson} />
+        <Row label="Relationship" value={app.emergencyContactRelationship} />
+        <Row label="Address" value={app.emergencyContactAddress} />
+        <Row label="Phone" value={app.emergencyContactPhone} />
       </TableBody>
     </Table>
   </Box>
 );
 
-const EducationTab = ({ application }) => (
+const PositionTab = ({ app }) => (
   <Box>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-      Education
-    </Typography>
-    <Table>
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Position Details</Typography>
+    <Table size="small">
       <TableBody>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Highest Education Level</TableCell>
-          <TableCell>{application.educationLevel || 'N/A'}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>High School</TableCell>
-          <TableCell>{application.highSchoolName || 'N/A'}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>College/University</TableCell>
-          <TableCell>{application.collegeName || 'N/A'}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Degree</TableCell>
-          <TableCell>{application.degree || 'N/A'}</TableCell>
-        </TableRow>
+        <Row label="Position 1" value={app.position1 || app.positionAppliedFor} />
+        <Row label="Position 2" value={app.position2} />
+        <Row label="Salary Desired" value={app.salaryDesired} />
+        <Row label="Employment Type" value={app.employmentSought} />
+        <Row label="Start Date" value={app.availableStartDate} />
       </TableBody>
     </Table>
   </Box>
 );
 
-const ReferencesTab = ({ application }) => (
+const EducationTab = ({ app }) => (
   <Box>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-      Professional References
-    </Typography>
-    <Alert severity="info" sx={{ mb: 2 }}>
-      Reference information is stored in the database
-    </Alert>
-  </Box>
-);
-
-const EmploymentHistoryTab = ({ application }) => (
-  <Box>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-      Employment History
-    </Typography>
-    <Alert severity="info" sx={{ mb: 2 }}>
-      Employment history is stored in the database
-    </Alert>
-  </Box>
-);
-
-const AuthorizationsTab = ({ application }) => (
-  <Box>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-      Authorizations & Consents
-    </Typography>
-    <Table>
-      <TableBody>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Background Check Authorization</TableCell>
-          <TableCell>
-            <Chip
-              label={application.backgroundCheckConsent ? 'Authorized' : 'Not Authorized'}
-              color={application.backgroundCheckConsent ? 'success' : 'default'}
-              size="small"
-            />
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>DIDD Authorization</TableCell>
-          <TableCell>
-            <Chip
-              label={application.diddAuthorizationConsent ? 'Authorized' : 'Not Authorized'}
-              color={application.diddAuthorizationConsent ? 'success' : 'default'}
-              size="small"
-            />
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Signature</TableCell>
-          <TableCell>{application.electronicSignature || 'N/A'}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 600 }}>Signature Date</TableCell>
-          <TableCell>{formatApplicationDate(application.signatureDate)}</TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
-  </Box>
-);
-
-const ReviewNotesTab = ({ application }) => {
-  const parseNotes = () => {
-    if (!application.reviewNotes) return [];
-    return application.reviewNotes.split('\n\n').map((note, index) => {
-      const match = note.match(/^\[(.*?)\]\s*(.*)$/);
-      if (match) {
-        return { timestamp: match[1], text: match[2], id: index };
-      }
-      return { timestamp: '', text: note, id: index };
-    });
-  };
-
-  const notes = parseNotes();
-
-  return (
-    <Box>
-      <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-        Review Notes
-      </Typography>
-      {notes.length === 0 ? (
-        <Alert severity="info">No review notes yet</Alert>
-      ) : (
-        notes.map((note) => (
-          <Box
-            key={note.id}
-            sx={{
-              mb: 2,
-              p: 2,
-              bgcolor: 'grey.50',
-              borderRadius: 1,
-              border: '1px solid',
-              borderColor: 'grey.300'
-            }}
-          >
-            <Typography variant="caption" color="text.secondary">
-              {note.timestamp}
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 1 }}>
-              {note.text}
-            </Typography>
-          </Box>
-        ))
-      )}
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Education</Typography>
+    <Box sx={{ mb: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>High School</Typography>
+      <Table size="small">
+        <TableBody>
+          <Row label="Name" value={app.highSchoolName} />
+          <Row label="Location" value={app.highSchoolLocation} />
+          <Row label="Graduated" value={app.highSchoolGraduated ? 'Yes' : 'No'} />
+        </TableBody>
+      </Table>
     </Box>
-  );
-};
+    <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>College</Typography>
+      <Table size="small">
+        <TableBody>
+          <Row label="Name" value={app.collegeName} />
+          <Row label="Location" value={app.collegeLocation} />
+          <Row label="Degree" value={app.collegeDegree} />
+          <Row label="Graduated" value={app.collegeGraduated ? 'Yes' : 'No'} />
+        </TableBody>
+      </Table>
+    </Box>
+  </Box>
+);
+
+const LicensesTab = ({ app }) => (
+  <Box>
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Licenses & Certifications</Typography>
+    <Table size="small">
+      <TableBody>
+        <Row label="RN License" value={app.rnLicense} />
+        <Row label="LPN License" value={app.lpnLicense} />
+        <Row label="CPR Certified" value={app.cprCertification} />
+        <Row label="First Aid" value={app.firstAidCertification} />
+        <Row label="Other" value={app.otherCertifications} />
+      </TableBody>
+    </Table>
+  </Box>
+);
+
+const ReferencesTab = ({ app }) => (
+  <Box>
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>References</Typography>
+    {[1, 2, 3].map(num => (
+      <Box key={num} sx={{ mb: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Reference {num}</Typography>
+        <Table size="small">
+          <TableBody>
+            <Row label="Name" value={app[`reference${num}Name`]} />
+            <Row label="Company" value={app[`reference${num}Company`]} />
+            <Row label="Title" value={app[`reference${num}Title`]} />
+            <Row label="Phone" value={app[`reference${num}Phone`]} />
+          </TableBody>
+        </Table>
+      </Box>
+    ))}
+  </Box>
+);
+
+const EmploymentTab = ({ app }) => (
+  <Box>
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Employment History</Typography>
+    {[1, 2, 3].map(num => app[`employer${num}Name`] && (
+      <Box key={num} sx={{ mb: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Employer {num}</Typography>
+        <Table size="small">
+          <TableBody>
+            <Row label="Company" value={app[`employer${num}Name`]} />
+            <Row label="Job Title" value={app[`employer${num}JobTitle`]} />
+            <Row label="Supervisor" value={app[`employer${num}Supervisor`]} />
+            <Row label="Phone" value={app[`employer${num}Phone`]} />
+            <Row label="Reason for Leaving" value={app[`employer${num}ReasonForLeaving`]} />
+          </TableBody>
+        </Table>
+      </Box>
+    ))}
+  </Box>
+);
+
+const NotesTab = ({ app }) => (
+  <Box>
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Review Notes</Typography>
+    {app.reviewNotes ? (
+      <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{app.reviewNotes}</Typography>
+      </Box>
+    ) : (
+      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+        No review notes yet
+      </Typography>
+    )}
+  </Box>
+);
+
+const Row = ({ label, value }) => (
+  <TableRow>
+    <TableCell sx={{ fontWeight: 600, width: '35%', border: 'none', py: 1 }}>{label}</TableCell>
+    <TableCell sx={{ border: 'none', py: 1 }}>{getValue(value)}</TableCell>
+  </TableRow>
+);
 
 export default ApplicationDetailDialog;

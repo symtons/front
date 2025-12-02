@@ -1,4 +1,9 @@
 // src/pages/recruitment/ApplicationReviewDashboard.jsx
+/**
+ * Application Review Dashboard - COMPLETELY NEW LAYOUT
+ * Card-based design with modern, visual approach
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -8,7 +13,16 @@ import {
   IconButton,
   Tooltip,
   Snackbar,
-  Grid
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Chip,
+  Avatar,
+  Divider,
+  Tab,
+  Tabs,
+  Badge
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
@@ -17,16 +31,18 @@ import {
   NoteAdd as NotesIcon,
   Description as ApplicationIcon,
   Refresh as RefreshIcon,
-  PersonAdd as HireIcon
+  PersonAdd as HireIcon,
+  AccessTime as TimeIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  Work as WorkIcon,
+  CalendarToday as CalendarIcon,
+  FilterList as FilterIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/layout/Layout';
 import PageHeader from '../../components/common/layout/PageHeader';
 import SearchBar from '../../components/common/filters/SearchBar';
-import FilterBar from '../../components/common/filters/FilterBar';
-import DataTable from '../../components/common/tables/DataTable';
-import StatusChip from '../../components/common/display/StatusChip';
-import InfoCard from '../../components/common/display/InfoCard';
 import Loading from '../../components/common/feedback/Loading';
 import EmptyState from '../../components/common/feedback/EmptyState';
 import ConfirmDialog from '../../components/common/feedback/ConfirmDialog';
@@ -43,14 +59,11 @@ import HireDialog from './components/HireDialog';
 import {
   APPLICATION_STATUS,
   APPROVAL_STATUS,
-  STATUS_FILTER_OPTIONS,
-  APPROVAL_FILTER_OPTIONS,
   getStatusColor,
   getApprovalStatusColor,
   formatApplicationDate,
   formatPhoneNumber,
   formatFullName,
-  getTimeSinceSubmission,
   transformApplicationsForDisplay,
   prepareFilterParams
 } from './models/applicationReviewModels';
@@ -62,14 +75,10 @@ const ApplicationReviewDashboard = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
-  
-  // Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [approvalStatusFilter, setApprovalStatusFilter] = useState('');
+  
+  // Tab filter state
+  const [activeTab, setActiveTab] = useState(0); // 0=All, 1=Pending, 2=Approved, 3=Rejected
   
   // Statistics
   const [stats, setStats] = useState({
@@ -79,76 +88,38 @@ const ApplicationReviewDashboard = () => {
     rejectedApplications: 0
   });
   
-  // Current user info
-  const [currentUser, setCurrentUser] = useState(null);
-  
-  // Selected application
-  const [selectedApplication, setSelectedApplication] = useState(null);
-  
   // Dialog states
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [hireDialogOpen, setHireDialogOpen] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState(null);
   
-  // Loading states for actions
+  // Loading states
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [addingNotes, setAddingNotes] = useState(false);
   
-  // Success message
+  // Success states
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Fetch current user
-  useEffect(() => {
-    fetchCurrentUser();
-  }, []);
-
-  // Fetch data when filters change
   useEffect(() => {
     fetchApplications();
     fetchStatistics();
-  }, [page, rowsPerPage, searchTerm, statusFilter, approvalStatusFilter]);
-
-  const fetchCurrentUser = async () => {
-    try {
-      const response = await api.get('/Auth/Me');
-      setCurrentUser(response.data);
-    } catch (err) {
-      console.error('Error fetching current user:', err);
-    }
-  };
+  }, []);
 
   const fetchApplications = async () => {
     try {
       setLoading(true);
-      const params = prepareFilterParams({
-        page: page + 1,
-        pageSize: rowsPerPage,
-        searchTerm,
-        status: statusFilter,
-        approvalStatus: approvalStatusFilter
-      });
-
-      const response = await applicationReviewService.getAllApplications(params);
+      const response = await applicationReviewService.getAllApplications({});
       const transformedApps = transformApplicationsForDisplay(response.applications || []);
       setApplications(transformedApps);
-      setTotalCount(response.totalCount || 0);
       setError('');
     } catch (err) {
       console.error('Error fetching applications:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to load applications';
-      const statusCode = err.response?.status;
-
-      if (statusCode === 401) {
-        setError('Unauthorized: Please log in with Admin, Executive, or HR Manager role');
-      } else if (statusCode === 403) {
-        setError('Access Denied: You need Admin, Executive, or HR Manager role to view applications');
-      } else {
-        setError(`Error ${statusCode || ''}: ${errorMsg}`);
-      }
+      setError(err.message || 'Failed to load applications');
       setApplications([]);
     } finally {
       setLoading(false);
@@ -164,40 +135,48 @@ const ApplicationReviewDashboard = () => {
     }
   };
 
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
+
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
-    setPage(0);
   };
 
-  const handleFilterChange = (filterName, value) => {
-    if (filterName === 'status') {
-      setStatusFilter(value);
-    } else if (filterName === 'approvalStatus') {
-      setApprovalStatusFilter(value);
+  // Filter applications based on active tab and search
+  const getFilteredApplications = () => {
+    let filtered = applications;
+    
+    // Filter by tab
+    switch (activeTab) {
+      case 1: // Pending
+        filtered = filtered.filter(app => app.approvalStatus === 'Pending');
+        break;
+      case 2: // Approved
+        filtered = filtered.filter(app => app.approvalStatus === 'Approved');
+        break;
+      case 3: // Rejected
+        filtered = filtered.filter(app => app.approvalStatus === 'Rejected');
+        break;
+      default: // All
+        break;
     }
-    setPage(0);
+    
+    // Filter by search
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(app => 
+        app.fullName?.toLowerCase().includes(term) ||
+        app.email?.toLowerCase().includes(term) ||
+        app.phoneNumber?.includes(term) ||
+        app.positionAppliedFor?.toLowerCase().includes(term)
+      );
+    }
+    
+    return filtered;
   };
 
-  const handleClearFilters = () => {
-    setSearchTerm('');
-    setStatusFilter('');
-    setApprovalStatusFilter('');
-    setPage(0);
-  };
-
-  const handleChangePage = (newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (newRowsPerPage) => {
-    setRowsPerPage(newRowsPerPage);
-    setPage(0);
-  };
-
-  // ============================================
-  // DIALOG HANDLERS
-  // ============================================
-
+  // Dialog handlers
   const handleViewApplication = (application) => {
     setSelectedApplication(application);
     setDetailDialogOpen(true);
@@ -294,128 +273,20 @@ const ApplicationReviewDashboard = () => {
     fetchStatistics();
   };
 
-  // Build chips for PageHeader
-  const headerChips = currentUser
-    ? [
-        { icon: ApplicationIcon, label: currentUser.role }
-      ]
-    : [];
-
-  // Define table columns
-  const columns = [
-    {
-      field: 'fullName',
-      headerName: 'Name',
-      width: 200,
-      renderCell: (params) => (
-        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-          {params.value}
-        </Typography>
-      )
-    },
-    {
-      field: 'positionAppliedFor',
-      headerName: 'Position',
-      width: 200
-    },
-    {
-      field: 'phoneNumber',
-      headerName: 'Phone',
-      width: 140
-    },
-    {
-      field: 'email',
-      headerName: 'Email',
-      width: 200
-    },
-    {
-      field: 'status',
-      headerName: 'Status',
-      width: 140,
-      renderCell: (params) => (
-        <StatusChip
-          label={params.value}
-          variant={getStatusColor(params.value)}
-          size="small"
-        />
-      )
-    },
-    {
-      field: 'approvalStatus',
-      headerName: 'Approval',
-      width: 120,
-      renderCell: (params) => (
-        <StatusChip
-          label={params.value}
-          variant={getApprovalStatusColor(params.value)}
-          size="small"
-        />
-      )
-    },
-    {
-      field: 'submittedAtFormatted',
-      headerName: 'Submitted',
-      width: 130
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 180,
-      sortable: false,
-      renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="View Details">
-            <IconButton
-              size="small"
-              onClick={() => handleViewApplication(params.row)}
-            >
-              <ViewIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Approve">
-            <IconButton
-              size="small"
-              color="success"
-              onClick={() => handleApproveClick(params.row)}
-              disabled={params.row.approvalStatus !== APPROVAL_STATUS.PENDING}
-            >
-              <ApproveIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Reject">
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => handleRejectClick(params.row)}
-              disabled={params.row.approvalStatus !== APPROVAL_STATUS.PENDING}
-            >
-              <RejectIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Add Notes">
-            <IconButton
-              size="small"
-              onClick={() => handleAddNotesClick(params.row)}
-            >
-              <NotesIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Hire Candidate">
-            <IconButton
-              size="small"
-              color="primary"
-              onClick={() => handleHireClick(params.row)}
-              disabled={params.row.approvalStatus === 'Hired'}
-            >
-              <HireIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )
+  const getStatusChipColor = (status) => {
+    switch (status) {
+      case 'Pending':
+        return { bg: '#FFF4E5', color: '#FDB94E', border: '#FDB94E' };
+      case 'Approved':
+        return { bg: '#E8F5E9', color: '#6AB4A8', border: '#6AB4A8' };
+      case 'Rejected':
+        return { bg: '#FFEBEE', color: '#f44336', border: '#f44336' };
+      default:
+        return { bg: '#F5F5F5', color: '#666', border: '#666' };
     }
-  ];
+  };
 
-  if (loading && applications.length === 0) {
+  if (loading) {
     return (
       <Layout>
         <Loading message="Loading applications..." />
@@ -423,18 +294,23 @@ const ApplicationReviewDashboard = () => {
     );
   }
 
+  const filteredApplications = getFilteredApplications();
+
   return (
     <Layout>
       <PageHeader
-        title="Application Review"
-        subtitle="Review and manage job applications"
+        title="Job Applications"
+        subtitle="Review and manage candidate applications"
         icon={ApplicationIcon}
-        chips={headerChips}
         actions={
           <Button
-            variant="outlined"
+            variant="contained"
             startIcon={<RefreshIcon />}
             onClick={handleRefresh}
+            sx={{
+              backgroundColor: '#6AB4A8',
+              '&:hover': { backgroundColor: '#559089' }
+            }}
           >
             Refresh
           </Button>
@@ -442,128 +318,301 @@ const ApplicationReviewDashboard = () => {
       />
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
           {error}
         </Alert>
       )}
 
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
-          <InfoCard
-            icon={ApplicationIcon}
-            title="Total Applications"
-            data={[
-              { label: 'Count', value: stats.totalApplications, bold: true }
-            ]}
-            color="blue"
-            elevated={true}
-            sx={{ width: '100%' }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
-          <InfoCard
-            icon={ApplicationIcon}
-            title="Pending Review"
-            data={[
-              { label: 'Count', value: stats.pendingApplications, bold: true }
-            ]}
-            color="gold"
-            elevated={true}
-            sx={{ width: '100%' }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
-          <InfoCard
-            icon={ApproveIcon}
-            title="Approved"
-            data={[
-              { label: 'Count', value: stats.approvedApplications, bold: true }
-            ]}
-            color="teal"
-            elevated={true}
-            sx={{ width: '100%' }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
-          <InfoCard
-            icon={RejectIcon}
-            title="Rejected"
-            data={[
-              { label: 'Count', value: stats.rejectedApplications, bold: true }
-            ]}
-            color="gray"
-            elevated={true}
-            sx={{ width: '100%' }}
-          />
-        </Grid>
-      </Grid>
+      {/* Statistics Summary Bar */}
+      <Box 
+        sx={{ 
+          mb: 3, 
+          p: 3, 
+          backgroundColor: '#fff',
+          borderRadius: 2,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          display: 'flex',
+          justifyContent: 'space-around',
+          flexWrap: 'wrap',
+          gap: 2
+        }}
+      >
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="h3" sx={{ fontWeight: 700, color: '#667eea' }}>
+            {stats.totalApplications}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Total Applications
+          </Typography>
+        </Box>
+        <Divider orientation="vertical" flexItem />
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="h3" sx={{ fontWeight: 700, color: '#FDB94E' }}>
+            {stats.pendingApplications}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Pending Review
+          </Typography>
+        </Box>
+        <Divider orientation="vertical" flexItem />
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="h3" sx={{ fontWeight: 700, color: '#6AB4A8' }}>
+            {stats.approvedApplications}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Approved
+          </Typography>
+        </Box>
+        <Divider orientation="vertical" flexItem />
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="h3" sx={{ fontWeight: 700, color: '#9E9E9E' }}>
+            {stats.rejectedApplications}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Rejected
+          </Typography>
+        </Box>
+      </Box>
 
-      {/* Filters */}
+      {/* Tabs for filtering */}
+      <Box sx={{ mb: 3 }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={handleTabChange}
+          sx={{
+            backgroundColor: '#fff',
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '1rem',
+              minHeight: 60
+            },
+            '& .Mui-selected': {
+              color: '#667eea'
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: '#667eea',
+              height: 3
+            }
+          }}
+        >
+          <Tab 
+            label={
+              <Badge badgeContent={stats.totalApplications} color="primary">
+                All Applications
+              </Badge>
+            } 
+          />
+          <Tab 
+            label={
+              <Badge badgeContent={stats.pendingApplications} sx={{ '& .MuiBadge-badge': { backgroundColor: '#FDB94E' } }}>
+                Pending
+              </Badge>
+            } 
+          />
+          <Tab 
+            label={
+              <Badge badgeContent={stats.approvedApplications} sx={{ '& .MuiBadge-badge': { backgroundColor: '#6AB4A8' } }}>
+                Approved
+              </Badge>
+            } 
+          />
+          <Tab 
+            label={
+              <Badge badgeContent={stats.rejectedApplications} sx={{ '& .MuiBadge-badge': { backgroundColor: '#9E9E9E' } }}>
+                Rejected
+              </Badge>
+            } 
+          />
+        </Tabs>
+      </Box>
+
+      {/* Search Bar */}
       <Box sx={{ mb: 3 }}>
         <SearchBar
           value={searchTerm}
           onChange={handleSearchChange}
-          placeholder="Search by name, email, or phone..."
+          placeholder="Search by name, email, phone, or position..."
         />
       </Box>
 
-      <Box sx={{ mb: 3 }}>
-        <FilterBar
-          filters={[
-            {
-              name: 'status',
-              label: 'Status',
-              value: statusFilter,
-              options: STATUS_FILTER_OPTIONS
-            },
-            {
-              name: 'approvalStatus',
-              label: 'Approval',
-              value: approvalStatusFilter,
-              options: APPROVAL_FILTER_OPTIONS
-            }
-          ]}
-          onFilterChange={handleFilterChange}
-          onClearAll={handleClearFilters}
-        />
-      </Box>
-
-      {/* Data Table */}
-      {applications.length === 0 && !loading ? (
+      {/* Applications Grid - Card Layout */}
+      {filteredApplications.length === 0 ? (
         <EmptyState
           icon="search"
           title="No Applications Found"
-          message="No applications match your search criteria."
-          actionButton={{
-            label: 'Clear Filters',
-            onClick: handleClearFilters
-          }}
+          message={searchTerm ? "No applications match your search criteria." : "No applications in this category."}
+          actionButton={searchTerm ? {
+            label: 'Clear Search',
+            onClick: () => setSearchTerm('')
+          } : null}
         />
       ) : (
-        <DataTable
-          columns={columns}
-          rows={applications}
-          loading={loading}
-          totalCount={totalCount}
-          page={page}
-          pageSize={rowsPerPage}
-          onPageChange={handleChangePage}
-          onPageSizeChange={handleChangeRowsPerPage}
-        />
+        <Grid container spacing={3}>
+          {filteredApplications.map((application) => {
+            const statusColors = getStatusChipColor(application.approvalStatus);
+            
+            return (
+              <Grid item xs={12} sm={6} lg={4} key={application.applicationId}>
+                <Card 
+                  elevation={3}
+                  sx={{ 
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRadius: 2,
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
+                    }
+                  }}
+                >
+                  {/* Card Header with Avatar and Status */}
+                  <Box 
+                    sx={{ 
+                      p: 2.5, 
+                      backgroundColor: '#f8f9fa',
+                      borderBottom: '1px solid #e0e0e0'
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            backgroundColor: '#667eea',
+                            fontSize: '1.25rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          {application.fullName?.charAt(0) || 'A'}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+                            {application.fullName}
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <WorkIcon sx={{ fontSize: 14, color: '#6AB4A8' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {application.positionAppliedFor}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                      
+                      <Chip
+                        label={application.approvalStatus}
+                        size="small"
+                        sx={{
+                          backgroundColor: statusColors.bg,
+                          color: statusColors.color,
+                          fontWeight: 600,
+                          border: `1px solid ${statusColors.border}`
+                        }}
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* Card Content */}
+                  <CardContent sx={{ flexGrow: 1, pt: 2 }}>
+                    {/* Contact Information */}
+                    <Box sx={{ mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <EmailIcon sx={{ fontSize: 16, color: '#667eea' }} />
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                          {application.email || 'No email provided'}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <PhoneIcon sx={{ fontSize: 16, color: '#667eea' }} />
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                          {application.phoneNumber || 'No phone provided'}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CalendarIcon sx={{ fontSize: 16, color: '#667eea' }} />
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                          Applied: {application.submittedAtFormatted}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+
+                  {/* Card Actions */}
+                  <CardActions sx={{ p: 2, pt: 0, gap: 1, flexWrap: 'wrap' }}>
+                    <Button
+                      size="small"
+                      startIcon={<ViewIcon />}
+                      onClick={() => handleViewApplication(application)}
+                      sx={{ 
+                        color: '#667eea',
+                        '&:hover': { backgroundColor: 'rgba(102, 126, 234, 0.1)' }
+                      }}
+                    >
+                      View
+                    </Button>
+                    
+                    {application.approvalStatus === 'Pending' && (
+                      <>
+                        <Button
+                          size="small"
+                          startIcon={<ApproveIcon />}
+                          onClick={() => handleApproveClick(application)}
+                          sx={{ 
+                            color: '#6AB4A8',
+                            '&:hover': { backgroundColor: 'rgba(106, 180, 168, 0.1)' }
+                          }}
+                        >
+                          Approve
+                        </Button>
+                        
+                        <Button
+                          size="small"
+                          startIcon={<RejectIcon />}
+                          onClick={() => handleRejectClick(application)}
+                          sx={{ 
+                            color: '#f44336',
+                            '&:hover': { backgroundColor: 'rgba(244, 67, 54, 0.1)' }
+                          }}
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                    
+                    <Button
+                      size="small"
+                      startIcon={<NotesIcon />}
+                      onClick={() => handleAddNotesClick(application)}
+                      sx={{ 
+                        color: '#FDB94E',
+                        '&:hover': { backgroundColor: 'rgba(253, 185, 78, 0.1)' }
+                      }}
+                    >
+                      Notes
+                    </Button>
+                  </CardActions>
+                </Card>
+              </Grid>
+            );
+          })}
+        </Grid>
       )}
 
-      {/* Application Detail Dialog */}
+      {/* Dialogs */}
       <ApplicationDetailDialog
         open={detailDialogOpen}
         onClose={() => setDetailDialogOpen(false)}
-        applicationId={selectedApplication?.applicationId}
+        application={selectedApplication}
         onApprove={handleApproveClick}
         onReject={handleRejectClick}
         onAddNotes={handleAddNotesClick}
       />
 
-      {/* Approve Confirmation Dialog */}
       <ConfirmDialog
         open={approveDialogOpen}
         onClose={() => setApproveDialogOpen(false)}
@@ -575,7 +624,6 @@ const ApplicationReviewDashboard = () => {
         cancelText="Cancel"
       />
 
-      {/* Reject Dialog */}
       <RejectApplicationDialog
         open={rejectDialogOpen}
         onClose={() => setRejectDialogOpen(false)}
@@ -584,7 +632,6 @@ const ApplicationReviewDashboard = () => {
         loading={rejecting}
       />
 
-      {/* Add Notes Dialog */}
       <AddNotesDialog
         open={notesDialogOpen}
         onClose={() => setNotesDialogOpen(false)}
@@ -593,7 +640,6 @@ const ApplicationReviewDashboard = () => {
         loading={addingNotes}
       />
 
-      {/* Hire Dialog */}
       <HireDialog
         open={hireDialogOpen}
         onClose={() => setHireDialogOpen(false)}
@@ -608,7 +654,11 @@ const ApplicationReviewDashboard = () => {
         onClose={() => setShowSuccess(false)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert onClose={() => setShowSuccess(false)} severity="success">
+        <Alert 
+          onClose={() => setShowSuccess(false)} 
+          severity="success"
+          sx={{ width: '100%' }}
+        >
           {successMessage}
         </Alert>
       </Snackbar>

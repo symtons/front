@@ -1,54 +1,89 @@
-// src/pages/recruitment/components/RejectApplicationDialog.jsx
+// CORRECTED: RejectApplicationDialog with proper import
+// Location: src/pages/recruitment/components/RejectApplicationDialog.jsx
+
 import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
+  TextField,
   Alert,
-  Box,
   Typography,
+  Box,
   CircularProgress
 } from '@mui/material';
-import {
-  Cancel as RejectIcon,
-  Warning as WarningIcon
-} from '@mui/icons-material';
+import WarningIcon from '@mui/icons-material/Warning';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { validateRejectReason } from '../models/applicationReviewModels';
+import applicationReviewService from '../../../services/applicationReviewService';  // ✅ FIXED IMPORT
 
-const RejectApplicationDialog = ({
-  open,
-  onClose,
-  onConfirm,
+const RejectApplicationDialog = ({ 
+  open, 
+  onClose, 
   application,
-  loading = false
+  onRejectSuccess
 }) => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [reasonError, setReasonError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleReasonChange = (e) => {
-    setRejectionReason(e.target.value);
-    setReasonError('');
+    const value = e.target.value;
+    setRejectionReason(value);
+    
+    if (reasonError && value.trim()) {
+      setReasonError('');
+    }
   };
 
-  const handleConfirm = () => {
+  const handleCancel = () => {
+    if (!loading) {
+      setRejectionReason('');
+      setReasonError('');
+      onClose();
+    }
+  };
+
+  const handleConfirm = async () => {
+    // Validate reason
     const validation = validateRejectReason(rejectionReason);
-    
     if (!validation.isValid) {
       setReasonError(validation.error);
       return;
     }
 
-    onConfirm(rejectionReason.trim());
+    setLoading(true);
+    setReasonError('');
+
+    try {
+      // ✅ CORRECT: Use applicationReviewService.rejectApplication
+      await applicationReviewService.rejectApplication(
+        application.applicationId, 
+        rejectionReason
+      );
+      
+      // Success! Call the success callback to refresh the dashboard
+      if (onRejectSuccess) {
+        onRejectSuccess();
+      }
+      
+      // Reset and close
+      setRejectionReason('');
+      onClose();
+      
+    } catch (error) {
+      console.error('Error rejecting application:', error);
+      setReasonError(
+        error.message || 'Failed to reject application. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCancel = () => {
-    setRejectionReason('');
-    setReasonError('');
-    onClose();
-  };
+  if (!application) return null;
 
   return (
     <Dialog
@@ -93,16 +128,16 @@ const RejectApplicationDialog = ({
             Application Details:
           </Typography>
           <Typography variant="body2" sx={{ mb: 0.5 }}>
-            <strong>Name:</strong> {application?.fullName}
+            <strong>Name:</strong> {application?.fullName || 'N/A'}
           </Typography>
           <Typography variant="body2" sx={{ mb: 0.5 }}>
-            <strong>Position:</strong> {application?.positionAppliedFor}
+            <strong>Position:</strong> {application?.positionAppliedFor || 'N/A'}
           </Typography>
           <Typography variant="body2" sx={{ mb: 0.5 }}>
-            <strong>Email:</strong> {application?.email}
+            <strong>Email:</strong> {application?.email || 'N/A'}
           </Typography>
           <Typography variant="body2">
-            <strong>Submitted:</strong> {application?.submittedAtFormatted}
+            <strong>Submitted:</strong> {application?.submittedAtFormatted || 'N/A'}
           </Typography>
         </Box>
 
@@ -132,7 +167,7 @@ const RejectApplicationDialog = ({
           variant="contained"
           color="error"
           disabled={loading || !rejectionReason.trim()}
-          startIcon={loading ? <CircularProgress size={16} /> : <RejectIcon />}
+          startIcon={loading ? <CircularProgress size={16} /> : <CancelIcon />}
         >
           {loading ? 'Rejecting...' : 'Confirm Rejection'}
         </Button>
