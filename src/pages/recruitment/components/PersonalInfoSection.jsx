@@ -1,12 +1,9 @@
 // src/pages/recruitment/components/PersonalInfoSection.jsx
 /**
- * PersonalInfoSection Component - Step 1 (FINAL CLEAN LAYOUT)
+ * PersonalInfoSection Component - Step 1 (OUTSIDE GRID APPROACH)
  * 
- * CRITICAL FIX - Section headers now have:
- * - Full-width Grid item (xs={12})
- * - Prominent background-colored box
- * - Clear visual separation
- * - Consistent field alignment
+ * SOLUTION: Put section headers OUTSIDE the Grid container
+ * This bypasses Material-UI Grid's flex behavior entirely
  */
 
 import React from 'react';
@@ -26,15 +23,24 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
     onChange(e);
   };
 
-  // Section header style - makes headers prominent and full-width
-  const sectionHeaderStyle = {
-    py: 1,
-    px: 2,
-    backgroundColor: '#f0f4ff',
-    borderRadius: 1,
-    borderLeft: '4px solid #667eea',
-    mb: 2
-  };
+  // Section header component
+  const SectionHeader = ({ children }) => (
+    <Box
+      sx={{
+        py: 1.5,
+        px: 2,
+        backgroundColor: '#f0f4ff',
+        borderRadius: 1,
+        borderLeft: '4px solid #667eea',
+        mb: 2,
+        mt: 3
+      }}
+    >
+      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
+        {children}
+      </Typography>
+    </Box>
+  );
 
   return (
     <>
@@ -47,9 +53,8 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
         to be considered for employment - even if resume is attached. Application will be kept on file for 90 days.
       </Alert>
 
+      {/* APPLICATION DATE */}
       <Grid container spacing={3}>
-        
-        {/* APPLICATION DATE */}
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
@@ -64,17 +69,11 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
             helperText={errors.applicationDate}
           />
         </Grid>
-        <Grid item xs={12} md={6} />
+      </Grid>
 
-        {/* NAME SECTION */}
-        <Grid item xs={12}>
-          <Box sx={sectionHeaderStyle}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
-              Name
-            </Typography>
-          </Box>
-        </Grid>
-
+      {/* NAME SECTION */}
+      <SectionHeader>Name</SectionHeader>
+      <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
           <TextField
             fullWidth
@@ -110,16 +109,11 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
             onChange={handleChange}
           />
         </Grid>
+      </Grid>
 
-        {/* HOME ADDRESS SECTION */}
-        <Grid item xs={12}>
-          <Box sx={sectionHeaderStyle}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
-              Home Address
-            </Typography>
-          </Box>
-        </Grid>
-
+      {/* HOME ADDRESS SECTION */}
+      <SectionHeader>Home Address</SectionHeader>
+      <Grid container spacing={3}>
         <Grid item xs={12} md={9}>
           <TextField
             fullWidth
@@ -188,16 +182,11 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
             helperText={errors.zipCode}
           />
         </Grid>
+      </Grid>
 
-        {/* IDENTIFICATION SECTION */}
-        <Grid item xs={12}>
-          <Box sx={sectionHeaderStyle}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
-              Identification
-            </Typography>
-          </Box>
-        </Grid>
-
+      {/* IDENTIFICATION SECTION */}
+      <SectionHeader>Identification</SectionHeader>
+      <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
@@ -244,16 +233,11 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
             ))}
           </TextField>
         </Grid>
+      </Grid>
 
-        {/* CONTACT INFORMATION SECTION */}
-        <Grid item xs={12}>
-          <Box sx={sectionHeaderStyle}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
-              Contact Information
-            </Typography>
-          </Box>
-        </Grid>
-
+      {/* CONTACT INFORMATION SECTION */}
+      <SectionHeader>Contact Information</SectionHeader>
+      <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
@@ -280,16 +264,11 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
             helperText={errors.cellNumber}
           />
         </Grid>
+      </Grid>
 
-        {/* EMERGENCY CONTACT SECTION */}
-        <Grid item xs={12}>
-          <Box sx={sectionHeaderStyle}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#667eea', m: 0 }}>
-              Emergency Contact
-            </Typography>
-          </Box>
-        </Grid>
-
+      {/* EMERGENCY CONTACT SECTION */}
+      <SectionHeader>Emergency Contact</SectionHeader>
+      <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
