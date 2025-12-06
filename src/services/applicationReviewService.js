@@ -2,9 +2,9 @@
 import api from './authService';
 
 /**
- * Application Review Service - FIXED VERSION
+ * Application Review Service - COMPLETE VERSION
  * Handles all API calls for HR Application Review Dashboard
- * Fixed: Proper casing for C# backend (RejectionReason with capital R)
+ * UPDATED: Added approveApplication method
  */
 
 const applicationReviewService = {
@@ -84,6 +84,27 @@ const applicationReviewService = {
   },
 
   /**
+   * ✅ NEW: Approve application (creates user account)
+   * POST /api/JobApplication/{id}/Approve
+   * Creates a user account with generated email and default password
+   */
+  approveApplication: async (id) => {
+    try {
+      console.log('=== approveApplication ===');
+      console.log('ID:', id);
+      
+      const response = await api.post(`/JobApplication/${id}/Approve`);
+      
+      console.log('Approval successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('approveApplication error:', error);
+      console.error('Error response:', error.response?.data);
+      throw error.response?.data || { message: 'Failed to approve application' };
+    }
+  },
+
+  /**
    * Add review notes to application
    * POST /api/JobApplication/{id}/Notes
    */
@@ -105,7 +126,7 @@ const applicationReviewService = {
   },
 
   /**
-   * Update approval status
+   * Update approval status (generic)
    * PUT /api/JobApplication/{id}/Approval
    */
   updateApprovalStatus: async (id, approvalStatus, notes = '') => {
