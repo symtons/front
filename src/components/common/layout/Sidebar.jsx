@@ -62,6 +62,10 @@ const Sidebar = ({ user, employee }) => {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openMenus, setOpenMenus] = useState({});
+  
+  // ✅ NEW: Onboarding restriction states
+  const [onboardingRequired, setOnboardingRequired] = useState(false);
+  const [onboardingMessage, setOnboardingMessage] = useState('');
 
   useEffect(() => {
     fetchMenus();
@@ -74,7 +78,15 @@ const Sidebar = ({ user, employee }) => {
       // Use the centralized api instance - it already has baseURL and token
       const response = await api.get('/Menu/MyMenus');
 
-      setMenuItems(response.data);
+      // ✅ NEW: Check if onboarding is required
+      if (response.data.onboardingRequired) {
+        setOnboardingRequired(true);
+        setOnboardingMessage(response.data.message || 'Complete onboarding to access all features');
+        setMenuItems(response.data.menus || []);
+      } else {
+        setOnboardingRequired(false);
+        setMenuItems(response.data.menus || response.data || []);
+      }
     } catch (error) {
       console.error('Error fetching menus:', error);
       // Fallback to basic menu if API fails
@@ -237,7 +249,29 @@ const Sidebar = ({ user, employee }) => {
 
       <Divider sx={{ backgroundColor: '#34495e' }} />
 
-      {/* Main Menu */}
+      {/* ✅ NEW: Onboarding Warning (only shows if onboarding required) */}
+      {onboardingRequired && (
+        <Box sx={{ 
+          mx: 2, 
+          my: 1.5, 
+          p: 1.5, 
+          backgroundColor: '#f59e42', 
+          borderRadius: '8px',
+          border: '2px solid #e08a2e'
+        }}>
+          <Typography variant="caption" sx={{ 
+            color: 'white', 
+            fontWeight: 600,
+            display: 'block',
+            textAlign: 'center',
+            fontSize: '11px'
+          }}>
+            ⚠️ {onboardingMessage}
+          </Typography>
+        </Box>
+      )}
+
+      {/* Main Menu - ONLY MENUS CHANGE BASED ON ONBOARDING */}
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
           <CircularProgress size={30} sx={{ color: 'white' }} />

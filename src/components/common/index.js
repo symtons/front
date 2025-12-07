@@ -10,11 +10,14 @@ export { default as Sidebar } from './layout/Sidebar';
 
 // Display Components
 export { default as StatusChip } from './display/StatusChip';
+export { default as ProgressCard } from './display/ProgressCard';
+export { default as StatsCards } from './display/StatsCards';
 export { default as UserAvatar } from './display/UserAvatar';
 export { default as InfoCard } from './display/InfoCard';
 
 // Input Components
 export { default as DateRangePicker } from './inputs/DateRangePicker';
+export { default as FileUploadSection } from './inputs/FileUploadSection';
 
 // Feedback Components
 export { default as Loading } from './feedback/Loading';
