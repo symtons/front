@@ -138,7 +138,7 @@ const EmployeeDirectory = () => {
     try {
       setLoading(true);
       const params = {
-        pageNumber: page + 1,
+        pageNumber: page + 1,  // ✅ Backend expects 1-based (1, 2, 3...)
         pageSize: rowsPerPage,
         search: searchTerm || undefined,
         departmentId: departmentFilter || undefined,

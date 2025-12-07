@@ -50,131 +50,128 @@ const OnboardingMonitor = () => {
     fetchOnboardingEmployees();
   };
 
+  // Define columns using DataTable format (not MUI DataGrid format)
   const columns = [
     {
-      field: 'fullName',
-      headerName: 'Employee',
-      width: 200,
-      renderCell: (params) => (
+      id: 'fullName',
+      label: 'Employee',
+      minWidth: 200,
+      render: (row) => (
         <Typography variant="body2" fontWeight={600}>
-          {params.value}
+          {row.fullName}
         </Typography>
       )
     },
     {
-      field: 'employeeCode',
-      headerName: 'Employee ID',
-      width: 130
+      id: 'employeeCode',
+      label: 'Employee ID',
+      minWidth: 130
     },
     {
-      field: 'department',
-      headerName: 'Department',
-      width: 150
+      id: 'department',
+      label: 'Department',
+      minWidth: 150
     },
     {
-      field: 'jobTitle',
-      headerName: 'Position',
-      width: 150
+      id: 'jobTitle',
+      label: 'Position',
+      minWidth: 150
     },
     {
-      field: 'hireDate',
-      headerName: 'Hire Date',
-      width: 120,
-      renderCell: (params) => (
+      id: 'hireDate',
+      label: 'Hire Date',
+      minWidth: 120,
+      render: (row) => (
         <Typography variant="body2">
-          {params.value ? new Date(params.value).toLocaleDateString() : '-'}
+          {row.hireDate ? new Date(row.hireDate).toLocaleDateString() : '-'}
         </Typography>
       )
     },
     {
-      field: 'daysSinceHire',
-      headerName: 'Days',
-      width: 80,
-      renderCell: (params) => (
+      id: 'daysSinceHire',
+      label: 'Days',
+      minWidth: 80,
+      render: (row) => (
         <Chip
-          label={params.value}
+          label={row.daysSinceHire}
           size="small"
-          color={params.value > 7 ? 'warning' : 'default'}
+          color={row.daysSinceHire > 7 ? 'error' : 'default'}
         />
       )
     },
     {
-      field: 'progressPercentage',
-      headerName: 'Progress',
-      width: 200,
-      renderCell: (params) => (
-        <Box sx={{ width: '100%' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Box sx={{ width: '100%', mr: 1 }}>
-              <LinearProgress
-                variant="determinate"
-                value={params.value || 0}
-                sx={{
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: '#e0e0e0',
-                  '& .MuiLinearProgress-bar': {
-                    backgroundColor: params.value === 100 ? 'success.main' : '#f59e42'
-                  }
-                }}
-              />
-            </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 40 }}>
-              {Math.round(params.value || 0)}%
-            </Typography>
+      id: 'progressPercentage',
+      label: 'Progress',
+      minWidth: 150,
+      render: (row) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ flex: 1 }}>
+            <LinearProgress
+              variant="determinate"
+              value={row.progressPercentage || 0}
+              sx={{
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: '#e0e0e0',
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: row.progressPercentage === 100 ? '#4caf50' : '#f59e42',
+                  borderRadius: 4
+                }
+              }}
+            />
           </Box>
+          <Typography variant="caption" fontWeight={600}>
+            {Math.round(row.progressPercentage || 0)}%
+          </Typography>
         </Box>
       )
     },
     {
-      field: 'completedTasks',
-      headerName: 'Tasks',
-      width: 100,
-      renderCell: (params) => (
+      id: 'completedTasks',
+      label: 'Tasks',
+      minWidth: 100,
+      render: (row) => (
         <Typography variant="body2">
-          {params.row.completedTasks}/{params.row.totalTasks}
+          {row.completedTasks}/{row.totalTasks}
         </Typography>
       )
     },
     {
-      field: 'overdueTasks',
-      headerName: 'Overdue',
-      width: 100,
-      renderCell: (params) => (
+      id: 'onboardingStatus',
+      label: 'Status',
+      minWidth: 130,
+      render: (row) => (
         <Chip
-          label={params.value || 0}
-          size="small"
-          color={params.value > 0 ? 'error' : 'default'}
-        />
-      )
-    },
-    {
-      field: 'onboardingStatus',
-      headerName: 'Status',
-      width: 130,
-      renderCell: (params) => (
-        <Chip
-          label={params.value}
+          label={row.onboardingStatus}
           size="small"
           color={
-            params.value === 'Completed' ? 'success' :
-            params.value === 'InProgress' ? 'warning' :
+            row.onboardingStatus === 'Completed' ? 'success' :
+            row.onboardingStatus === 'InProgress' ? 'warning' :
             'default'
           }
         />
       )
     },
     {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 100,
+      id: 'actions',
+      label: 'Actions',
+      minWidth: 100,
       sortable: false,
-      renderCell: (params) => (
+      render: (row) => (
         <Button
           size="small"
+          variant="outlined"
           startIcon={<ViewIcon />}
-          onClick={() => handleViewEmployee(params.row)}
-          sx={{ textTransform: 'none' }}
+          onClick={() => handleViewEmployee(row)}
+          sx={{ 
+            textTransform: 'none',
+            borderColor: '#f59e42',
+            color: '#f59e42',
+            '&:hover': {
+              borderColor: '#e08a2e',
+              backgroundColor: 'rgba(245, 158, 66, 0.1)'
+            }
+          }}
         >
           View
         </Button>
@@ -195,12 +192,20 @@ const OnboardingMonitor = () => {
       <PageHeader
         title="Onboarding Monitor"
         subtitle="Monitor and manage employee onboarding progress"
-        icon={<OnboardingIcon />}
+        icon={OnboardingIcon}
         actions={
           <Button
             variant="outlined"
             startIcon={<RefreshIcon />}
             onClick={handleRefresh}
+            sx={{
+              borderColor: '#f59e42',
+              color: '#f59e42',
+              '&:hover': {
+                borderColor: '#e08a2e',
+                backgroundColor: 'rgba(245, 158, 66, 0.1)'
+              }
+            }}
           >
             Refresh
           </Button>
@@ -218,14 +223,16 @@ const OnboardingMonitor = () => {
           No employees currently in onboarding
         </Alert>
       ) : (
-        <Box sx={{ height: 600 }}>
-          <DataTable
-            rows={employees}
-            columns={columns}
-            getRowId={(row) => row.employeeId}
-            loading={loading}
-          />
-        </Box>
+        <DataTable
+          data={employees}
+          columns={columns}
+          loading={loading}
+          page={0}
+          rowsPerPage={employees.length}
+          totalCount={employees.length}
+          emptyMessage="No employees currently in onboarding"
+          onRowClick={handleViewEmployee}
+        />
       )}
     </Layout>
   );
