@@ -36,6 +36,7 @@ import {
   GENDER_OPTIONS,
   EMPLOYEE_TYPE_OPTIONS,
   EMPLOYMENT_STATUS_OPTIONS,
+  EMPLOYMENT_TYPE_OPTIONS,
   prepareEmployeeDataForAPI
 } from './models';
 
@@ -134,7 +135,7 @@ const AddEmployee = () => {
       // Use model helper to prepare data for API
       const apiData = prepareEmployeeDataForAPI(formData);
       
-      await api.post('/Employee/Register', apiData);
+      await api.post('/Auth/Register', apiData);
       
       setSuccess('Employee added successfully!');
       setTimeout(() => {
@@ -160,31 +161,28 @@ const AddEmployee = () => {
         <PageHeader
           icon={PersonAddIcon}
           title="Add New Employee"
-          subtitle="Register a new employee in the system"
+          subtitle="Create a new employee account and profile"
           chips={headerChips}
-          actionButton={{
-            label: 'Back to Directory',
-            icon: <PersonIcon />,
-            onClick: () => navigate('/employees/list')
-          }}
           backgroundColor="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
         />
 
-        {/* Messages */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
-        {success && (
-          <Alert severity="success" sx={{ mb: 3 }}>
-            {success}
-          </Alert>
-        )}
-
         {/* Form */}
-        <Paper elevation={2} sx={{ p: 3 }}>
+        <Paper elevation={2} sx={{ p: 4, mt: 3 }}>
           <Box component="form" onSubmit={handleSubmit}>
+            {/* Error Alert */}
+            {error && (
+              <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+                {error}
+              </Alert>
+            )}
+
+            {/* Success Alert */}
+            {success && (
+              <Alert severity="success" sx={{ mb: 3 }}>
+                {success}
+              </Alert>
+            )}
+
             {/* Account Information */}
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#2c3e50' }}>
               Account Information
@@ -193,7 +191,7 @@ const AddEmployee = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Email"
+                  label="Email Address"
                   name="email"
                   type="email"
                   value={formData.email}
@@ -359,6 +357,23 @@ const AddEmployee = () => {
                     label="Employee Type"
                   >
                     {EMPLOYEE_TYPE_OPTIONS.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Employment Type</InputLabel>
+                  <Select
+                    name="employmentType"
+                    value={formData.employmentType}
+                    onChange={handleChange}
+                    label="Employment Type"
+                  >
+                    {EMPLOYMENT_TYPE_OPTIONS.map((option) => (
                       <MenuItem key={option.value} value={option.value}>
                         {option.label}
                       </MenuItem>

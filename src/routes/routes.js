@@ -32,6 +32,11 @@ import PerformanceOverview from '../pages/performance/PerformanceOverview';
 import GoalsPage from '../pages/performance/GoalsPage';
 import FeedbackPage from '../pages/performance/FeedbackPage';
 
+// Import Department components
+import DepartmentList from '../pages/departments/DepartmentList';
+import DepartmentDetail from '../pages/departments/DepartmentDetail';
+import ManageDepartment from '../pages/departments/ManageDepartment';
+
 // Protected Route Component
 export const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -44,7 +49,7 @@ export const ProtectedRoute = ({ children }) => {
  * Structure:
  * - Public Routes: Login, Register, etc.
  * - Dashboard Routes: Role-based dashboards
- * - Module Routes: Organized by feature (Employees, Attendance, Leave, etc.)
+ * - Module Routes: Organized by feature (Employees, Departments, Attendance, Leave, etc.)
  */
 
 // Public Routes
@@ -115,6 +120,26 @@ export const employeeRoutes = [
   {
     path: '/employees/:id',
     element: <ViewEmployee />,
+  },
+];
+
+// Department Management Routes
+export const departmentRoutes = [
+  {
+    path: '/departments',
+    element: <DepartmentList />,
+  },
+  {
+    path: '/departments/:id',
+    element: <DepartmentDetail />,
+  },
+  {
+    path: '/departments/manage',
+    element: <ManageDepartment />,
+  },
+  {
+    path: '/departments/manage/:id',
+    element: <ManageDepartment />,
   },
 ];
 
@@ -222,6 +247,7 @@ export const allRoutes = [
   ...publicRoutes,
   ...dashboardRoutes,
   ...employeeRoutes,
+  ...departmentRoutes,
   ...leaveRoutes,
   ...recruitmentRoutes,
   ...onboardingRoutes,

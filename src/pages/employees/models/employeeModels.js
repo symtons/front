@@ -1,7 +1,7 @@
 // ============================================
 // Employee Models & Types (JavaScript Version)
 // File: src/pages/employees/models/employeeModels.js
-// COMPLETE VERSION with Mapping Helper
+// COMPLETE VERSION with EmploymentType Support
 // ============================================
 
 // ============================================
@@ -33,6 +33,13 @@ export const EMPLOYMENT_STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
   { value: 'OnLeave', label: 'On Leave' },
   { value: 'Terminated', label: 'Terminated' }
+];
+
+export const EMPLOYMENT_TYPE_OPTIONS = [
+  { value: 'Full-Time', label: 'Full-Time' },
+  { value: 'Part-Time', label: 'Part-Time' },
+  { value: 'Contract', label: 'Contract' },
+  { value: 'Temporary', label: 'Temporary' }
 ];
 
 export const PAY_FREQUENCY_OPTIONS = [
@@ -85,6 +92,7 @@ export const getInitialEmployeeFormData = () => ({
   managerId: '',
   jobTitle: '',
   employeeType: 'AdminStaff',
+  employmentType: 'Full-Time',
   employmentStatus: 'Active',
   hireDate: new Date().toISOString().split('T')[0],
   
@@ -134,27 +142,23 @@ export const getInitialEmployeeFilterParams = () => ({
 });
 
 // ============================================
-// Helper Functions - Mapping (NEW!)
+// Helper Functions - Mapping
 // ============================================
 
 /**
- * Map employee API response to form data structure
- * Automatically handles date formatting and ensures all fields match the form structure
+ * Map employee data from API to form format
+ * Handles date formatting and null values
  * @param {Object} employee - Employee object from API
- * @returns {Object} Formatted form data ready for state
+ * @returns {Object} Mapped form data
  */
 export const mapEmployeeToFormData = (employee) => {
-  // Helper to format dates
+  const initialData = getInitialEmployeeFormData();
+  
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
+    return new Date(dateString).toISOString().split('T')[0];
   };
 
-  // Get the initial structure to ensure we have all fields
-  const initialData = getInitialEmployeeFormData();
-
-  // Map the employee data to form structure
   return {
     // Personal Information
     firstName: employee.firstName || initialData.firstName,
@@ -178,12 +182,13 @@ export const mapEmployeeToFormData = (employee) => {
     emergencyContactPhone: employee.emergencyContactPhone || initialData.emergencyContactPhone,
     emergencyContactRelationship: employee.emergencyContactRelationship || initialData.emergencyContactRelationship,
     
-    // Employment Information
+    // Employment
     employeeCode: employee.employeeCode || initialData.employeeCode,
-    departmentId: employee.departmentId || initialData.departmentId,
-    managerId: employee.managerId || initialData.managerId,
+    departmentId: employee.department?.departmentId || employee.departmentId || initialData.departmentId,
+    managerId: employee.manager?.employeeId || employee.managerId || initialData.managerId,
     jobTitle: employee.jobTitle || initialData.jobTitle,
     employeeType: employee.employeeType || initialData.employeeType,
+    employmentType: employee.employmentType || initialData.employmentType,
     employmentStatus: employee.employmentStatus || initialData.employmentStatus,
     hireDate: formatDate(employee.hireDate),
     
@@ -203,47 +208,6 @@ export const mapEmployeeToFormData = (employee) => {
   };
 };
 
-/**
- * Alternative: Get only the fields that exist in the model
- * Useful when you want to be explicit about which fields to include
- * @param {Object} employee - Employee object from API
- * @param {Array<string>} fields - Optional array of field names to include
- * @returns {Object} Mapped form data
- */
-export const mapEmployeeToFormDataSelective = (employee, fields = null) => {
-  const initialData = getInitialEmployeeFormData();
-  const modelKeys = Object.keys(initialData);
-  
-  // If specific fields provided, use only those
-  const keysToMap = fields ? fields.filter(f => modelKeys.includes(f)) : modelKeys;
-  
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    return new Date(dateString).toISOString().split('T')[0];
-  };
-
-  const mapped = {};
-  
-  keysToMap.forEach(key => {
-    // Special handling for dates
-    if (key === 'dateOfBirth' || key === 'hireDate') {
-      mapped[key] = formatDate(employee[key]);
-    }
-    // Special handling for booleans
-    else if (key === 'isEligibleForPTO' || key === 'isEligibleForInsurance') {
-      mapped[key] = employee[key] !== undefined ? employee[key] : initialData[key];
-    }
-    // Regular fields
-    else {
-      mapped[key] = employee[key] !== undefined && employee[key] !== null 
-        ? employee[key] 
-        : initialData[key];
-    }
-  });
-  
-  return mapped;
-};
-
 // ============================================
 // Helper Functions - API Preparation
 // ============================================
@@ -251,61 +215,27 @@ export const mapEmployeeToFormDataSelective = (employee, fields = null) => {
 /**
  * Prepare employee data for API submission
  * Converts form data to API request format
+ * Matches backend RegisterRequest model exactly
  * @param {Object} formData - Form data from component
  * @returns {Object} API request payload
  */
 export const prepareEmployeeDataForAPI = (formData) => ({
-  // Account
+  // Account (required by backend RegisterRequest)
   email: formData.email,
   password: formData.password,
   roleId: formData.roleId ? parseInt(formData.roleId) : null,
   
-  // Basic Info
+  // Basic Info (required by backend)
   firstName: formData.firstName,
   lastName: formData.lastName,
-  middleName: formData.middleName || null,
-  
-  // Personal Details
-  dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
-  gender: formData.gender || null,
-  maritalStatus: formData.maritalStatus || null,
-  phoneNumber: formData.phoneNumber || null,
-  personalEmail: formData.personalEmail || null,
-  
-  // Address
-  address: formData.address || null,
-  city: formData.city || null,
-  state: formData.state || null,
-  zipCode: formData.zipCode || null,
-  country: formData.country || null,
-  
-  // Emergency Contact
-  emergencyContactName: formData.emergencyContactName || null,
-  emergencyContactPhone: formData.emergencyContactPhone || null,
-  emergencyContactRelationship: formData.emergencyContactRelationship || null,
-  
-  // Employment
   employeeCode: formData.employeeCode,
+  
+  // Employment (required by backend)
   departmentId: formData.departmentId ? parseInt(formData.departmentId) : null,
-  managerId: formData.managerId ? parseInt(formData.managerId) : null,
-  jobTitle: formData.jobTitle || null,
   employeeType: formData.employeeType,
-  employmentStatus: formData.employmentStatus,
-  hireDate: formData.hireDate ? new Date(formData.hireDate).toISOString() : null,
-  
-  // Compensation
-  salary: formData.salary ? parseFloat(formData.salary) : null,
-  payFrequency: formData.payFrequency || null,
-  
-  // Banking
-  bankName: formData.bankName || null,
-  bankAccountNumber: formData.bankAccountNumber || null,
-  bankRoutingNumber: formData.bankRoutingNumber || null,
-  
-  // Benefits
-  isEligibleForPTO: formData.isEligibleForPTO,
-  ptoBalance: formData.ptoBalance ? parseFloat(formData.ptoBalance) : 0,
-  isEligibleForInsurance: formData.isEligibleForInsurance
+  employmentType: formData.employmentType || 'Full-Time',
+  jobTitle: formData.jobTitle,
+  hireDate: formData.hireDate ? new Date(formData.hireDate).toISOString() : null
 });
 
 // ============================================
@@ -447,71 +377,3 @@ export const isEligibleForBenefits = (employeeType) => {
 export const getDefaultPTOBalance = (employeeType) => {
   return employeeType === 'AdminStaff' ? 15 : 0;
 };
-
-// ============================================
-// JSDoc Type Definitions (for IDE support)
-// ============================================
-
-/**
- * @typedef {Object} EmployeeFormData
- * @property {string} firstName
- * @property {string} lastName
- * @property {string} middleName
- * @property {string} dateOfBirth
- * @property {string} gender
- * @property {string} maritalStatus
- * @property {string} phoneNumber
- * @property {string} personalEmail
- * @property {string} address
- * @property {string} city
- * @property {string} state
- * @property {string} zipCode
- * @property {string} country
- * @property {string} emergencyContactName
- * @property {string} emergencyContactPhone
- * @property {string} emergencyContactRelationship
- * @property {string} employeeCode
- * @property {string|number} departmentId
- * @property {string|number} managerId
- * @property {string} jobTitle
- * @property {('AdminStaff'|'FieldStaff')} employeeType
- * @property {('Active'|'OnLeave'|'Terminated')} employmentStatus
- * @property {string} hireDate
- * @property {string|number} salary
- * @property {string} payFrequency
- * @property {string} bankName
- * @property {string} bankAccountNumber
- * @property {string} bankRoutingNumber
- * @property {boolean} isEligibleForPTO
- * @property {string|number} ptoBalance
- * @property {boolean} isEligibleForInsurance
- */
-
-/**
- * @typedef {Object} EmployeeRegistrationData
- * @extends EmployeeFormData
- * @property {string} email
- * @property {string} password
- * @property {string} confirmPassword
- * @property {string|number} roleId
- */
-
-/**
- * @typedef {Object} EmployeeDirectoryItem
- * @property {number} employeeId
- * @property {string} employeeCode
- * @property {string} fullName
- * @property {string} firstName
- * @property {string} lastName
- * @property {string} email
- * @property {string} phoneNumber
- * @property {string} jobTitle
- * @property {('AdminStaff'|'FieldStaff')} employeeType
- * @property {('Active'|'OnLeave'|'Terminated')} employmentStatus
- * @property {Object} department
- * @property {Object} manager
- * @property {string} hireDate
- * @property {boolean} isEligibleForPTO
- * @property {number} ptoBalance
- * @property {boolean} isEligibleForInsurance
- */

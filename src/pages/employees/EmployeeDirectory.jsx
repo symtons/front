@@ -171,7 +171,7 @@ const EmployeeDirectory = () => {
     setPage(0);
   };
 
-  const handleChangePage = (newPage) => {
+  const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
 

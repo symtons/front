@@ -1,3 +1,4 @@
+// src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -7,6 +8,7 @@ import {
   publicRoutes,
   dashboardRoutes,
   employeeRoutes,
+  departmentRoutes,
   leaveRoutes,
   recruitmentRoutes,
   onboardingRoutes,
@@ -68,7 +70,16 @@ function App() {
             />
           ))}
 
-          {/* ✅ PROTECTED LEAVE ROUTES - ADD THIS SECTION */}
+          {/* Protected Department Routes */}
+          {departmentRoutes.map((route, index) => (
+            <Route
+              key={`department-${index}`}
+              path={route.path}
+              element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+            />
+          ))}
+
+          {/* Protected Leave Routes */}
           {leaveRoutes.map((route, index) => (
             <Route
               key={`leave-${index}`}

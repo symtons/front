@@ -45,6 +45,26 @@ const attendanceService = {
   },
 
   /**
+   * Submit manual timesheet entry
+   * POST /api/TimeEntry/Manual
+   */
+  submitManualEntry: async (entryData) => {
+    try {
+      const response = await api.post('/TimeEntry/Manual', {
+        workDate: entryData.workDate,
+        clockInTime: entryData.clockInTime,
+        clockOutTime: entryData.clockOutTime,
+        breakMinutes: entryData.breakMinutes || 0,
+        notes: entryData.notes || ''
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Manual entry error:', error);
+      throw error.response?.data || { message: 'Failed to submit manual entry' };
+    }
+  },
+
+  /**
    * Get current clock status
    * GET /api/TimeEntry/CurrentStatus
    */
@@ -73,7 +93,18 @@ const attendanceService = {
       throw error.response?.data || { message: 'Failed to load time entries' };
     }
   },
-
+/**
+ * Delete time entry
+ * DELETE /api/TimeEntry/{id}
+ */
+deleteTimeEntry: async (timeEntryId) => {
+  try {
+    const response = await api.delete(`/TimeEntry/${timeEntryId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to delete time entry' };
+  }
+},
   /**
    * Get all time entries (Admin)
    * GET /api/TimeEntry/All
