@@ -186,7 +186,7 @@ const MyTasks = () => {
       <PageHeader
         title="My Onboarding"
         subtitle="Complete your onboarding tasks to activate your account"
-        icon={<TaskIcon />}
+        icon={TaskIcon} 
       />
 
       {error && (

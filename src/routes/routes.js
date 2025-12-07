@@ -20,7 +20,7 @@ import {
 import {
   MyTasks,
   OnboardingMonitor,
-  EmployeeDetail
+  EmployeeOnboardingDetail 
 } from '../pages/onboarding';
 import {
   ClockInOut,
@@ -158,7 +158,7 @@ export const onboardingRoutes = [
   },
   {
     path: '/onboarding/employee/:id',
-    element: <EmployeeDetail />,
+    element: <EmployeeOnboardingDetail/>,
   },
 ];
 
