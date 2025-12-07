@@ -18,7 +18,8 @@ import {
   Checkbox,
   CircularProgress,
   Divider,
-  Paper
+  Paper,
+  Stack
 } from '@mui/material';
 import {
   CheckCircle as CompletedIcon,
@@ -30,7 +31,8 @@ import {
   Assignment,
   Description,
   School,
-  Info
+  Info,
+  InsertDriveFile
 } from '@mui/icons-material';
 import Layout from '../../components/common/layout/Layout';
 import PageHeader from '../../components/common/layout/PageHeader';
@@ -84,7 +86,7 @@ const MyTasks = () => {
   };
 
   const handleTaskClick = (task) => {
-    if (task.status === 'Completed') return; // Don't open completed tasks
+    if (task.status === 'Completed') return;
     setSelectedTask(task);
     setFormData({
       submittedData: '',
@@ -105,13 +107,11 @@ const MyTasks = () => {
       setError('');
 
       if (selectedTask.taskType === 'Upload') {
-        // Upload file
         if (!selectedFile) {
           throw new Error('Please select a file to upload');
         }
         await onboardingService.uploadTaskDocument(selectedTask.onboardingTaskId, selectedFile);
       } else if (selectedTask.taskType === 'Acknowledgment') {
-        // Submit acknowledgment
         if (!formData.acknowledged) {
           throw new Error('Please acknowledge to continue');
         }
@@ -120,7 +120,6 @@ const MyTasks = () => {
           notes: formData.notes
         });
       } else {
-        // Submit text/input data
         if (!formData.submittedData) {
           throw new Error('Please provide required information');
         }
@@ -132,7 +131,7 @@ const MyTasks = () => {
 
       setTaskDialogOpen(false);
       setSelectedTask(null);
-      await fetchTasks(); // Refresh tasks
+      await fetchTasks();
     } catch (err) {
       setError(err.message || 'Failed to submit task');
     } finally {
@@ -142,12 +141,12 @@ const MyTasks = () => {
 
   const getTaskIcon = (status, isOverdue) => {
     if (status === 'Completed') {
-      return <CompletedIcon sx={{ color: 'success.main' }} />;
+      return <CompletedIcon sx={{ color: 'success.main', fontSize: 28 }} />;
     }
     if (isOverdue) {
-      return <OverdueIcon sx={{ color: 'error.main' }} />;
+      return <OverdueIcon sx={{ color: 'error.main', fontSize: 28 }} />;
     }
-    return <PendingIcon sx={{ color: 'warning.main' }} />;
+    return <PendingIcon sx={{ color: 'warning.main', fontSize: 28 }} />;
   };
 
   const getTasksByCategory = () => {
@@ -163,11 +162,13 @@ const MyTasks = () => {
   };
 
   const categoryIcons = {
-    'Document': <DocIcon />,
-    'Form': <Assignment />,
-    'Policy': <Description />,
-    'Training': <School />,
-    'Information': <Info />
+    'Document': <InsertDriveFile sx={{ fontSize: 24 }} />,
+    'Form': <Assignment sx={{ fontSize: 24 }} />,
+    'Policy': <Description sx={{ fontSize: 24 }} />,
+    'Training': <School sx={{ fontSize: 24 }} />,
+    'Information': <Info sx={{ fontSize: 24 }} />,
+    'Personal Information': <Info sx={{ fontSize: 24 }} />,
+    'IT & Systems Access': <Description sx={{ fontSize: 24 }} />
   };
 
   if (loading) {
@@ -186,7 +187,7 @@ const MyTasks = () => {
       <PageHeader
         title="My Onboarding"
         subtitle="Complete your onboarding tasks to activate your account"
-        icon={TaskIcon} 
+        icon={TaskIcon}
       />
 
       {error && (
@@ -196,8 +197,8 @@ const MyTasks = () => {
       )}
 
       {/* Progress Overview */}
-      <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-        <Typography variant="h6" gutterBottom>
+      <Paper elevation={2} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+        <Typography variant="h6" gutterBottom fontWeight={600}>
           Your Progress
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -210,7 +211,8 @@ const MyTasks = () => {
                 borderRadius: 6,
                 backgroundColor: '#e0e0e0',
                 '& .MuiLinearProgress-bar': {
-                  backgroundColor: stats.progressPercentage === 100 ? 'success.main' : '#f59e42'
+                  backgroundColor: stats.progressPercentage === 100 ? '#4caf50' : '#f59e42',
+                  borderRadius: 6
                 }
               }}
             />
@@ -238,90 +240,140 @@ const MyTasks = () => {
       {/* Tasks by Category */}
       {Object.keys(tasksByCategory).map(category => (
         <Box key={category} sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            {categoryIcons[category] || <TaskIcon />}
-            {category}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              width: 40,
+              height: 40,
+              borderRadius: '8px',
+              backgroundColor: '#f5f5f5'
+            }}>
+              {categoryIcons[category] || <TaskIcon sx={{ fontSize: 24 }} />}
+            </Box>
+            <Typography variant="h6" fontWeight={600}>
+              {category}
+            </Typography>
             <Chip
               label={`${tasksByCategory[category].filter(t => t.status === 'Completed').length}/${tasksByCategory[category].length}`}
               size="small"
-              color={tasksByCategory[category].every(t => t.status === 'Completed') ? 'success' : 'default'}
+              sx={{
+                backgroundColor: tasksByCategory[category].every(t => t.status === 'Completed') ? '#4caf50' : '#e0e0e0',
+                color: tasksByCategory[category].every(t => t.status === 'Completed') ? '#fff' : '#666',
+                fontWeight: 600
+              }}
             />
-          </Typography>
+          </Box>
 
           <Grid container spacing={2}>
             {tasksByCategory[category].map(task => (
-              <Grid item xs={12} key={task.onboardingTaskId}>
+              <Grid item xs={12} md={6} key={task.onboardingTaskId}>
                 <Card
                   sx={{
                     cursor: task.status === 'Completed' ? 'default' : 'pointer',
+                    height: '100%',
                     border: task.isOverdue ? '2px solid' : '1px solid',
-                    borderColor: task.isOverdue ? 'error.main' : 'divider',
+                    borderColor: task.isOverdue ? 'error.main' : 
+                                 task.status === 'Completed' ? 'success.light' : '#e0e0e0',
+                    borderRadius: 2,
+                    transition: 'all 0.2s',
+                    backgroundColor: task.status === 'Completed' ? '#f1f8f4' : '#fff',
                     '&:hover': task.status !== 'Completed' ? {
-                      boxShadow: 3,
-                      borderColor: '#f59e42'
+                      boxShadow: 4,
+                      borderColor: '#f59e42',
+                      transform: 'translateY(-2px)'
                     } : {}
                   }}
                   onClick={() => handleTaskClick(task)}
                 >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                      {getTaskIcon(task.status, task.isOverdue)}
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <Box sx={{ flexShrink: 0, pt: 0.5 }}>
+                        {getTaskIcon(task.status, task.isOverdue)}
+                      </Box>
 
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="subtitle1" fontWeight={600}>
-                          {task.taskName}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                          <Typography variant="h6" fontWeight={600} sx={{ fontSize: '1.1rem' }}>
+                            {task.taskName}
+                          </Typography>
                           {task.isRequired && (
-                            <Chip label="Required" size="small" color="error" sx={{ ml: 1 }} />
+                            <Chip 
+                              label="Required" 
+                              size="small" 
+                              sx={{ 
+                                backgroundColor: '#fee',
+                                color: '#c00',
+                                fontWeight: 600,
+                                height: 20,
+                                fontSize: '0.7rem'
+                              }} 
+                            />
                           )}
-                        </Typography>
+                        </Stack>
 
                         {task.taskDescription && (
-                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                             {task.taskDescription}
                           </Typography>
                         )}
 
-                        <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+                        <Stack direction="row" spacing={1} sx={{ mb: task.status === 'Completed' ? 1 : 0, flexWrap: 'wrap', gap: 0.5 }}>
                           <Chip
                             label={task.status}
                             size="small"
-                            color={
-                              task.status === 'Completed' ? 'success' :
-                              task.isOverdue ? 'error' : 'warning'
-                            }
+                            sx={{
+                              backgroundColor: 
+                                task.status === 'Completed' ? '#4caf50' :
+                                task.isOverdue ? '#f44336' : '#ff9800',
+                              color: '#fff',
+                              fontWeight: 600
+                            }}
                           />
                           <Chip
                             label={`Due: ${new Date(task.dueDate).toLocaleDateString()}`}
                             size="small"
                             variant="outlined"
+                            sx={{ borderColor: '#ccc' }}
                           />
                           {task.taskType && (
-                            <Chip label={task.taskType} size="small" variant="outlined" />
+                            <Chip 
+                              label={task.taskType} 
+                              size="small" 
+                              variant="outlined"
+                              sx={{ borderColor: '#ccc' }}
+                            />
                           )}
-                        </Box>
+                        </Stack>
 
                         {task.status === 'Completed' && task.completedDate && (
-                          <Typography variant="caption" color="success.main" sx={{ mt: 1, display: 'block' }}>
+                          <Typography variant="caption" sx={{ color: 'success.main', display: 'block', mt: 1, fontWeight: 500 }}>
                             ✓ Completed on {new Date(task.completedDate).toLocaleDateString()}
                           </Typography>
                         )}
                       </Box>
 
                       {task.status !== 'Completed' && (
-                        <Button
-                          variant="contained"
-                          size="small"
-                          sx={{
-                            backgroundColor: '#f59e42',
-                            '&:hover': { backgroundColor: '#e08a2e' }
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTaskClick(task);
-                          }}
-                        >
-                          {task.taskType === 'Upload' ? 'Upload' : 'Complete'}
-                        </Button>
+                        <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'flex-start' }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            sx={{
+                              backgroundColor: '#f59e42',
+                              '&:hover': { backgroundColor: '#e08a2e' },
+                              textTransform: 'none',
+                              fontWeight: 600,
+                              px: 2
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTaskClick(task);
+                            }}
+                          >
+                            {task.taskType === 'Upload' ? 'Upload' : 'Complete'}
+                          </Button>
+                        </Box>
                       )}
                     </Box>
                   </CardContent>
@@ -341,7 +393,7 @@ const MyTasks = () => {
       >
         {selectedTask && (
           <>
-            <DialogTitle sx={{ backgroundColor: '#f59e42', color: 'white' }}>
+            <DialogTitle sx={{ backgroundColor: '#f59e42', color: 'white', fontWeight: 600 }}>
               {selectedTask.taskName}
             </DialogTitle>
             <DialogContent dividers sx={{ mt: 2 }}>
@@ -362,7 +414,7 @@ const MyTasks = () => {
               {/* Upload Type */}
               {selectedTask.taskType === 'Upload' && (
                 <Box>
-                  <Typography variant="subtitle2" gutterBottom>
+                  <Typography variant="subtitle2" gutterBottom fontWeight={600}>
                     Upload Document
                   </Typography>
                   {selectedTask.requiredFileTypes && (
@@ -373,7 +425,7 @@ const MyTasks = () => {
                   <FileUploader
                     onFileSelect={handleFileSelect}
                     accept={selectedTask.requiredFileTypes?.split(',').map(t => `.${t.trim()}`).join(',')}
-                    maxSize={10} // 10MB
+                    maxSize={10}
                   />
                   {selectedFile && (
                     <Typography variant="body2" color="success.main" sx={{ mt: 1 }}>
