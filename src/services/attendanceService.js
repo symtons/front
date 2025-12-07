@@ -64,6 +64,11 @@ const attendanceService = {
     }
   },
 
+  // Alias for backward compatibility
+  addManualEntry: async (entryData) => {
+    return attendanceService.submitManualEntry(entryData);
+  },
+
   /**
    * Get current clock status
    * GET /api/TimeEntry/CurrentStatus
@@ -93,18 +98,20 @@ const attendanceService = {
       throw error.response?.data || { message: 'Failed to load time entries' };
     }
   },
-/**
- * Delete time entry
- * DELETE /api/TimeEntry/{id}
- */
-deleteTimeEntry: async (timeEntryId) => {
-  try {
-    const response = await api.delete(`/TimeEntry/${timeEntryId}`);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Failed to delete time entry' };
-  }
-},
+
+  /**
+   * Delete time entry
+   * DELETE /api/TimeEntry/{id}
+   */
+  deleteTimeEntry: async (timeEntryId) => {
+    try {
+      const response = await api.delete(`/TimeEntry/${timeEntryId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to delete time entry' };
+    }
+  },
+
   /**
    * Get all time entries (Admin)
    * GET /api/TimeEntry/All

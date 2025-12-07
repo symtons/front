@@ -31,6 +31,8 @@ import {
 import PerformanceOverview from '../pages/performance/PerformanceOverview';
 import GoalsPage from '../pages/performance/GoalsPage';
 import FeedbackPage from '../pages/performance/FeedbackPage';
+import MyTimesheets from '../pages/timesheets/MyTimesheets';
+import ApproveTimesheets from '../pages/timesheets/ApproveTimesheets';
 
 // Import Department components
 import DepartmentList from '../pages/departments/DepartmentList';
@@ -102,7 +104,16 @@ export const dashboardRoutes = [
     element: <Dashboard />,
   },
 ];
-
+export const timesheetRoutes = [
+  {
+    path: '/timesheets/my',
+    element: <MyTimesheets />,
+  },
+  {
+    path: '/timesheets/approve',
+    element: <ApproveTimesheets />,
+  },
+];
 // Employee Management Routes
 export const employeeRoutes = [
   {
