@@ -13,6 +13,7 @@ import {
   recruitmentRoutes,
   onboardingRoutes,
   attendanceRoutes,
+  timesheetRoutes,
   performanceRoutes,
   redirectRoutes,
   profileRoutes,
@@ -47,6 +48,14 @@ function App() {
           {dashboardRoutes.map((route, index) => (
             <Route
               key={`dashboard-${index}`}
+              path={route.path}
+              element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+            />
+          ))}
+          {/* Protected Timesheet Routes */}
+          {timesheetRoutes.map((route, index) => (
+            <Route
+              key={`timesheet-${index}`}
               path={route.path}
               element={<ProtectedRoute>{route.element}</ProtectedRoute>}
             />
