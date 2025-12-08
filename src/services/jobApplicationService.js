@@ -10,7 +10,7 @@ import axios from 'axios';
 
 // API Base URL - matches your existing services
 //const API_BASE_URL = 'https://tpaapi.ngrok.app/api';
-const API_BASE_URL = 'https://localhost:7144/api';
+const API_BASE_URL = 'https://tpaapi.ngrok.app/api';
 
 // Create a separate axios instance for job applications (no authentication required)
 const publicApi = axios.create({
