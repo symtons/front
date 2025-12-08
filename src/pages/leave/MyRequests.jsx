@@ -183,7 +183,7 @@ const MyRequests = () => {
   return (
     <Layout>
       <PageHeader
-        icon={<LeaveIcon />}
+        icon={LeaveIcon }
         title="My Leave Requests"
         subtitle="View and manage your leave requests"
         chips={[

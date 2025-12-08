@@ -210,7 +210,7 @@ const ApproveRequests = () => {
   return (
     <Layout>
       <PageHeader
-        icon={<ApproveIcon />}
+        icon={ApproveIcon }
         title="Approve Leave Requests"
         subtitle="Review and approve pending leave requests"
         chips={[

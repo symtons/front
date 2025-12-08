@@ -165,7 +165,7 @@ export const leaveRoutes = [
     element: <MyRequests />,
   },
   {
-    path: '/leave/approve',
+    path: '/leave/approvals',
     element: <ApproveRequests />,
   },
   {

@@ -1,5 +1,5 @@
 // src/pages/leave/RequestLeave.jsx
-// Leave Request Submission Page - 3-Step Wizard
+// CORRECTED VERSION - Fixed PageHeader actions prop
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -18,11 +18,7 @@ import {
   Step,
   StepLabel,
   CircularProgress,
-  Chip,
-  Radio,
-  RadioGroup,
-  FormControl,
-  FormLabel
+  Chip
 } from '@mui/material';
 import {
   EventAvailable as LeaveIcon,
@@ -186,7 +182,7 @@ const RequestLeave = () => {
   return (
     <Layout>
       <PageHeader
-        icon={<LeaveIcon />}
+        icon={LeaveIcon}
         title="Request Leave"
         subtitle="Submit a new leave request for approval"
         chips={[
