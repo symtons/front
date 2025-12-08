@@ -1,10 +1,18 @@
 // src/pages/leave/models/leaveModels.js
-// Leave Management - Models, Constants, Helpers & Validators
+/**
+ * Leave Management Models
+ * 
+ * Contains all data structures, validation logic, helper functions,
+ * and business rules for the leave management system
+ */
 
 // ============================================
-// CONSTANTS - Leave Status
+// CONSTANTS - LEAVE STATUS
 // ============================================
 
+/**
+ * Leave request status values
+ */
 export const LEAVE_STATUS = {
   PENDING: 'Pending',
   APPROVED: 'Approved',
@@ -12,6 +20,9 @@ export const LEAVE_STATUS = {
   CANCELLED: 'Cancelled'
 };
 
+/**
+ * Status options for dropdowns
+ */
 export const LEAVE_STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
   { value: 'Pending', label: 'Pending' },
@@ -20,37 +31,39 @@ export const LEAVE_STATUS_OPTIONS = [
   { value: 'Cancelled', label: 'Cancelled' }
 ];
 
-// ============================================
-// CONSTANTS - Status Colors
-// ============================================
+/**
+ * Get status color for UI display
+ */
+export const getStatusColor = (status) => {
+  const colors = {
+    'Pending': '#FDB94E',      // Orange/Yellow
+    'Approved': '#4caf50',     // Green
+    'Rejected': '#f44336',     // Red
+    'Cancelled': '#9e9e9e'     // Gray
+  };
+  return colors[status] || '#9e9e9e';
+};
 
-export const STATUS_COLORS = {
-  Pending: {
-    main: '#ff9800',
-    light: '#fff3e0',
-    text: '#e65100'
-  },
-  Approved: {
-    main: '#4caf50',
-    light: '#e8f5e9',
-    text: '#2e7d32'
-  },
-  Rejected: {
-    main: '#f44336',
-    light: '#ffebee',
-    text: '#c62828'
-  },
-  Cancelled: {
-    main: '#9e9e9e',
-    light: '#f5f5f5',
-    text: '#616161'
-  }
+/**
+ * Get status icon
+ */
+export const getStatusIcon = (status) => {
+  const icons = {
+    'Pending': 'Schedule',
+    'Approved': 'CheckCircle',
+    'Rejected': 'Cancel',
+    'Cancelled': 'Block'
+  };
+  return icons[status] || 'Help';
 };
 
 // ============================================
-// CONSTANTS - Leave Type Colors (From Database)
+// CONSTANTS - LEAVE TYPES
 // ============================================
 
+/**
+ * Leave type colors (matches database)
+ */
 export const LEAVE_TYPE_COLORS = {
   'PTO': '#5B8FCC',
   'Unpaid Leave': '#95a5a6',
@@ -59,282 +72,158 @@ export const LEAVE_TYPE_COLORS = {
   'Medical Leave': '#e74c3c'
 };
 
-// ============================================
-// HELPER FUNCTIONS - Status
-// ============================================
-
 /**
- * Get status badge color variant for Material-UI
- * @param {string} status - Leave status
- * @returns {string} MUI color variant
- */
-export const getStatusVariant = (status) => {
-  const variants = {
-    'Pending': 'warning',
-    'Approved': 'success',
-    'Rejected': 'error',
-    'Cancelled': 'default'
-  };
-  return variants[status] || 'default';
-};
-
-/**
- * Get status icon emoji
- * @param {string} status - Leave status
- * @returns {string} Emoji icon
- */
-export const getStatusIcon = (status) => {
-  const icons = {
-    'Pending': '⏳',
-    'Approved': '✅',
-    'Rejected': '❌',
-    'Cancelled': '⚪'
-  };
-  return icons[status] || '📄';
-};
-
-/**
- * Check if status allows cancellation
- * @param {string} status - Leave status
- * @returns {boolean} True if can cancel
- */
-export const canCancelRequest = (status) => {
-  return status === 'Pending';
-};
-
-/**
- * Check if status is final (no further actions possible)
- * @param {string} status - Leave status
- * @returns {boolean} True if final
- */
-export const isFinalStatus = (status) => {
-  return ['Approved', 'Rejected', 'Cancelled'].includes(status);
-};
-
-// ============================================
-// HELPER FUNCTIONS - Leave Types
-// ============================================
-
-/**
- * Get leave type display color
- * @param {string} typeName - Leave type name
- * @returns {string} Hex color code
+ * Get leave type color
  */
 export const getLeaveTypeColor = (typeName) => {
-  return LEAVE_TYPE_COLORS[typeName] || '#5B8FCC';
+  return LEAVE_TYPE_COLORS[typeName] || '#667eea';
 };
 
 /**
- * Check if leave type deducts from PTO
- * @param {string} typeName - Leave type name
- * @returns {boolean} True if deducts PTO
+ * Get leave type icon
+ */
+export const getLeaveTypeIcon = (typeName) => {
+  const icons = {
+    'PTO': 'BeachAccess',
+    'Unpaid Leave': 'EventBusy',
+    'Bereavement': 'LocalFlorist',
+    'Jury Duty': 'Gavel',
+    'Medical Leave': 'LocalHospital',
+    'Sick Leave': 'Sick'
+  };
+  return icons[typeName] || 'Event';
+};
+
+/**
+ * Check if leave type deducts from PTO balance
  */
 export const deductsPTO = (typeName) => {
   return typeName === 'PTO';
 };
 
+// ============================================
+// INITIAL FORM DATA
+// ============================================
+
 /**
- * Get leave type icon
- * @param {string} typeName - Leave type name
- * @returns {string} Icon name or emoji
+ * Get initial leave request form data
  */
-export const getLeaveTypeIcon = (typeName) => {
-  const icons = {
-    'PTO': '🏖️',
-    'Unpaid Leave': '📅',
-    'Bereavement': '🕊️',
-    'Jury Duty': '⚖️',
-    'Medical Leave': '🏥'
-  };
-  return icons[typeName] || '📋';
+export const getInitialLeaveRequestData = () => ({
+  leaveTypeId: null,
+  startDate: getTodayString(),
+  endDate: getTodayString(),
+  reason: '',
+  isHalfDay: false
+});
+
+/**
+ * Get initial filter state
+ */
+export const getInitialFilterState = () => ({
+  searchTerm: '',
+  statusFilter: '',
+  leaveTypeFilter: '',
+  startDate: '',
+  endDate: ''
+});
+
+// ============================================
+// DATE HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Get today's date as YYYY-MM-DD string
+ */
+export const getTodayString = () => {
+  return new Date().toISOString().split('T')[0];
 };
 
-// ============================================
-// HELPER FUNCTIONS - Date Formatting
-// ============================================
+/**
+ * Get date N days from now
+ */
+export const getDateAfterDays = (days) => {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split('T')[0];
+};
 
 /**
- * Format date to display string
- * @param {string|Date} date - Date to format
- * @param {boolean} short - Use short format
- * @returns {string} Formatted date
+ * Format date for display (e.g., "Dec 15, 2025")
  */
-export const formatDate = (date, short = false) => {
-  if (!date) return 'N/A';
+export const formatDisplayDate = (dateString) => {
+  if (!dateString) return '';
   
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return 'Invalid Date';
-  
-  if (short) {
-    return d.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
-  }
-  
-  return d.toLocaleDateString('en-US', { 
-    weekday: 'short',
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
   });
 };
 
 /**
- * Format date range
- * @param {string|Date} startDate - Start date
- * @param {string|Date} endDate - End date
- * @returns {string} Formatted date range
+ * Format date range for display
  */
 export const formatDateRange = (startDate, endDate) => {
-  if (!startDate || !endDate) return 'N/A';
+  if (!startDate || !endDate) return '';
   
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  const start = formatDisplayDate(startDate);
+  const end = formatDisplayDate(endDate);
   
-  // Same day
-  if (start.toDateString() === end.toDateString()) {
-    return formatDate(start);
+  if (startDate === endDate) {
+    return start;
   }
   
-  // Same month and year
-  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { day: 'numeric', year: 'numeric' })}`;
-  }
-  
-  // Different months
-  return `${formatDate(start, true)} - ${formatDate(end, true)}`;
+  return `${start} - ${end}`;
 };
 
 /**
- * Format relative time (e.g., "2 days ago")
- * @param {string|Date} date - Date to format
- * @returns {string} Relative time string
- */
-export const formatRelativeTime = (date) => {
-  if (!date) return 'N/A';
-  
-  const d = new Date(date);
-  const now = new Date();
-  const diffMs = now - d;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-  
-  return formatDate(date, true);
-};
-
-/**
- * Check if date is in the past
- * @param {string|Date} date - Date to check
- * @returns {boolean} True if past
- */
-export const isPastDate = (date) => {
-  if (!date) return false;
-  const d = new Date(date);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return d < today;
-};
-
-/**
- * Check if date is today
- * @param {string|Date} date - Date to check
- * @returns {boolean} True if today
- */
-export const isToday = (date) => {
-  if (!date) return false;
-  const d = new Date(date);
-  const today = new Date();
-  return d.toDateString() === today.toDateString();
-};
-
-/**
- * Check if date is in the future
- * @param {string|Date} date - Date to check
- * @returns {boolean} True if future
- */
-export const isFutureDate = (date) => {
-  if (!date) return false;
-  const d = new Date(date);
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  return d > today;
-};
-
-// ============================================
-// HELPER FUNCTIONS - Date Calculations
-// ============================================
-
-/**
- * Calculate total days between two dates (inclusive)
- * @param {string|Date} startDate - Start date
- * @param {string|Date} endDate - End date
- * @returns {number} Total days
+ * Calculate total days between dates (inclusive)
  */
 export const calculateTotalDays = (startDate, endDate) => {
   if (!startDate || !endDate) return 0;
   
   const start = new Date(startDate);
   const end = new Date(endDate);
-  
   const diffTime = Math.abs(end - start);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 for inclusive
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
-  return diffDays;
+  return diffDays + 1; // Inclusive of both start and end dates
 };
 
 /**
- * Calculate business days between two dates (excludes weekends)
- * @param {string|Date} startDate - Start date
- * @param {string|Date} endDate - End date
- * @returns {number} Business days
+ * Check if date is in the past
  */
-export const calculateBusinessDays = (startDate, endDate) => {
-  if (!startDate || !endDate) return 0;
+export const isPastDate = (dateString) => {
+  if (!dateString) return false;
   
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  
-  let count = 0;
-  const current = new Date(start);
-  
-  while (current <= end) {
-    const dayOfWeek = current.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not Sunday (0) or Saturday (6)
-      count++;
-    }
-    current.setDate(current.getDate() + 1);
-  }
-  
-  return count;
-};
-
-/**
- * Get today's date in YYYY-MM-DD format
- * @returns {string} Today's date
- */
-export const getTodayString = () => {
+  const date = new Date(dateString);
   const today = new Date();
-  return today.toISOString().split('T')[0];
+  today.setHours(0, 0, 0, 0);
+  
+  return date < today;
 };
 
 /**
- * Add days to a date
- * @param {string|Date} date - Starting date
- * @param {number} days - Days to add
- * @returns {string} New date in YYYY-MM-DD format
+ * Check if date is today
  */
-export const addDays = (date, days) => {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
+export const isToday = (dateString) => {
+  if (!dateString) return false;
+  
+  const date = new Date(dateString);
+  const today = new Date();
+  
+  return date.toDateString() === today.toDateString();
+};
+
+/**
+ * Get day of week
+ */
+export const getDayOfWeek = (dateString) => {
+  if (!dateString) return '';
+  
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { weekday: 'long' });
 };
 
 // ============================================
@@ -343,10 +232,6 @@ export const addDays = (date, days) => {
 
 /**
  * Validate leave request dates
- * @param {string} startDate - Start date
- * @param {string} endDate - End date
- * @param {boolean} allowPastDates - Allow past dates
- * @returns {Object} { isValid: boolean, error: string }
  */
 export const validateDates = (startDate, endDate, allowPastDates = false) => {
   if (!startDate || !endDate) {
@@ -369,9 +254,6 @@ export const validateDates = (startDate, endDate, allowPastDates = false) => {
 
 /**
  * Validate PTO balance
- * @param {number} remainingDays - Remaining PTO days
- * @param {number} requestedDays - Requested days
- * @returns {Object} { isValid: boolean, error: string }
  */
 export const validatePTOBalance = (remainingDays, requestedDays) => {
   if (requestedDays > remainingDays) {
@@ -393,10 +275,8 @@ export const validatePTOBalance = (remainingDays, requestedDays) => {
 
 /**
  * Validate leave request form
- * @param {Object} formData - Form data
- * @returns {Object} { isValid: boolean, errors: Object }
  */
-export const validateLeaveRequestForm = (formData) => {
+export const validateLeaveRequestForm = (formData, ptoBalance = null, leaveType = null) => {
   const errors = {};
   
   // Required fields
@@ -420,6 +300,15 @@ export const validateLeaveRequestForm = (formData) => {
     }
   }
   
+  // PTO balance validation (if requesting PTO)
+  if (leaveType && leaveType.typeName === 'PTO' && ptoBalance) {
+    const totalDays = formData.isHalfDay ? 0.5 : calculateTotalDays(formData.startDate, formData.endDate);
+    const balanceValidation = validatePTOBalance(ptoBalance.remainingPTODays || 0, totalDays);
+    if (!balanceValidation.isValid) {
+      errors.balance = balanceValidation.error;
+    }
+  }
+  
   // Reason length (optional but if provided, should be meaningful)
   if (formData.reason && formData.reason.length > 500) {
     errors.reason = 'Reason cannot exceed 500 characters';
@@ -432,186 +321,265 @@ export const validateLeaveRequestForm = (formData) => {
 };
 
 // ============================================
-// DATA TRANSFORMATION FUNCTIONS
+// FILTER & SEARCH FUNCTIONS
 // ============================================
 
 /**
- * Prepare leave request data for API submission
- * @param {Object} formData - Form data
- * @returns {Object} API-ready data
+ * Filter leave requests based on search and filters
  */
-export const prepareLeaveRequestForAPI = (formData) => {
-  return {
-    leaveTypeId: parseInt(formData.leaveTypeId),
-    startDate: formData.startDate,
-    endDate: formData.endDate,
-    reason: formData.reason || '',
-    isHalfDay: formData.isHalfDay || false
-  };
-};
-
-/**
- * Get initial leave request form data
- * @returns {Object} Initial form data
- */
-export const getInitialLeaveRequestForm = () => ({
-  leaveTypeId: '',
-  startDate: '',
-  endDate: '',
-  reason: '',
-  isHalfDay: false
-});
-
-// ============================================
-// FILTER & SORT HELPERS
-// ============================================
-
-/**
- * Filter leave requests by status
- * @param {Array} requests - Leave requests
- * @param {string} status - Status to filter by
- * @returns {Array} Filtered requests
- */
-export const filterByStatus = (requests, status) => {
-  if (!status || status === '') return requests;
-  return requests.filter(req => req.status === status);
+export const filterLeaveRequests = (requests, filters) => {
+  let filtered = [...requests];
+  
+  // Search by reason or employee name
+  if (filters.searchTerm) {
+    const searchLower = filters.searchTerm.toLowerCase();
+    filtered = filtered.filter(req => 
+      req.reason?.toLowerCase().includes(searchLower) ||
+      req.employee?.fullName?.toLowerCase().includes(searchLower)
+    );
+  }
+  
+  // Filter by status
+  if (filters.statusFilter) {
+    filtered = filtered.filter(req => req.status === filters.statusFilter);
+  }
+  
+  // Filter by leave type
+  if (filters.leaveTypeFilter) {
+    filtered = filtered.filter(req => req.leaveType === filters.leaveTypeFilter);
+  }
+  
+  // Filter by date range
+  if (filters.startDate) {
+    filtered = filtered.filter(req => 
+      new Date(req.startDate) >= new Date(filters.startDate)
+    );
+  }
+  
+  if (filters.endDate) {
+    filtered = filtered.filter(req => 
+      new Date(req.endDate) <= new Date(filters.endDate)
+    );
+  }
+  
+  return filtered;
 };
 
 /**
  * Sort leave requests
- * @param {Array} requests - Leave requests
- * @param {string} sortBy - Field to sort by (date, status, type)
- * @param {string} order - Sort order (asc, desc)
- * @returns {Array} Sorted requests
  */
-export const sortLeaveRequests = (requests, sortBy = 'date', order = 'desc') => {
+export const sortLeaveRequests = (requests, sortBy = 'requestedAt', sortOrder = 'desc') => {
   const sorted = [...requests];
   
   sorted.sort((a, b) => {
-    let comparison = 0;
+    let aVal = a[sortBy];
+    let bVal = b[sortBy];
     
-    switch (sortBy) {
-      case 'date':
-        comparison = new Date(a.startDate) - new Date(b.startDate);
-        break;
-      case 'status':
-        comparison = a.status.localeCompare(b.status);
-        break;
-      case 'type':
-        comparison = a.leaveType.localeCompare(b.leaveType);
-        break;
-      case 'requested':
-        comparison = new Date(a.requestedAt) - new Date(b.requestedAt);
-        break;
-      default:
-        comparison = 0;
+    // Handle date comparisons
+    if (sortBy.includes('Date') || sortBy.includes('At')) {
+      aVal = new Date(aVal);
+      bVal = new Date(bVal);
     }
     
-    return order === 'asc' ? comparison : -comparison;
+    if (sortOrder === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
   });
   
   return sorted;
 };
 
+// ============================================
+// PTO BALANCE CALCULATIONS
+// ============================================
+
 /**
- * Group leave requests by month
- * @param {Array} requests - Leave requests
- * @returns {Object} Requests grouped by month
+ * Calculate PTO usage percentage
  */
-export const groupByMonth = (requests) => {
-  const grouped = {};
+export const calculatePTOUsagePercentage = (usedDays, totalDays) => {
+  if (!totalDays || totalDays === 0) return 0;
+  return Math.round((usedDays / totalDays) * 100);
+};
+
+/**
+ * Calculate remaining PTO percentage
+ */
+export const calculateRemainingPercentage = (remainingDays, totalDays) => {
+  if (!totalDays || totalDays === 0) return 0;
+  return Math.round((remainingDays / totalDays) * 100);
+};
+
+/**
+ * Get PTO status (low, medium, high)
+ */
+export const getPTOStatus = (remainingDays, totalDays) => {
+  const percentage = calculateRemainingPercentage(remainingDays, totalDays);
   
-  requests.forEach(request => {
-    const date = new Date(request.startDate);
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    
-    if (!grouped[monthKey]) {
-      grouped[monthKey] = {
-        label: monthLabel,
-        requests: []
-      };
-    }
-    
-    grouped[monthKey].requests.push(request);
-  });
-  
-  return grouped;
+  if (percentage <= 25) return { status: 'low', color: '#f44336', label: 'Low' };
+  if (percentage <= 50) return { status: 'medium', color: '#FDB94E', label: 'Medium' };
+  return { status: 'high', color: '#4caf50', label: 'Good' };
 };
 
 // ============================================
-// STATISTICS HELPERS
+// APPROVAL WORKFLOW HELPERS
+// ============================================
+
+/**
+ * Get approver title based on role level
+ */
+export const getApproverTitle = (approverRoleLevel) => {
+  if (approverRoleLevel === 2) return 'Executive';
+  if (approverRoleLevel === 3) return 'Director';
+  return 'Auto-Approved';
+};
+
+/**
+ * Determine if user can approve request
+ */
+export const canApproveRequest = (userRole, request, userDepartmentId) => {
+  if (userRole === 'Admin') return true;
+  
+  if (userRole === 'Executive' && request.approverRoleLevel === 2) {
+    return true;
+  }
+  
+  if (userRole === 'Director' && request.approverRoleLevel === 3) {
+    return request.employee?.departmentId === userDepartmentId;
+  }
+  
+  return false;
+};
+
+/**
+ * Check if request can be cancelled
+ */
+export const canCancelRequest = (request, userId) => {
+  return request.status === 'Pending' && request.employeeId === userId;
+};
+
+// ============================================
+// FORMATTING FUNCTIONS
+// ============================================
+
+/**
+ * Format days display (handles half days)
+ */
+export const formatDaysDisplay = (totalDays) => {
+  if (totalDays === 0.5) return '0.5 day (Half Day)';
+  if (totalDays === 1) return '1 day';
+  return `${totalDays} days`;
+};
+
+/**
+ * Format timestamp for display
+ */
+export const formatTimestamp = (timestamp) => {
+  if (!timestamp) return '';
+  
+  const date = new Date(timestamp);
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+/**
+ * Get relative time (e.g., "2 days ago")
+ */
+export const getRelativeTime = (timestamp) => {
+  if (!timestamp) return '';
+  
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+  
+  return formatTimestamp(timestamp);
+};
+
+// ============================================
+// STATISTICS & ANALYTICS
 // ============================================
 
 /**
  * Calculate leave statistics
- * @param {Array} requests - Leave requests
- * @returns {Object} Statistics
  */
-export const calculateLeaveStats = (requests) => {
+export const calculateLeaveStatistics = (requests) => {
   const stats = {
     total: requests.length,
     pending: 0,
     approved: 0,
     rejected: 0,
     cancelled: 0,
-    totalDays: 0
+    totalDays: 0,
+    approvedDays: 0
   };
   
-  requests.forEach(request => {
-    switch (request.status) {
-      case 'Pending':
-        stats.pending++;
-        break;
-      case 'Approved':
-        stats.approved++;
-        stats.totalDays += request.totalDays;
-        break;
-      case 'Rejected':
-        stats.rejected++;
-        break;
-      case 'Cancelled':
-        stats.cancelled++;
-        break;
+  requests.forEach(req => {
+    if (req.status === 'Pending') stats.pending++;
+    if (req.status === 'Approved') {
+      stats.approved++;
+      stats.approvedDays += req.totalDays || 0;
     }
+    if (req.status === 'Rejected') stats.rejected++;
+    if (req.status === 'Cancelled') stats.cancelled++;
+    stats.totalDays += req.totalDays || 0;
   });
   
   return stats;
 };
 
 /**
- * Get upcoming leaves (approved, future dates)
- * @param {Array} requests - Leave requests
- * @returns {Array} Upcoming leaves
+ * Group requests by month
  */
-export const getUpcomingLeaves = (requests) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+export const groupRequestsByMonth = (requests) => {
+  const grouped = {};
   
-  return requests.filter(request => 
-    request.status === 'Approved' && 
-    new Date(request.startDate) >= today
-  ).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+  requests.forEach(req => {
+    const date = new Date(req.startDate);
+    const monthKey = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    
+    if (!grouped[monthKey]) {
+      grouped[monthKey] = [];
+    }
+    
+    grouped[monthKey].push(req);
+  });
+  
+  return grouped;
 };
 
 /**
- * Get leaves in date range
- * @param {Array} requests - Leave requests
- * @param {string|Date} startDate - Range start
- * @param {string|Date} endDate - Range end
- * @returns {Array} Leaves in range
+ * Group requests by status
  */
-export const getLeavesInRange = (requests, startDate, endDate) => {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+export const groupRequestsByStatus = (requests) => {
+  const grouped = {
+    Pending: [],
+    Approved: [],
+    Rejected: [],
+    Cancelled: []
+  };
   
-  return requests.filter(request => {
-    const reqStart = new Date(request.startDate);
-    const reqEnd = new Date(request.endDate);
-    
-    // Check if request overlaps with range
-    return reqStart <= end && reqEnd >= start;
+  requests.forEach(req => {
+    if (grouped[req.status]) {
+      grouped[req.status].push(req);
+    }
   });
+  
+  return grouped;
 };
 
 // ============================================
@@ -622,50 +590,55 @@ export default {
   // Constants
   LEAVE_STATUS,
   LEAVE_STATUS_OPTIONS,
-  STATUS_COLORS,
   LEAVE_TYPE_COLORS,
   
-  // Status Helpers
-  getStatusVariant,
+  // Status helpers
+  getStatusColor,
   getStatusIcon,
-  canCancelRequest,
-  isFinalStatus,
-  
-  // Leave Type Helpers
   getLeaveTypeColor,
-  deductsPTO,
   getLeaveTypeIcon,
+  deductsPTO,
   
-  // Date Formatting
-  formatDate,
+  // Initial data
+  getInitialLeaveRequestData,
+  getInitialFilterState,
+  
+  // Date helpers
+  getTodayString,
+  getDateAfterDays,
+  formatDisplayDate,
   formatDateRange,
-  formatRelativeTime,
+  calculateTotalDays,
   isPastDate,
   isToday,
-  isFutureDate,
-  
-  // Date Calculations
-  calculateTotalDays,
-  calculateBusinessDays,
-  getTodayString,
-  addDays,
+  getDayOfWeek,
   
   // Validation
   validateDates,
   validatePTOBalance,
   validateLeaveRequestForm,
   
-  // Data Transformation
-  prepareLeaveRequestForAPI,
-  getInitialLeaveRequestForm,
-  
-  // Filters & Sort
-  filterByStatus,
+  // Filter & search
+  filterLeaveRequests,
   sortLeaveRequests,
-  groupByMonth,
+  
+  // PTO calculations
+  calculatePTOUsagePercentage,
+  calculateRemainingPercentage,
+  getPTOStatus,
+  
+  // Approval helpers
+  getApproverTitle,
+  canApproveRequest,
+  canCancelRequest,
+  
+  // Formatting
+  formatDaysDisplay,
+  formatTimestamp,
+  getRelativeTime,
   
   // Statistics
-  calculateLeaveStats,
-  getUpcomingLeaves,
-  getLeavesInRange
+  calculateLeaveStatistics,
+  groupRequestsByMonth,
+  groupRequestsByStatus
 };

@@ -8,305 +8,247 @@ import {
   Typography,
   Box,
   Chip,
-  Divider,
   IconButton,
   Tooltip,
-  Avatar,
-  Grid
+  Divider
 } from '@mui/material';
 import {
-  CalendarToday as CalendarIcon,
-  AccessTime as TimeIcon,
-  Person as PersonIcon,
-  Description as ReasonIcon,
   Cancel as CancelIcon,
-  Edit as EditIcon,
-  Visibility as ViewIcon,
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon
+  Info as InfoIcon,
+  Person as PersonIcon,
+  EventAvailable as DateIcon,
+  Notes as ReasonIcon
 } from '@mui/icons-material';
 import {
-  formatDateRange,
-  formatRelativeTime,
-  getStatusVariant,
-  getStatusIcon,
+  getStatusColor,
   getLeaveTypeColor,
-  getLeaveTypeIcon
+  formatDateRange,
+  formatDaysDisplay,
+  getRelativeTime
 } from '../models/leaveModels';
 
 /**
  * LeaveRequestCard Component
  * 
  * Displays a single leave request with all details
- * Supports different views: employee view, manager view
+ * Shows status, dates, approver info, and actions
  * 
  * Props:
  * - request: Leave request object
- * - viewMode: 'employee' | 'manager' | 'admin'
  * - onCancel: Function to cancel request
- * - onEdit: Function to edit request
  * - onView: Function to view details
- * - onApprove: Function to approve (manager/admin only)
- * - onReject: Function to reject (manager/admin only)
- * - showEmployee: Show employee name (for manager view)
+ * - showEmployee: Boolean - show employee info (for approver view)
  */
 
-const LeaveRequestCard = ({
-  request,
-  viewMode = 'employee',
-  onCancel,
-  onEdit,
+const LeaveRequestCard = ({ 
+  request, 
+  onCancel, 
   onView,
-  onApprove,
-  onReject,
-  showEmployee = false
+  showEmployee = false 
 }) => {
-
-  const {
-    leaveRequestId,
-    employeeName,
-    leaveTypeName,
-    startDate,
-    endDate,
-    totalDays,
-    reason,
-    status,
-    requestedAt,
-    approverName,
-    approvedAt,
-    rejectionReason
-  } = request;
-
-  const statusColor = getStatusVariant(status);
-  const leaveTypeColor = getLeaveTypeColor(leaveTypeName);
-  const statusEmoji = getStatusIcon(status);
-  const leaveTypeEmoji = getLeaveTypeIcon(leaveTypeName);
-
-  // Can cancel if status is Pending
-  const canCancel = status === 'Pending' && onCancel;
   
-  // Can edit if status is Pending
-  const canEdit = status === 'Pending' && onEdit;
+  const statusColor = getStatusColor(request.status);
+  const leaveTypeColor = getLeaveTypeColor(request.leaveType);
+  
+  const handleCancel = (e) => {
+    e.stopPropagation();
+    if (onCancel) {
+      onCancel(request.leaveRequestId);
+    }
+  };
 
-  // Show approval buttons for manager/admin view on pending requests
-  const showApprovalButtons = viewMode !== 'employee' && status === 'Pending';
+  const handleView = () => {
+    if (onView) {
+      onView(request);
+    }
+  };
 
   return (
-    <Card sx={{ 
-      mb: 2,
-      border: status === 'Pending' ? '2px solid #ff9800' : '1px solid #e0e0e0',
-      '&:hover': {
-        boxShadow: 3,
-        transform: 'translateY(-2px)',
-        transition: 'all 0.3s ease'
-      }
-    }}>
+    <Card 
+      elevation={2}
+      sx={{
+        cursor: onView ? 'pointer' : 'default',
+        transition: 'all 0.3s ease',
+        '&:hover': onView ? {
+          transform: 'translateY(-4px)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
+        } : {},
+        borderLeft: `6px solid ${leaveTypeColor}`,
+        position: 'relative'
+      }}
+      onClick={handleView}
+    >
       <CardContent>
-        {/* Header Row */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-          {/* Leave Type Badge */}
-          <Avatar sx={{ 
-            bgcolor: leaveTypeColor,
-            width: 48,
-            height: 48,
-            mr: 2,
-            fontSize: '1.5rem'
-          }}>
-            {leaveTypeEmoji}
-          </Avatar>
-
-          {/* Title and Status */}
-          <Box sx={{ flex: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                {leaveTypeName}
-              </Typography>
-              <Chip 
-                label={`${statusEmoji} ${status}`}
-                color={statusColor}
-                size="small"
-                sx={{ fontWeight: 600 }}
-              />
-            </Box>
-            
-            {/* Employee Name (Manager View) */}
-            {showEmployee && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary">
-                  {employeeName}
-                </Typography>
-              </Box>
-            )}
-
-            {/* Request Date */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-              <Typography variant="caption" color="text.secondary">
-                Requested {formatRelativeTime(requestedAt)}
-              </Typography>
-            </Box>
+        {/* Header - Leave Type and Status */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Chip
+              label={request.leaveType}
+              size="small"
+              sx={{
+                backgroundColor: leaveTypeColor,
+                color: 'white',
+                fontWeight: 600
+              }}
+            />
+            <Chip
+              label={request.status}
+              size="small"
+              sx={{
+                backgroundColor: statusColor,
+                color: 'white',
+                fontWeight: 600
+              }}
+            />
           </Box>
-
-          {/* Action Buttons */}
+          
           <Box sx={{ display: 'flex', gap: 0.5 }}>
+            {request.canCancel && onCancel && (
+              <Tooltip title="Cancel Request">
+                <IconButton 
+                  size="small" 
+                  onClick={handleCancel}
+                  sx={{ 
+                    color: '#f44336',
+                    '&:hover': { backgroundColor: 'rgba(244, 67, 54, 0.1)' }
+                  }}
+                >
+                  <CancelIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
             {onView && (
               <Tooltip title="View Details">
-                <IconButton size="small" onClick={() => onView(request)}>
-                  <ViewIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
-            
-            {canEdit && (
-              <Tooltip title="Edit Request">
-                <IconButton size="small" onClick={() => onEdit(request)} color="primary">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
-            
-            {canCancel && (
-              <Tooltip title="Cancel Request">
-                <IconButton size="small" onClick={() => onCancel(request)} color="error">
-                  <CancelIcon fontSize="small" />
+                <IconButton size="small" sx={{ color: '#667eea' }}>
+                  <InfoIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             )}
           </Box>
         </Box>
 
-        <Divider sx={{ my: 2 }} />
-
-        {/* Date Range and Duration */}
-        <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={12} sm={8}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CalendarIcon sx={{ color: 'primary.main', fontSize: 20 }} />
+        {/* Employee Info (for approver view) */}
+        {showEmployee && request.employee && (
+          <>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <PersonIcon sx={{ color: '#667eea', mr: 1, fontSize: 20 }} />
               <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                  Leave Period
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {request.employee.fullName}
                 </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                  {formatDateRange(startDate, endDate)}
+                <Typography variant="caption" color="text.secondary">
+                  {request.employee.jobTitle} • {request.employee.department}
                 </Typography>
               </Box>
             </Box>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Box sx={{ 
-              textAlign: { xs: 'left', sm: 'right' },
-              bgcolor: 'primary.light',
-              p: 1,
-              borderRadius: 1
-            }}>
-              <Typography variant="body2" color="primary.dark" sx={{ fontSize: '0.75rem' }}>
-                Duration
-              </Typography>
-              <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700 }}>
-                {totalDays} {totalDays === 1 ? 'Day' : 'Days'}
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-
-        {/* Reason */}
-        {reason && (
-          <Box sx={{ 
-            bgcolor: 'grey.50',
-            p: 1.5,
-            borderRadius: 1,
-            mb: 2
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <ReasonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                Reason
-              </Typography>
-            </Box>
-            <Typography variant="body2">
-              {reason}
-            </Typography>
-          </Box>
-        )}
-
-        {/* Approval Status Details */}
-        {(status === 'Approved' || status === 'Rejected') && (
-          <Box sx={{ 
-            bgcolor: status === 'Approved' ? 'success.light' : 'error.light',
-            p: 1.5,
-            borderRadius: 1,
-            mb: 2
-          }}>
-            <Typography variant="caption" sx={{ 
-              color: status === 'Approved' ? 'success.dark' : 'error.dark',
-              fontWeight: 600 
-            }}>
-              {status === 'Approved' ? '✓ Approved' : '✗ Rejected'} by {approverName}
-            </Typography>
-            {approvedAt && (
-              <Typography variant="caption" sx={{ 
-                color: status === 'Approved' ? 'success.dark' : 'error.dark',
-                display: 'block',
-                mt: 0.5
-              }}>
-                on {formatRelativeTime(approvedAt)}
-              </Typography>
-            )}
-            {rejectionReason && (
-              <Typography variant="body2" sx={{ mt: 1, color: 'error.dark' }}>
-                <strong>Reason:</strong> {rejectionReason}
-              </Typography>
-            )}
-          </Box>
-        )}
-
-        {/* Approval Action Buttons (Manager/Admin View) */}
-        {showApprovalButtons && (
-          <>
-            <Divider sx={{ my: 2 }} />
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Tooltip title="Approve Request">
-                <IconButton 
-                  onClick={() => onApprove(request)}
-                  sx={{ 
-                    flex: 1,
-                    bgcolor: 'success.light',
-                    color: 'success.dark',
-                    '&:hover': { bgcolor: 'success.main', color: 'white' },
-                    borderRadius: 2,
-                    py: 1
-                  }}
-                >
-                  <ApproveIcon sx={{ mr: 1 }} />
-                  <Typography variant="button">Approve</Typography>
-                </IconButton>
-              </Tooltip>
-              
-              <Tooltip title="Reject Request">
-                <IconButton 
-                  onClick={() => onReject(request)}
-                  sx={{ 
-                    flex: 1,
-                    bgcolor: 'error.light',
-                    color: 'error.dark',
-                    '&:hover': { bgcolor: 'error.main', color: 'white' },
-                    borderRadius: 2,
-                    py: 1
-                  }}
-                >
-                  <RejectIcon sx={{ mr: 1 }} />
-                  <Typography variant="button">Reject</Typography>
-                </IconButton>
-              </Tooltip>
-            </Box>
+            <Divider sx={{ mb: 2 }} />
           </>
         )}
 
-        {/* Request ID (Small footer) */}
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'right' }}>
-          Request #LR-{String(leaveRequestId).padStart(5, '0')}
-        </Typography>
+        {/* Dates */}
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <DateIcon sx={{ color: '#6AB4A8', mr: 1, fontSize: 20 }} />
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Dates
+            </Typography>
+            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+              {formatDateRange(request.startDate, request.endDate)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {formatDaysDisplay(request.totalDays)}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Reason */}
+        {request.reason && (
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+            <ReasonIcon sx={{ color: '#FDB94E', mr: 1, fontSize: 20, mt: 0.5 }} />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Reason
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontStyle: 'italic',
+                  color: 'text.primary'
+                }}
+              >
+                "{request.reason}"
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Footer Info */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="caption" color="text.secondary">
+            Requested {getRelativeTime(request.requestedAt)}
+          </Typography>
+          
+          {/* Approval Info */}
+          {request.status === 'Approved' && request.approvedBy && (
+            <Typography variant="caption" sx={{ color: '#4caf50', fontWeight: 600 }}>
+              ✓ Approved by {request.approvedBy}
+            </Typography>
+          )}
+          
+          {request.status === 'Rejected' && (
+            <Typography variant="caption" sx={{ color: '#f44336', fontWeight: 600 }}>
+              ✗ Rejected
+            </Typography>
+          )}
+          
+          {request.status === 'Pending' && (
+            <Typography variant="caption" sx={{ color: '#FDB94E', fontWeight: 600 }}>
+              ⏳ Awaiting Approval
+            </Typography>
+          )}
+        </Box>
+
+        {/* Rejection Reason */}
+        {request.status === 'Rejected' && request.rejectionReason && (
+          <Box 
+            sx={{ 
+              mt: 2, 
+              p: 1.5, 
+              backgroundColor: '#ffebee',
+              borderRadius: 1,
+              borderLeft: '4px solid #f44336'
+            }}
+          >
+            <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+              Rejection Reason:
+            </Typography>
+            <Typography variant="caption" color="error">
+              {request.rejectionReason}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Approval Notes */}
+        {request.status === 'Approved' && request.approvalNotes && (
+          <Box 
+            sx={{ 
+              mt: 2, 
+              p: 1.5, 
+              backgroundColor: '#e8f5e9',
+              borderRadius: 1,
+              borderLeft: '4px solid #4caf50'
+            }}
+          >
+            <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+              Approval Notes:
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#2e7d32' }}>
+              {request.approvalNotes}
+            </Typography>
+          </Box>
+        )}
       </CardContent>
     </Card>
   );

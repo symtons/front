@@ -1,18 +1,24 @@
 // src/pages/leave/MyRequests.jsx
+// My Leave Requests Page - View All Requests
+
 import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
+  Button,
   Alert,
   Snackbar,
   Grid,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   EventAvailable as LeaveIcon,
   AddCircle as AddIcon,
-  Person as PersonIcon,
-  Badge as BadgeIcon
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,9 +27,9 @@ import Layout from '../../components/common/layout/Layout';
 import PageHeader from '../../components/common/layout/PageHeader';
 import SearchBar from '../../components/common/filters/SearchBar';
 import FilterBar from '../../components/common/filters/FilterBar';
-import { EmptyState } from '../../components/common';
+import { EmptyState, Loading } from '../../components/common';
 
-// Leave-Specific Components
+// Leave Components
 import { LeaveRequestCard, PTOBalanceCard } from './components';
 
 // Services
@@ -31,430 +37,390 @@ import leaveService from '../../services/leaveService';
 
 // Models
 import {
-  LEAVE_STATUS,
-  LEAVE_STATUS_OPTIONS
+  LEAVE_STATUS_OPTIONS,
+  filterLeaveRequests,
+  sortLeaveRequests,
+  calculateLeaveStatistics,
+  getInitialFilterState
 } from './models/leaveModels';
 
 const MyRequests = () => {
   const navigate = useNavigate();
+  
+  // State
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
+  const [leaveTypes, setLeaveTypes] = useState([]);
+  const [ptoBalance, setPtoBalance] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingBalance, setLoadingBalance] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   
   // Filter states
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [leaveTypeFilter, setLeaveTypeFilter] = useState('');
+  const [filters, setFilters] = useState(getInitialFilterState());
   
-  // Leave types list
-  const [leaveTypes, setLeaveTypes] = useState([]);
+  // Cancel dialog
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [requestToCancel, setRequestToCancel] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
   
-  // Current user info
-  const [currentUser, setCurrentUser] = useState(null);
-  
-  // PTO Balance
-  const [ptoBalance, setPtoBalance] = useState(null);
-  const [loadingBalance, setLoadingBalance] = useState(true);
-  
-  // Success message
+  // Success/error messages
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Fetch current user
+  // Current user
+  const [currentUser, setCurrentUser] = useState(null);
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'));
     const employee = JSON.parse(localStorage.getItem('employee'));
     setCurrentUser({ ...user, ...employee });
+    
+    fetchData();
   }, []);
 
-  // Fetch PTO Balance
-  useEffect(() => {
-    fetchPTOBalance();
-  }, []);
-
-  // Fetch leave types
-  useEffect(() => {
-    fetchLeaveTypes();
-  }, []);
-
-  // Fetch leave requests
-  useEffect(() => {
-    fetchLeaveRequests();
-  }, []);
-
-  // Apply filters whenever filter states change
   useEffect(() => {
     applyFilters();
-  }, [searchTerm, statusFilter, leaveTypeFilter, leaveRequests]);
+  }, [filters, leaveRequests]);
 
-  const fetchPTOBalance = async () => {
+  const fetchData = async () => {
     try {
-      setLoadingBalance(true);
-      const response = await leaveService.getMyBalance();
-      setPtoBalance(response);
+      setLoading(true);
+      
+      // Fetch requests, types, and balance in parallel
+      const [requestsResponse, typesResponse, balanceResponse] = await Promise.all([
+        leaveService.getMyRequests(),
+        leaveService.getLeaveTypes(),
+        leaveService.getMyBalance()
+      ]);
+      
+      setLeaveRequests(requestsResponse);
+      setFilteredRequests(requestsResponse);
+      setLeaveTypes(typesResponse);
+      setPtoBalance(balanceResponse);
+      setLoadingBalance(false);
+      setLoading(false);
     } catch (err) {
-      console.error('Error fetching PTO balance:', err);
-    } finally {
+      setError(err.message || 'Failed to load leave requests');
+      setLoading(false);
       setLoadingBalance(false);
     }
   };
 
-  const fetchLeaveTypes = async () => {
+  const handleRefresh = async () => {
     try {
-      const response = await leaveService.getLeaveTypes();
-      setLeaveTypes(response);
+      setRefreshing(true);
+      await fetchData();
+      setSuccessMessage('Leave requests refreshed successfully');
+      setShowSuccess(true);
     } catch (err) {
-      console.error('Error fetching leave types:', err);
-    }
-  };
-
-  const fetchLeaveRequests = async () => {
-    setLoading(true);
-    setError('');
-    
-    try {
-      const response = await leaveService.getMyRequests();
-      let data = Array.isArray(response) ? response : [];
-      
-      // Sort by requested date (newest first)
-      data.sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
-      
-      setLeaveRequests(data);
-    } catch (err) {
-      console.error('Error fetching leave requests:', err);
-      setError(err.message || 'Failed to load leave requests');
+      setError(err.message || 'Failed to refresh data');
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
   };
 
   const applyFilters = () => {
-    let filtered = [...leaveRequests];
-    
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(req => {
-        const leaveTypeName = (req.leaveType || '').toLowerCase();
-        const reason = (req.reason || '').toLowerCase();
-        const search = searchTerm.toLowerCase();
-        return leaveTypeName.includes(search) || reason.includes(search);
-      });
-    }
-    
-    // Filter by status
-    if (statusFilter) {
-      filtered = filtered.filter(req => req.status === statusFilter);
-    }
-    
-    // Filter by leave type
-    if (leaveTypeFilter) {
-      filtered = filtered.filter(req => req.leaveType === leaveTypeFilter);
-    }
-    
+    let filtered = filterLeaveRequests(leaveRequests, filters);
+    filtered = sortLeaveRequests(filtered, 'requestedAt', 'desc');
     setFilteredRequests(filtered);
   };
 
   const handleSearchChange = (value) => {
-    setSearchTerm(value);
+    setFilters({ ...filters, searchTerm: value });
   };
 
-  const handleClearFilters = () => {
-    setSearchTerm('');
-    setStatusFilter('');
-    setLeaveTypeFilter('');
+  const handleFilterChange = (filterName, value) => {
+    setFilters({ ...filters, [filterName]: value });
   };
 
-  const handleViewRequest = (leaveRequestId) => {
-    console.log('View request:', leaveRequestId);
-    // TODO: Navigate to view details page or open modal
+  const handleCancelClick = (leaveRequestId) => {
+    setRequestToCancel(leaveRequestId);
+    setCancelDialogOpen(true);
   };
 
-  const handleCancelRequest = async (leaveRequestId) => {
-    if (!window.confirm('Are you sure you want to cancel this leave request?')) {
-      return;
-    }
-
+  const handleCancelConfirm = async () => {
     try {
-      await leaveService.cancelRequest(leaveRequestId);
+      setCancelling(true);
+      await leaveService.cancelRequest(requestToCancel);
+      
       setSuccessMessage('Leave request cancelled successfully');
       setShowSuccess(true);
-      fetchLeaveRequests();
+      setCancelDialogOpen(false);
+      setRequestToCancel(null);
+      
+      // Refresh data
+      await fetchData();
+      
     } catch (err) {
-      console.error('Error cancelling request:', err);
       setError(err.message || 'Failed to cancel leave request');
+    } finally {
+      setCancelling(false);
     }
   };
 
-  const handleRequestLeave = () => {
-    navigate('/leave/request');
+  const handleCancelDialogClose = () => {
+    if (!cancelling) {
+      setCancelDialogOpen(false);
+      setRequestToCancel(null);
+    }
   };
 
-  // Header chips
-  const headerChips = currentUser ? [
-    { icon: <PersonIcon />, label: currentUser.email },
-    { icon: <BadgeIcon />, label: currentUser.role?.roleName || currentUser.role || 'User' }
-  ] : [];
+  // Calculate statistics
+  const stats = calculateLeaveStatistics(leaveRequests);
 
-  // Filter options
-  const filterOptions = [
-    {
-      id: 'status',
-      label: 'Status',
-      value: statusFilter,
-      onChange: (e) => setStatusFilter(e.target.value),
-      options: [
-        { value: '', label: 'All Statuses' },
-        ...LEAVE_STATUS_OPTIONS.filter(opt => opt.value !== '')
-      ]
-    },
-    {
-      id: 'leaveType',
-      label: 'Leave Type',
-      value: leaveTypeFilter,
-      onChange: (e) => setLeaveTypeFilter(e.target.value),
-      options: [
-        { value: '', label: 'All Types' },
-        ...leaveTypes.map(type => ({
-          value: type.typeName,
-          label: type.typeName
-        }))
-      ]
-    }
+  // Leave type options for filter
+  const leaveTypeOptions = [
+    { value: '', label: 'All Leave Types' },
+    ...leaveTypes.map(type => ({ value: type.typeName, label: type.typeName }))
   ];
 
-  // Calculate stats
-  const stats = {
-    total: leaveRequests.length,
-    pending: leaveRequests.filter(r => r.status === LEAVE_STATUS.PENDING).length,
-    approved: leaveRequests.filter(r => r.status === LEAVE_STATUS.APPROVED).length,
-    rejected: leaveRequests.filter(r => r.status === LEAVE_STATUS.REJECTED).length
-  };
+  if (loading) {
+    return <Loading message="Loading your leave requests..." />;
+  }
 
   return (
     <Layout>
-      <Box sx={{ p: 3 }}>
-        {/* Page Header */}
-        <PageHeader
-          icon={LeaveIcon}
-          title="My Leave Requests"
-          subtitle="View and manage your leave requests"
-          chips={headerChips}
-          actionButton={{
-            label: 'Request Leave',
-            icon: <AddIcon />,
-            onClick: handleRequestLeave
-          }}
-          backgroundColor="linear-gradient(135deg, #6AB4A8 0%, #559089 100%)"
-        />
+      <PageHeader
+        icon={<LeaveIcon />}
+        title="My Leave Requests"
+        subtitle="View and manage your leave requests"
+        chips={[
+          { label: `${stats.total} Total`, color: '#667eea' },
+          { label: `${stats.pending} Pending`, color: '#FDB94E' },
+          { label: `${stats.approved} Approved`, color: '#4caf50' }
+        ]}
+        actions={
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={refreshing ? <CircularProgress size={20} /> : <RefreshIcon />}
+              onClick={handleRefresh}
+              disabled={refreshing}
+              sx={{ borderColor: '#667eea', color: '#667eea' }}
+            >
+              Refresh
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/leave/request')}
+              sx={{
+                backgroundColor: '#667eea',
+                '&:hover': { backgroundColor: '#5568d3' }
+              }}
+            >
+              New Request
+            </Button>
+          </Box>
+        }
+      />
 
-        {/* PTO Balance Card - Full Width on Top */}
-        <Box sx={{ mb: 3 }}>
-          <PTOBalanceCard
-            balance={ptoBalance}
-            loading={loadingBalance}
-            onRequestLeave={handleRequestLeave}
-          />
-        </Box>
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
 
-        {/* Statistics Cards Row */}
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          {/* Total Requests */}
-          <Grid item xs={6} sm={6} md={3}>
-            <Box sx={{
-              p: 2.5,
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: '#fff',
-              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.2)',
-              transition: 'transform 0.2s',
-              '&:hover': { transform: 'translateY(-4px)' },
-              textAlign: 'center'
-            }}>
-              <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, display: 'block', mb: 1 }}>
-                Total Requests
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 700 }}>
-                {stats.total}
+      <Grid container spacing={3}>
+        {/* Left Column - Requests */}
+        <Grid item xs={12} md={8}>
+          {/* Search and Filters */}
+          <Box sx={{ mb: 3 }}>
+            <SearchBar
+              value={filters.searchTerm}
+              onChange={handleSearchChange}
+              placeholder="Search by reason..."
+            />
+            
+            <FilterBar
+              filters={[
+                {
+                  type: 'select',
+                  label: 'Status',
+                  value: filters.statusFilter,
+                  onChange: (value) => handleFilterChange('statusFilter', value),
+                  options: LEAVE_STATUS_OPTIONS
+                },
+                {
+                  type: 'select',
+                  label: 'Leave Type',
+                  value: filters.leaveTypeFilter,
+                  onChange: (value) => handleFilterChange('leaveTypeFilter', value),
+                  options: leaveTypeOptions
+                }
+              ]}
+            />
+          </Box>
+
+          {/* Requests List */}
+          {filteredRequests.length === 0 ? (
+            <EmptyState
+              icon={<LeaveIcon sx={{ fontSize: 80 }} />}
+              title="No Leave Requests Found"
+              description={
+                filters.searchTerm || filters.statusFilter || filters.leaveTypeFilter
+                  ? "No requests match your current filters. Try adjusting your search criteria."
+                  : "You haven't submitted any leave requests yet. Click 'New Request' to get started."
+              }
+              action={
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => navigate('/leave/request')}
+                  sx={{
+                    backgroundColor: '#667eea',
+                    '&:hover': { backgroundColor: '#5568d3' }
+                  }}
+                >
+                  Submit First Request
+                </Button>
+              }
+            />
+          ) : (
+            <Grid container spacing={2}>
+              {filteredRequests.map((request) => (
+                <Grid item xs={12} key={request.leaveRequestId}>
+                  <LeaveRequestCard
+                    request={request}
+                    onCancel={handleCancelClick}
+                    showEmployee={false}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          )}
+
+          {/* Results Summary */}
+          {filteredRequests.length > 0 && (
+            <Box sx={{ mt: 3, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                Showing {filteredRequests.length} of {stats.total} requests
               </Typography>
             </Box>
-          </Grid>
-
-          {/* Pending */}
-          <Grid item xs={6} sm={6} md={3}>
-            <Box sx={{
-              p: 2.5,
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              color: '#fff',
-              boxShadow: '0 4px 12px rgba(240, 147, 251, 0.2)',
-              transition: 'transform 0.2s',
-              '&:hover': { transform: 'translateY(-4px)' },
-              textAlign: 'center'
-            }}>
-              <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, display: 'block', mb: 1 }}>
-                Pending
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 700 }}>
-                {stats.pending}
-              </Typography>
-            </Box>
-          </Grid>
-
-          {/* Approved */}
-          <Grid item xs={6} sm={6} md={3}>
-            <Box sx={{
-              p: 2.5,
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-              color: '#fff',
-              boxShadow: '0 4px 12px rgba(79, 172, 254, 0.2)',
-              transition: 'transform 0.2s',
-              '&:hover': { transform: 'translateY(-4px)' },
-              textAlign: 'center'
-            }}>
-              <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, display: 'block', mb: 1 }}>
-                Approved
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 700 }}>
-                {stats.approved}
-              </Typography>
-            </Box>
-          </Grid>
-
-          {/* Rejected */}
-          <Grid item xs={6} sm={6} md={3}>
-            <Box sx={{
-              p: 2.5,
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-              color: '#fff',
-              boxShadow: '0 4px 12px rgba(250, 112, 154, 0.2)',
-              transition: 'transform 0.2s',
-              '&:hover': { transform: 'translateY(-4px)' },
-              textAlign: 'center'
-            }}>
-              <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, display: 'block', mb: 1 }}>
-                Rejected
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 700 }}>
-                {stats.rejected}
-              </Typography>
-            </Box>
-          </Grid>
+          )}
         </Grid>
 
-        {/* Search and Filters */}
-        <Box sx={{ mb: 3 }}>
-          <SearchBar
-            value={searchTerm}
-            onChange={handleSearchChange}
-            placeholder="Search by leave type or reason..."
-          />
-          <FilterBar
-            filters={filterOptions}
-            onClearFilters={handleClearFilters}
-          />
-        </Box>
+        {/* Right Column - PTO Balance & Stats */}
+        <Grid item xs={12} md={4}>
+          <Box sx={{ position: 'sticky', top: 24 }}>
+            {/* PTO Balance Card */}
+            <PTOBalanceCard 
+              balance={ptoBalance} 
+              loading={loadingBalance}
+            />
 
-        {/* Error Alert */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
-
-        {/* Section Header */}
-        <Box sx={{ 
-          mb: 2, 
-          pb: 1, 
-          borderBottom: '2px solid #e0e0e0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: '#2c3e50' }}>
-              Leave Requests
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {loading ? 'Loading...' : `${filteredRequests.length} ${filteredRequests.length === 1 ? 'request' : 'requests'} found`}
-            </Typography>
+            {/* Quick Stats */}
+            {stats.total > 0 && (
+              <Box sx={{ mt: 3, p: 3, backgroundColor: '#f5f5f5', borderRadius: 2 }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                  Quick Stats
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#FDB94E' }}>
+                        {stats.pending}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Pending
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  
+                  <Grid item xs={6}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#4caf50' }}>
+                        {stats.approved}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Approved
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  
+                  <Grid item xs={6}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#f44336' }}>
+                        {stats.rejected}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Rejected
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  
+                  <Grid item xs={6}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#667eea' }}>
+                        {stats.approvedDays}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Days Approved
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
           </Box>
-        </Box>
+        </Grid>
+      </Grid>
 
-        {/* Loading State */}
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
-          </Box>
-        )}
-
-        {/* Leave Request Cards (using Leave component) */}
-        {!loading && filteredRequests.length > 0 && (
-          <Grid container spacing={2}>
-            {filteredRequests.map((request) => (
-              <Grid item xs={12} key={request.leaveRequestId}>
-                <LeaveRequestCard
-                  request={{
-                    leaveRequestId: request.leaveRequestId,
-                    leaveTypeName: request.leaveType,
-                    startDate: request.startDate,
-                    endDate: request.endDate,
-                    totalDays: request.totalDays,
-                    reason: request.reason,
-                    status: request.status,
-                    requestedAt: request.requestedAt,
-                    approverName: request.approvedBy,
-                    approvedAt: request.approvedAt,
-                    rejectionReason: request.rejectionReason
-                  }}
-                  viewMode="employee"
-                  onCancel={request.canCancel ? () => handleCancelRequest(request.leaveRequestId) : null}
-                  onView={() => handleViewRequest(request.leaveRequestId)}
-                />
-              </Grid>
-            ))}
-          </Grid>
-        )}
-
-        {/* Empty State (using universal component) */}
-        {!loading && filteredRequests.length === 0 && (
-          <EmptyState
-            icon={LeaveIcon}
-            title="No Leave Requests Found"
-            description={
-              searchTerm || statusFilter || leaveTypeFilter
-                ? "Try adjusting your filters to see more results"
-                : "You haven't submitted any leave requests yet"
-            }
-            actionButton={
-              !searchTerm && !statusFilter && !leaveTypeFilter
-                ? {
-                    label: 'Request Leave',
-                    onClick: handleRequestLeave
-                  }
-                : undefined
-            }
-          />
-        )}
-
-        {/* Success Snackbar */}
-        <Snackbar
-          open={showSuccess}
-          autoHideDuration={6000}
-          onClose={() => setShowSuccess(false)}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        >
-          <Alert 
-            onClose={() => setShowSuccess(false)} 
-            severity="success" 
-            sx={{ width: '100%' }}
+      {/* Cancel Confirmation Dialog */}
+      <Dialog
+        open={cancelDialogOpen}
+        onClose={handleCancelDialogClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Cancel Leave Request</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to cancel this leave request? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={handleCancelDialogClose} 
+            disabled={cancelling}
+            sx={{ color: '#667eea' }}
           >
-            {successMessage}
-          </Alert>
-        </Snackbar>
-      </Box>
+            No, Keep It
+          </Button>
+          <Button
+            onClick={handleCancelConfirm}
+            disabled={cancelling}
+            startIcon={cancelling ? <CircularProgress size={20} /> : null}
+            sx={{ 
+              backgroundColor: '#f44336',
+              color: 'white',
+              '&:hover': { backgroundColor: '#d32f2f' }
+            }}
+          >
+            {cancelling ? 'Cancelling...' : 'Yes, Cancel Request'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={showSuccess}
+        autoHideDuration={4000}
+        onClose={() => setShowSuccess(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setShowSuccess(false)} 
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Layout>
   );
 };

@@ -1,416 +1,519 @@
 // src/pages/leave/ApproveRequests.jsx
-// Page for managers to approve/reject leave requests - CONNECTED TO API
+// Approve Leave Requests Page - Directors/Executives/Admin
 
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
-  Paper,
-  Typography,
   Box,
-  Grid,
-  Tabs,
-  Tab,
-  TextField,
-  MenuItem,
-  CircularProgress,
+  Typography,
+  Button,
   Alert,
-  Chip,
-  Button
+  Snackbar,
+  Grid,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Chip
 } from '@mui/material';
 import {
-  FilterList as FilterIcon,
-  Search as SearchIcon,
+  AssignmentTurnedIn as ApproveIcon,
   Refresh as RefreshIcon,
-  Person as PersonIcon
+  CheckCircle as AcceptIcon,
+  Cancel as RejectIcon
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+
+// Universal Components
 import Layout from '../../components/common/layout/Layout';
-import { LeaveRequestCard, ApprovalActionButtons } from './components';
-import { EmptyState } from '../../components/common';
-import {
-  filterByStatus,
-  sortLeaveRequests,
-  calculateLeaveStats,
-  LEAVE_STATUS_OPTIONS
-} from './models/leaveModels';
+import PageHeader from '../../components/common/layout/PageHeader';
+import SearchBar from '../../components/common/filters/SearchBar';
+import FilterBar from '../../components/common/filters/FilterBar';
+import { EmptyState, Loading } from '../../components/common';
+
+// Leave Components
+import { LeaveRequestCard } from './components';
+
+// Services
 import leaveService from '../../services/leaveService';
-import { authService } from '../../services/authService';
+
+// Models
+import {
+  filterLeaveRequests,
+  sortLeaveRequests,
+  getInitialFilterState
+} from './models/leaveModels';
 
 const ApproveRequests = () => {
-  const navigate = useNavigate();
-
-  // Get current user
-  const [currentUser, setCurrentUser] = useState(null);
-  const [employee, setEmployee] = useState(null);
-
-  // Leave Requests
-  const [requests, setRequests] = useState([]);
+  
+  // State
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
+  const [leaveTypes, setLeaveTypes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  
+  // Filter states
+  const [filters, setFilters] = useState(getInitialFilterState());
+  
+  // Approval/Rejection dialogs
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [approvalNotes, setApprovalNotes] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [processing, setProcessing] = useState(false);
+  
+  // Success/error messages
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  // Filters
-  const [activeTab, setActiveTab] = useState('pending');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [employeeFilter, setEmployeeFilter] = useState('');
-  const [sortBy, setSortBy] = useState('requestedAt');
-  const [sortOrder, setSortOrder] = useState('desc');
+  // Current user
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // Stats
-  const [stats, setStats] = useState({
-    total: 0,
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-    cancelled: 0,
-    totalDays: 0
-  });
-
-  // Employees list for filter
-  const [employees, setEmployees] = useState([]);
-
-  // Submission State
-  const [submitting, setSubmitting] = useState(false);
-
-  // Load current user on mount
   useEffect(() => {
-    const user = authService.getCurrentUser();
-    const empData = JSON.parse(localStorage.getItem('employee'));
+    const user = JSON.parse(localStorage.getItem('user'));
+    const employee = JSON.parse(localStorage.getItem('employee'));
+    setCurrentUser({ ...user, ...employee });
     
-    if (user && empData) {
-      setCurrentUser(user);
-      setEmployee(empData);
-    } else {
-      navigate('/login');
-    }
-  }, [navigate]);
+    fetchData();
+  }, []);
 
-  // Load Leave Requests - REAL API CALL
   useEffect(() => {
-    if (employee) {
-      fetchLeaveRequests();
-    }
-  }, [employee]);
+    applyFilters();
+  }, [filters, pendingRequests]);
 
-  const fetchLeaveRequests = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      setError(null);
-
-      // ✅ REAL API CALL - Get pending approvals for this manager
-      const response = await leaveService.getPendingRequests();
       
-      setRequests(response.requests || response);
-      setFilteredRequests(response.requests || response);
-      setStats(calculateLeaveStats(response.requests || response));
+      // Fetch pending approvals and leave types
+      const [requestsResponse, typesResponse] = await Promise.all([
+        leaveService.getPendingApprovals(),
+        leaveService.getLeaveTypes()
+      ]);
+      
+      setPendingRequests(requestsResponse.requests || []);
+      setFilteredRequests(requestsResponse.requests || []);
+      setLeaveTypes(typesResponse);
       setLoading(false);
-
-    } catch (error) {
-      console.error('Error fetching leave requests:', error);
-      setError('Failed to load leave requests. Please try again.');
+    } catch (err) {
+      setError(err.message || 'Failed to load pending approvals');
       setLoading(false);
     }
   };
 
-  // Apply Filters
-  useEffect(() => {
-    let filtered = [...requests];
-
-    // Tab filter
-    if (activeTab !== 'all') {
-      const tabStatus = activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
-      filtered = filterByStatus(filtered, tabStatus);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await fetchData();
+      setSuccessMessage('Pending requests refreshed successfully');
+      setShowSuccess(true);
+    } catch (err) {
+      setError(err.message || 'Failed to refresh data');
+    } finally {
+      setRefreshing(false);
     }
+  };
 
-    // Status dropdown filter
-    if (statusFilter) {
-      filtered = filterByStatus(filtered, statusFilter);
-    }
-
-    // Employee filter
-    if (employeeFilter) {
-      filtered = filtered.filter(req => req.employeeId === parseInt(employeeFilter));
-    }
-
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(req => 
-        req.employeeName?.toLowerCase().includes(query) ||
-        req.employee?.firstName?.toLowerCase().includes(query) ||
-        req.employee?.lastName?.toLowerCase().includes(query) ||
-        req.leaveType?.toLowerCase().includes(query) ||
-        req.reason?.toLowerCase().includes(query) ||
-        req.department?.departmentName?.toLowerCase().includes(query)
-      );
-    }
-
-    // Sort
-    filtered = sortLeaveRequests(filtered, sortBy, sortOrder);
-
+  const applyFilters = () => {
+    let filtered = filterLeaveRequests(pendingRequests, filters);
+    filtered = sortLeaveRequests(filtered, 'requestedAt', 'asc'); // Oldest first
     setFilteredRequests(filtered);
-  }, [requests, activeTab, statusFilter, employeeFilter, searchQuery, sortBy, sortOrder]);
-
-  // Handle Tab Change
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
   };
 
-  // Handle Approve - REAL API CALL
-  const handleApprove = async (request) => {
-    if (!window.confirm(`Approve leave request for ${request.employeeName || request.employee?.firstName}?`)) {
+  const handleSearchChange = (value) => {
+    setFilters({ ...filters, searchTerm: value });
+  };
+
+  const handleFilterChange = (filterName, value) => {
+    setFilters({ ...filters, [filterName]: value });
+  };
+
+  const handleApproveClick = (request) => {
+    setSelectedRequest(request);
+    setApprovalNotes('');
+    setApproveDialogOpen(true);
+  };
+
+  const handleRejectClick = (request) => {
+    setSelectedRequest(request);
+    setRejectionReason('');
+    setRejectDialogOpen(true);
+  };
+
+  const handleApproveConfirm = async () => {
+    try {
+      setProcessing(true);
+      await leaveService.approveRequest(selectedRequest.leaveRequestId, approvalNotes);
+      
+      setSuccessMessage(`Leave request approved for ${selectedRequest.employee.fullName}`);
+      setShowSuccess(true);
+      setApproveDialogOpen(false);
+      setSelectedRequest(null);
+      setApprovalNotes('');
+      
+      // Refresh data
+      await fetchData();
+      
+    } catch (err) {
+      setError(err.message || 'Failed to approve leave request');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRejectConfirm = async () => {
+    if (!rejectionReason.trim()) {
+      setError('Rejection reason is required');
       return;
     }
 
     try {
-      setSubmitting(true);
-
-      // ✅ REAL API CALL
-      await leaveService.approveRequest(request.leaveRequestId);
-
-      // Refresh the list
-      await fetchLeaveRequests();
-
-      setSubmitting(false);
-      alert('Leave request approved successfully!');
-
-    } catch (error) {
-      console.error('Error approving request:', error);
-      alert(error.message || 'Failed to approve request. Please try again.');
-      setSubmitting(false);
+      setProcessing(true);
+      await leaveService.rejectRequest(selectedRequest.leaveRequestId, rejectionReason);
+      
+      setSuccessMessage(`Leave request rejected for ${selectedRequest.employee.fullName}`);
+      setShowSuccess(true);
+      setRejectDialogOpen(false);
+      setSelectedRequest(null);
+      setRejectionReason('');
+      
+      // Refresh data
+      await fetchData();
+      
+    } catch (err) {
+      setError(err.message || 'Failed to reject leave request');
+    } finally {
+      setProcessing(false);
     }
   };
 
-  // Handle Reject - REAL API CALL
-  const handleReject = async (request, rejectionReason) => {
-    try {
-      setSubmitting(true);
+  // Leave type options for filter
+  const leaveTypeOptions = [
+    { value: '', label: 'All Leave Types' },
+    ...leaveTypes.map(type => ({ value: type.typeName, label: type.typeName }))
+  ];
 
-      // ✅ REAL API CALL
-      await leaveService.rejectRequest(request.leaveRequestId, rejectionReason);
+  // Department filter (if user has access to multiple departments)
+  const departments = [...new Set(pendingRequests.map(r => r.employee?.department).filter(Boolean))];
+  const departmentOptions = [
+    { value: '', label: 'All Departments' },
+    ...departments.map(dept => ({ value: dept, label: dept }))
+  ];
 
-      // Refresh the list
-      await fetchLeaveRequests();
-
-      setSubmitting(false);
-      alert('Leave request rejected.');
-
-    } catch (error) {
-      console.error('Error rejecting request:', error);
-      alert(error.message || 'Failed to reject request. Please try again.');
-      setSubmitting(false);
-    }
-  };
-
-  // Handle View Details
-  const handleViewDetails = (request) => {
-    console.log('View details:', request);
-    // TODO: Open detailed view modal
-  };
-
-  if (!employee) {
-    return (
-      <Layout>
-        <Container maxWidth="xl" sx={{ py: 4 }}>
-          <CircularProgress />
-        </Container>
-      </Layout>
-    );
+  if (loading) {
+    return <Loading message="Loading pending approvals..." />;
   }
 
   return (
     <Layout>
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-            Leave Request Approvals
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Review and approve leave requests from your team
-          </Typography>
-        </Box>
+      <PageHeader
+        icon={<ApproveIcon />}
+        title="Approve Leave Requests"
+        subtitle="Review and approve pending leave requests"
+        chips={[
+          { 
+            label: `${pendingRequests.length} Pending`, 
+            color: '#FDB94E',
+            icon: '⏳'
+          },
+          { 
+            label: currentUser?.roleName || 'Approver', 
+            color: '#667eea' 
+          }
+        ]}
+        actions={
+          <Button
+            variant="outlined"
+            startIcon={refreshing ? <CircularProgress size={20} /> : <RefreshIcon />}
+            onClick={handleRefresh}
+            disabled={refreshing}
+            sx={{ borderColor: '#667eea', color: '#667eea' }}
+          >
+            Refresh
+          </Button>
+        }
+      />
 
-        <Grid container spacing={3}>
-          {/* Left Column - Stats & Filters */}
-          <Grid item xs={12} md={3}>
-            {/* Quick Stats */}
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                Overview
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.light', borderRadius: 1 }}>
-                    <Typography variant="h3" sx={{ fontWeight: 700, color: 'warning.dark' }}>
-                      {stats.pending}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Pending Approval
-                    </Typography>
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Search and Filters */}
+      <Box sx={{ mb: 3 }}>
+        <SearchBar
+          value={filters.searchTerm}
+          onChange={handleSearchChange}
+          placeholder="Search by employee name or reason..."
+        />
+        
+        <FilterBar
+          filters={[
+            {
+              type: 'select',
+              label: 'Leave Type',
+              value: filters.leaveTypeFilter,
+              onChange: (value) => handleFilterChange('leaveTypeFilter', value),
+              options: leaveTypeOptions
+            },
+            ...(departments.length > 1 ? [{
+              type: 'select',
+              label: 'Department',
+              value: filters.departmentFilter || '',
+              onChange: (value) => handleFilterChange('departmentFilter', value),
+              options: departmentOptions
+            }] : [])
+          ]}
+        />
+      </Box>
+
+      {/* Requests List */}
+      {filteredRequests.length === 0 ? (
+        <EmptyState
+          icon={<ApproveIcon sx={{ fontSize: 80 }} />}
+          title="No Pending Approvals"
+          description={
+            filters.searchTerm || filters.leaveTypeFilter
+              ? "No requests match your current filters. Try adjusting your search criteria."
+              : "There are no leave requests pending your approval at this time."
+          }
+        />
+      ) : (
+        <>
+          <Grid container spacing={2}>
+            {filteredRequests.map((request) => (
+              <Grid item xs={12} md={6} lg={4} key={request.leaveRequestId}>
+                <Box sx={{ position: 'relative' }}>
+                  <LeaveRequestCard
+                    request={request}
+                    showEmployee={true}
+                  />
+                  
+                  {/* Action Buttons Overlay */}
+                  <Box 
+                    sx={{ 
+                      position: 'absolute',
+                      bottom: 16,
+                      left: 16,
+                      right: 16,
+                      display: 'flex',
+                      gap: 1
+                    }}
+                  >
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      size="small"
+                      startIcon={<AcceptIcon />}
+                      onClick={() => handleApproveClick(request)}
+                      sx={{
+                        backgroundColor: '#4caf50',
+                        '&:hover': { backgroundColor: '#45a049' }
+                      }}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      size="small"
+                      startIcon={<RejectIcon />}
+                      onClick={() => handleRejectClick(request)}
+                      sx={{
+                        borderColor: '#f44336',
+                        color: '#f44336',
+                        '&:hover': { 
+                          borderColor: '#d32f2f',
+                          backgroundColor: 'rgba(244, 67, 54, 0.05)'
+                        }
+                      }}
+                    >
+                      Reject
+                    </Button>
                   </Box>
-                </Grid>
-                <Grid item xs={6}>
-                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.dark' }}>
-                      {stats.approved}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Approved
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6}>
-                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'error.light', borderRadius: 1 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: 'error.dark' }}>
-                      {stats.rejected}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Rejected
-                    </Typography>
-                  </Box>
-                </Grid>
+                </Box>
               </Grid>
-            </Paper>
-
-            {/* Employee Filter */}
-            {employees.length > 0 && (
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                  Filter by Employee
-                </Typography>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  value={employeeFilter}
-                  onChange={(e) => setEmployeeFilter(e.target.value)}
-                  InputProps={{
-                    startAdornment: <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                  }}
-                >
-                  <MenuItem value="">All Employees</MenuItem>
-                  {employees.map(emp => (
-                    <MenuItem key={emp.employeeId} value={emp.employeeId}>
-                      {emp.employeeName} ({emp.department})
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Paper>
-            )}
+            ))}
           </Grid>
 
-          {/* Right Column - Requests List */}
-          <Grid item xs={12} md={9}>
-            <Paper sx={{ p: 3 }}>
-              {/* Tabs */}
-              <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
-                <Tab 
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      Pending
-                      {stats.pending > 0 && (
-                        <Chip label={stats.pending} size="small" color="warning" />
-                      )}
-                    </Box>
-                  } 
-                  value="pending" 
-                />
-                <Tab label="All" value="all" />
-                <Tab label="Approved" value="approved" />
-                <Tab label="Rejected" value="rejected" />
-              </Tabs>
+          {/* Results Summary */}
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Showing {filteredRequests.length} of {pendingRequests.length} pending requests
+            </Typography>
+          </Box>
+        </>
+      )}
 
-              {/* Filters */}
-              <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-                <TextField
-                  placeholder="Search by employee, type, reason..."
-                  size="small"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  InputProps={{
-                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                  }}
-                  sx={{ flex: 1, minWidth: 250 }}
-                />
-
-                <TextField
-                  select
-                  size="small"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  sx={{ minWidth: 150 }}
-                  InputProps={{
-                    startAdornment: <FilterIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                  }}
-                >
-                  {LEAVE_STATUS_OPTIONS.map(option => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-
-                <Button
-                  variant="outlined"
-                  startIcon={<RefreshIcon />}
-                  onClick={fetchLeaveRequests}
-                  disabled={loading}
-                >
-                  Refresh
-                </Button>
+      {/* Approve Dialog */}
+      <Dialog
+        open={approveDialogOpen}
+        onClose={() => !processing && setApproveDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Approve Leave Request</DialogTitle>
+        <DialogContent>
+          {selectedRequest && (
+            <>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                Approve leave request for <strong>{selectedRequest.employee?.fullName}</strong>
+              </Typography>
+              
+              <Box sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 1, mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Request Details
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Leave Type:</strong> {selectedRequest.leaveType}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Dates:</strong> {new Date(selectedRequest.startDate).toLocaleDateString()} - {new Date(selectedRequest.endDate).toLocaleDateString()}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Total Days:</strong> {selectedRequest.totalDays}
+                </Typography>
+                {selectedRequest.reason && (
+                  <Typography variant="body2">
+                    <strong>Reason:</strong> {selectedRequest.reason}
+                  </Typography>
+                )}
               </Box>
 
-              {/* Loading State */}
-              {loading && (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <CircularProgress />
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                    Loading requests...
-                  </Typography>
-                </Box>
-              )}
+              <TextField
+                fullWidth
+                label="Approval Notes (Optional)"
+                multiline
+                rows={3}
+                value={approvalNotes}
+                onChange={(e) => setApprovalNotes(e.target.value)}
+                placeholder="Add any notes or comments for the employee..."
+                inputProps={{ maxLength: 500 }}
+                helperText={`${approvalNotes.length}/500 characters`}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setApproveDialogOpen(false)} 
+            disabled={processing}
+            sx={{ color: '#667eea' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleApproveConfirm}
+            disabled={processing}
+            startIcon={processing ? <CircularProgress size={20} /> : <AcceptIcon />}
+            sx={{ 
+              backgroundColor: '#4caf50',
+              color: 'white',
+              '&:hover': { backgroundColor: '#45a049' }
+            }}
+          >
+            {processing ? 'Approving...' : 'Approve Request'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-              {/* Error State */}
-              {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
-                </Alert>
-              )}
+      {/* Reject Dialog */}
+      <Dialog
+        open={rejectDialogOpen}
+        onClose={() => !processing && setRejectDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Reject Leave Request</DialogTitle>
+        <DialogContent>
+          {selectedRequest && (
+            <>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                Reject leave request for <strong>{selectedRequest.employee?.fullName}</strong>
+              </Typography>
+              
+              <Box sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 1, mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Request Details
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Leave Type:</strong> {selectedRequest.leaveType}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Dates:</strong> {new Date(selectedRequest.startDate).toLocaleDateString()} - {new Date(selectedRequest.endDate).toLocaleDateString()}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Total Days:</strong> {selectedRequest.totalDays}
+                </Typography>
+              </Box>
 
-              {/* Empty State */}
-              {!loading && !error && filteredRequests.length === 0 && (
-                <EmptyState
-                  title="No leave requests found"
-                  message={
-                    activeTab === 'pending'
-                      ? "There are no pending leave requests to review"
-                      : `No ${activeTab === 'all' ? '' : activeTab} leave requests found`
-                  }
-                />
-              )}
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                Please provide a clear reason for rejecting this request. The employee will see this message.
+              </Alert>
 
-              {/* Requests List */}
-              {!loading && !error && filteredRequests.length > 0 && (
-                <Box>
-                  {filteredRequests.map(request => (
-                    <LeaveRequestCard
-                      key={request.leaveRequestId}
-                      request={request}
-                      viewMode="manager"
-                      showEmployee={true}
-                      onApprove={handleApprove}
-                      onReject={handleReject}
-                      onView={handleViewDetails}
-                    />
-                  ))}
-                </Box>
-              )}
-            </Paper>
-          </Grid>
-        </Grid>
-      </Container>
+              <TextField
+                fullWidth
+                required
+                label="Rejection Reason"
+                multiline
+                rows={4}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Explain why this request is being rejected..."
+                error={!rejectionReason.trim() && error}
+                helperText={
+                  !rejectionReason.trim() && error 
+                    ? 'Rejection reason is required' 
+                    : `${rejectionReason.length}/500 characters`
+                }
+                inputProps={{ maxLength: 500 }}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setRejectDialogOpen(false)} 
+            disabled={processing}
+            sx={{ color: '#667eea' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleRejectConfirm}
+            disabled={processing || !rejectionReason.trim()}
+            startIcon={processing ? <CircularProgress size={20} /> : <RejectIcon />}
+            sx={{ 
+              backgroundColor: '#f44336',
+              color: 'white',
+              '&:hover': { backgroundColor: '#d32f2f' }
+            }}
+          >
+            {processing ? 'Rejecting...' : 'Reject Request'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={showSuccess}
+        autoHideDuration={4000}
+        onClose={() => setShowSuccess(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setShowSuccess(false)} 
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Layout>
   );
 };
