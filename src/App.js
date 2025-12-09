@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+
 import {
   ProtectedRoute,
   publicRoutes,
@@ -17,6 +18,7 @@ import {
   performanceRoutes,
   redirectRoutes,
   profileRoutes,
+  hrActionRoutes,
 } from './routes';
 
 const theme = createTheme({
@@ -60,7 +62,10 @@ function App() {
               element={<ProtectedRoute>{route.element}</ProtectedRoute>}
             />
           ))}
-
+          {hrActionRoutes.map((route, index) => (
+            <Route key={`hraction-${index}`} path={route.path} 
+              element={<ProtectedRoute>{route.element}</ProtectedRoute>} />
+          ))}
           {/* Protected Profile Routes */}
           {profileRoutes.map((route, index) => (
             <Route

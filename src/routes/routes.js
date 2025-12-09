@@ -4,6 +4,8 @@ import { Navigate } from 'react-router-dom';
 import JobApplicationForm from '../pages/recruitment/JobApplicationForm';
 import { ApplicationReviewDashboard } from '../pages/recruitment';
 
+import { HRActionRequestForm, HRActionsReviewDashboard } from '../pages/hr-actions'
+
 // Import components
 import Login from '../pages/auth/Login';
 import Dashboard from '../pages/dashboard/Dashboard';
@@ -165,7 +167,7 @@ export const leaveRoutes = [
     element: <MyRequests />,
   },
   {
-    path: '/leave/approvals',
+    path: '/leave/approve',
     element: <ApproveRequests />,
   },
   {
@@ -173,7 +175,10 @@ export const leaveRoutes = [
     element: <LeaveCalendar />,
   },
 ];
-
+export const hrActionRoutes = [
+  { path: '/hr-actions/request', element: <HRActionRequestForm /> },
+  { path: '/hr-actions/review', element: <HRActionsReviewDashboard /> }
+];
 // Recruitment Routes
 export const recruitmentRoutes = [
   {
