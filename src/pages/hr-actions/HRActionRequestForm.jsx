@@ -1,5 +1,6 @@
 // src/pages/hr-actions/HRActionRequestForm.jsx
 // HR Action Request Form - Employee Submits Request
+// FIXED: Ensures newRateType is always set for promotions
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -15,7 +16,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  CircularProgress
 } from '@mui/material';
 import {
   Assignment as HRIcon,
@@ -30,9 +32,18 @@ import Layout from '../../components/common/layout/Layout';
 import PageHeader from '../../components/common/layout/PageHeader';
 import { Loading } from '../../components/common';
 
-// HR Actions Components
-import ActionTypeSelector from './components/ActionTypeSelector';
-import RateChangeForm from './components/RateChangeForm';
+// HR Actions Components - ALL 8 FORMS
+import {
+  ActionTypeSelector,
+  RateChangeForm,
+  TransferForm,
+  PromotionForm,
+  StatusChangeForm,
+  PersonalInfoForm,
+  InsuranceForm,
+  PayrollDeductionForm,
+  LeaveOfAbsenceForm
+} from './components';
 
 // Services
 import hrActionService from '../../services/hrActionService';
@@ -73,17 +84,50 @@ const HRActionRequestForm = () => {
   const fetchCurrentEmployee = async () => {
     try {
       setLoading(true);
-      // Get current employee info from profile or context
-      // For now, we'll use a placeholder
+      
+      // Get employee data from localStorage
+      const employeeStr = localStorage.getItem('employee');
+      if (employeeStr) {
+        const employee = JSON.parse(employeeStr);
+        setCurrentEmployee({
+          firstName: employee.firstName || '',
+          lastName: employee.lastName || '',
+          middleName: employee.middleName || '',
+          email: employee.email || '',
+          phone: employee.phoneNumber || '',
+          address: employee.address || '',
+          city: employee.city || '',
+          state: employee.state || '',
+          zipCode: employee.zipCode || '',
+          salary: employee.salary || employee.hourlyRate || 0,
+          payFrequency: employee.payFrequency || 'Salary',
+          jobTitle: employee.jobTitle || '',
+          department: employee.departmentName || '',
+          employmentType: employee.employmentType || 'FT',
+          maritalStatus: employee.maritalStatus || '',
+          supervisor: employee.supervisorName || '',
+          location: employee.location || ''
+        });
+      } else {
+        setCurrentEmployee({
+          firstName: '',
+          lastName: '',
+          salary: 0,
+          payFrequency: 'Salary',
+          jobTitle: 'Employee',
+          department: 'General',
+          employmentType: 'FT'
+        });
+      }
+    } catch (err) {
+      console.error('Error loading employee:', err);
       setCurrentEmployee({
-        salary: 50000,
+        salary: 0,
         payFrequency: 'Salary',
-        jobTitle: 'Nurse',
-        department: 'Nursing',
+        jobTitle: 'Employee',
+        department: 'General',
         employmentType: 'FT'
       });
-    } catch (err) {
-      setError('Failed to load employee information');
     } finally {
       setLoading(false);
     }
@@ -93,11 +137,18 @@ const HRActionRequestForm = () => {
     setSelectedActionType(actionType);
     setFormData({
       actionTypeId: actionType.id,
-      // Pre-fill current values
       oldRate: currentEmployee?.salary,
       oldRateType: currentEmployee?.payFrequency,
       oldJobTitle: currentEmployee?.jobTitle,
-      oldEmploymentType: currentEmployee?.employmentType
+      oldEmploymentType: currentEmployee?.employmentType,
+      oldMaritalStatus: currentEmployee?.maritalStatus,
+      oldFirstName: currentEmployee?.firstName,
+      oldLastName: currentEmployee?.lastName,
+      oldAddress: currentEmployee?.address,
+      oldPhone: currentEmployee?.phone,
+      oldEmail: currentEmployee?.email,
+      // IMPORTANT: Set default newRateType for promotions
+      newRateType: currentEmployee?.payFrequency || 'Salary'
     });
     setActiveStep(1);
   };
@@ -123,6 +174,10 @@ const HRActionRequestForm = () => {
           validationErrors = validateTransfer(formData);
           break;
         case ACTION_TYPES.PROMOTION:
+          // CRITICAL FIX: Ensure newRateType is set
+          if (!formData.newRateType) {
+            formData.newRateType = currentEmployee?.payFrequency || 'Salary';
+          }
           validationErrors = validatePromotion(formData);
           break;
         case ACTION_TYPES.STATUS_CHANGE:
@@ -132,6 +187,12 @@ const HRActionRequestForm = () => {
           validationErrors = validatePersonalInfo(formData);
           break;
         default:
+          if (!formData.reason || formData.reason.length < 10) {
+            validationErrors.reason = 'Reason is required (minimum 10 characters)';
+          }
+          if (!formData.effectiveDate && !formData.insuranceEffectiveDate && !formData.deductionStartDate && !formData.leaveStartDate) {
+            validationErrors.effectiveDate = 'Effective date is required';
+          }
           break;
       }
       
@@ -158,11 +219,30 @@ const HRActionRequestForm = () => {
       setSubmitting(true);
       setError('');
       
-      const response = await hrActionService.submitRequest(formData);
+      // CRITICAL FIX: Ensure newRateType has a value for promotions
+      const dataToSubmit = { ...formData };
+      
+      if (selectedActionType?.id === ACTION_TYPES.PROMOTION) {
+        if (!dataToSubmit.newRateType) {
+          dataToSubmit.newRateType = currentEmployee?.payFrequency || 'Salary';
+        }
+      }
+      
+      // Also ensure newRateType for rate changes
+      if (selectedActionType?.id === ACTION_TYPES.RATE_CHANGE) {
+        if (!dataToSubmit.newRateType) {
+          dataToSubmit.newRateType = currentEmployee?.payFrequency || 'Salary';
+        }
+      }
+      
+      console.log('🚀 Final data to submit:', dataToSubmit);
+      
+      const response = await hrActionService.submitRequest(dataToSubmit);
       
       setSubmittedRequest(response);
       setSuccessDialogOpen(true);
     } catch (err) {
+      console.error('Submit error:', err);
       setError(err.message || 'Failed to submit request');
     } finally {
       setSubmitting(false);
@@ -171,7 +251,21 @@ const HRActionRequestForm = () => {
 
   const handleSuccessClose = () => {
     setSuccessDialogOpen(false);
-    navigate('/hr-actions/my-requests');
+    navigate('/leave/my-requests');
+  };
+
+  const getActionTypeName = (id) => {
+    const types = {
+      1: 'Rate Change',
+      2: 'Transfer',
+      3: 'Promotion',
+      4: 'Status Change',
+      5: 'Personal Info Change',
+      6: 'Insurance Change',
+      7: 'Payroll Deduction',
+      8: 'Leave of Absence'
+    };
+    return types[id] || 'HR Action';
   };
 
   const renderStepContent = () => {
@@ -185,7 +279,6 @@ const HRActionRequestForm = () => {
         );
       
       case 1:
-        // Render appropriate form based on action type
         switch (selectedActionType?.id) {
           case ACTION_TYPES.RATE_CHANGE:
             return (
@@ -197,11 +290,80 @@ const HRActionRequestForm = () => {
               />
             );
           
-          // Add other form types here
+          case ACTION_TYPES.TRANSFER:
+            return (
+              <TransferForm
+                formData={formData}
+                onChange={handleFormChange}
+                errors={errors}
+                currentEmployee={currentEmployee}
+              />
+            );
+          
+          case ACTION_TYPES.PROMOTION:
+            return (
+              <PromotionForm
+                formData={formData}
+                onChange={handleFormChange}
+                errors={errors}
+                currentEmployee={currentEmployee}
+              />
+            );
+          
+          case ACTION_TYPES.STATUS_CHANGE:
+            return (
+              <StatusChangeForm
+                formData={formData}
+                onChange={handleFormChange}
+                errors={errors}
+                currentEmployee={currentEmployee}
+              />
+            );
+          
+          case ACTION_TYPES.PERSONAL_INFO:
+            return (
+              <PersonalInfoForm
+                formData={formData}
+                onChange={handleFormChange}
+                errors={errors}
+                currentEmployee={currentEmployee}
+              />
+            );
+          
+          case ACTION_TYPES.INSURANCE:
+            return (
+              <InsuranceForm
+                formData={formData}
+                onChange={handleFormChange}
+                errors={errors}
+                currentEmployee={currentEmployee}
+              />
+            );
+          
+          case ACTION_TYPES.PAYROLL_DEDUCTION:
+            return (
+              <PayrollDeductionForm
+                formData={formData}
+                onChange={handleFormChange}
+                errors={errors}
+                currentEmployee={currentEmployee}
+              />
+            );
+          
+          case ACTION_TYPES.LEAVE_OF_ABSENCE:
+            return (
+              <LeaveOfAbsenceForm
+                formData={formData}
+                onChange={handleFormChange}
+                errors={errors}
+                currentEmployee={currentEmployee}
+              />
+            );
+          
           default:
             return (
-              <Alert severity="info">
-                Form for {selectedActionType?.name} is under development.
+              <Alert severity="error" sx={{ my: 3 }}>
+                Invalid action type selected. Please go back and select a valid action type.
               </Alert>
             );
         }
@@ -209,45 +371,53 @@ const HRActionRequestForm = () => {
       case 2:
         return (
           <Box>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
-              Review Your Request
-            </Typography>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              Please review your request details before submitting. Your request will be sent to HR for approval.
+            </Alert>
             
-            <Paper sx={{ p: 3, bgcolor: '#f5f5f5' }}>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                <strong>Action Type:</strong> {selectedActionType?.name}
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Request Summary
               </Typography>
               
-              {/* Display summary based on action type */}
-              {selectedActionType?.id === ACTION_TYPES.RATE_CHANGE && (
-                <>
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    <strong>Current Rate:</strong> ${formData.oldRate?.toLocaleString()}
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Action Type
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  {getActionTypeName(selectedActionType?.id)}
+                </Typography>
+              </Box>
+
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Effective Date
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  {formData.effectiveDate || formData.insuranceEffectiveDate || formData.deductionStartDate || formData.leaveStartDate || 'Not specified'}
+                </Typography>
+              </Box>
+
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Reason
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  {formData.reason || 'Not specified'}
+                </Typography>
+              </Box>
+
+              {formData.notes && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Additional Notes
                   </Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    <strong>New Rate:</strong> ${formData.newRate?.toLocaleString()}
+                  <Typography variant="body1" gutterBottom>
+                    {formData.notes}
                   </Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    <strong>Rate Type:</strong> {formData.newRateType}
-                  </Typography>
-                  {formData.premiumIncentive && (
-                    <Typography variant="body1" sx={{ mb: 1 }}>
-                      <strong>Premium/Incentive:</strong> {formData.premiumIncentive}
-                    </Typography>
-                  )}
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    <strong>Effective Date:</strong> {formData.effectiveDate}
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    <strong>Reason:</strong> {formData.reason}
-                  </Typography>
-                </>
+                </Box>
               )}
             </Paper>
-            
-            <Alert severity="info" sx={{ mt: 3 }}>
-              Please review your information carefully. Once submitted, this request will be sent to HR for approval.
-            </Alert>
           </Box>
         );
       
@@ -256,14 +426,20 @@ const HRActionRequestForm = () => {
     }
   };
 
-  if (loading) return <Loading message="Loading form..." />;
+  if (loading) {
+    return (
+      <Layout>
+        <Loading message="Loading employee information..." />
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <PageHeader
         icon={HRIcon}
         title="Request HR Action"
-        subtitle="Submit a new HR action request for approval"
+        subtitle="Submit a request for HR action"
       />
 
       {error && (
@@ -272,87 +448,79 @@ const HRActionRequestForm = () => {
         </Alert>
       )}
 
-      {/* Stepper */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Stepper activeStep={activeStep}>
+      <Paper sx={{ p: 3 }}>
+        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
           {steps.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
             </Step>
           ))}
         </Stepper>
-      </Paper>
 
-      {/* Step Content */}
-      <Paper sx={{ p: 4, mb: 3 }}>
         {renderStepContent()}
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+          <Button
+            onClick={handleBack}
+            disabled={activeStep === 0 || submitting}
+            startIcon={<BackIcon />}
+          >
+            Back
+          </Button>
+
+          <Box>
+            {activeStep < steps.length - 1 && (
+              <Button
+                variant="contained"
+                onClick={handleNext}
+                endIcon={<NextIcon />}
+                disabled={submitting}
+              >
+                Next
+              </Button>
+            )}
+
+            {activeStep === steps.length - 1 && (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSubmit}
+                disabled={submitting}
+                startIcon={submitting ? <CircularProgress size={20} /> : <SubmitIcon />}
+              >
+                {submitting ? 'Submitting...' : 'Submit Request'}
+              </Button>
+            )}
+          </Box>
+        </Box>
       </Paper>
 
-      {/* Navigation Buttons */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-        <Button
-          variant="outlined"
-          startIcon={<BackIcon />}
-          onClick={handleBack}
-          disabled={activeStep === 0 || submitting}
-        >
-          Back
-        </Button>
-        
-        <Box>
-          {activeStep === steps.length - 1 ? (
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={submitting ? null : <SubmitIcon />}
-              onClick={handleSubmit}
-              disabled={submitting}
-            >
-              {submitting ? 'Submitting...' : 'Submit Request'}
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              endIcon={<NextIcon />}
-              onClick={handleNext}
-            >
-              Next
-            </Button>
-          )}
-        </Box>
-      </Box>
-
-      {/* Success Dialog */}
-      <Dialog open={successDialogOpen} onClose={handleSuccessClose} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ bgcolor: '#4caf50', color: 'white' }}>
-          Request Submitted Successfully!
+      <Dialog
+        open={successDialogOpen}
+        onClose={handleSuccessClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <SubmitIcon color="success" />
+            Request Submitted Successfully
+          </Box>
         </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
-          {submittedRequest && (
-            <Box>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                Your HR action request has been submitted and is pending approval.
-              </Typography>
-              <Paper sx={{ p: 2, bgcolor: '#f5f5f5' }}>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                  Request Number: {submittedRequest.requestNumber}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  Action Type: {selectedActionType?.name}
-                </Typography>
-                <Typography variant="body2">
-                  Status: {submittedRequest.status}
-                </Typography>
-              </Paper>
-              <Alert severity="info" sx={{ mt: 2 }}>
-                You will be notified once your request has been reviewed by HR.
-              </Alert>
-            </Box>
-          )}
+        <DialogContent>
+          <Typography gutterBottom>
+            Your HR action request has been submitted successfully.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            <strong>Request Number:</strong> {submittedRequest?.requestNumber || 'N/A'}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            You will receive a notification once your request is reviewed.
+          </Typography>
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" onClick={handleSuccessClose}>
-            View My Requests
+          <Button onClick={handleSuccessClose} variant="contained">
+            OK
           </Button>
         </DialogActions>
       </Dialog>

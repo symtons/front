@@ -1,4 +1,4 @@
-// src/pages/hr-actions/components/RateChangeForm.jsx
+// src/pages/hr-actions/components/PromotionForm.jsx
 // PERFECT UI - Professional Layout
 
 import React from 'react';
@@ -13,11 +13,12 @@ import {
   Paper
 } from '@mui/material';
 import {
+  TrendingUp as PromotionIcon,
   AttachMoney as MoneyIcon,
-  TrendingUp as RateIcon
+  WorkOutline as JobIcon
 } from '@mui/icons-material';
 
-const RateChangeForm = ({ formData, onChange, errors, currentEmployee }) => {
+const PromotionForm = ({ formData, onChange, errors, currentEmployee }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     onChange({
@@ -28,16 +29,29 @@ const RateChangeForm = ({ formData, onChange, errors, currentEmployee }) => {
 
   return (
     <Box>
-      {/* CURRENT RATE SECTION */}
+      {/* CURRENT POSITION */}
       <Paper elevation={2} sx={{ p: 3, mb: 4, bgcolor: '#f8f9fa' }}>
         <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#667eea', mb: 3 }}>
-          <MoneyIcon /> Current Rate Information
+          <JobIcon /> Current Position
         </Typography>
         
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
             <TextField
-              label="Current Rate"
+              label="Current Job Title"
+              value={currentEmployee?.jobTitle || 'N/A'}
+              fullWidth
+              disabled
+              variant="filled"
+              InputProps={{
+                style: { fontSize: '1.2rem', height: '60px' }
+              }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Current Salary/Rate"
               value={currentEmployee?.salary ? `$${currentEmployee.salary.toLocaleString()}` : 'N/A'}
               fullWidth
               disabled
@@ -50,8 +64,21 @@ const RateChangeForm = ({ formData, onChange, errors, currentEmployee }) => {
 
           <Grid item xs={12} sm={6}>
             <TextField
-              label="Current Rate Type"
+              label="Current Pay Type"
               value={currentEmployee?.payFrequency || 'N/A'}
+              fullWidth
+              disabled
+              variant="filled"
+              InputProps={{
+                style: { fontSize: '1.2rem', height: '60px' }
+              }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Current Department"
+              value={currentEmployee?.department || 'N/A'}
               fullWidth
               disabled
               variant="filled"
@@ -63,17 +90,34 @@ const RateChangeForm = ({ formData, onChange, errors, currentEmployee }) => {
         </Grid>
       </Paper>
 
-      {/* NEW RATE SECTION */}
+      {/* NEW PROMOTION DETAILS */}
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#6AB4A8', mb: 3 }}>
-          <RateIcon /> New Rate Information
+          <PromotionIcon /> New Promotion Details
         </Typography>
         
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
             <TextField
+              name="newJobTitle"
+              label="New Job Title *"
+              value={formData.newJobTitle || ''}
+              onChange={handleChange}
+              fullWidth
+              required
+              error={!!errors.newJobTitle}
+              helperText={errors.newJobTitle || 'Enter the new job title'}
+              placeholder="e.g., Senior Nurse, Program Director"
+              InputProps={{
+                style: { fontSize: '1.2rem', height: '60px' }
+              }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField
               name="newRate"
-              label="New Rate *"
+              label="New Salary/Rate *"
               type="number"
               value={formData.newRate || ''}
               onChange={handleChange}
@@ -96,14 +140,12 @@ const RateChangeForm = ({ formData, onChange, errors, currentEmployee }) => {
           <Grid item xs={12} sm={6}>
             <TextField
               name="newRateType"
-              label="New Rate Type *"
+              label="New Pay Type *"
               select
               value={formData.newRateType || currentEmployee?.payFrequency || 'Salary'}
               onChange={handleChange}
               fullWidth
               required
-              error={!!errors.newRateType}
-              helperText={errors.newRateType || 'Select salary or hourly'}
               SelectProps={{
                 style: { fontSize: '1.2rem', height: '60px' }
               }}
@@ -119,16 +161,15 @@ const RateChangeForm = ({ formData, onChange, errors, currentEmployee }) => {
 
           <Grid item xs={12} sm={6}>
             <TextField
-              name="premiumOrIncentive"
-              label="Premium/Incentive (Optional)"
-              value={formData.premiumOrIncentive || ''}
+              name="newDepartment"
+              label="New Department (if changing)"
+              value={formData.newDepartment || ''}
               onChange={handleChange}
               fullWidth
-              helperText="Any additional compensation or bonuses"
+              placeholder="Leave blank if staying in same department"
               InputProps={{
                 style: { fontSize: '1.2rem', height: '60px' }
               }}
-              placeholder="e.g., Shift differential, bonus"
             />
           </Grid>
 
@@ -142,7 +183,7 @@ const RateChangeForm = ({ formData, onChange, errors, currentEmployee }) => {
               fullWidth
               required
               error={!!errors.effectiveDate}
-              helperText={errors.effectiveDate || 'When should this rate change take effect?'}
+              helperText={errors.effectiveDate || 'Promotion effective date'}
               InputLabelProps={{ shrink: true }}
               InputProps={{
                 style: { fontSize: '1.2rem', height: '60px' }
@@ -152,7 +193,7 @@ const RateChangeForm = ({ formData, onChange, errors, currentEmployee }) => {
         </Grid>
       </Paper>
 
-      {/* JUSTIFICATION SECTION */}
+      {/* JUSTIFICATION */}
       <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom sx={{ mb: 3, color: '#5B8FCC' }}>
           📝 Justification
@@ -162,7 +203,7 @@ const RateChangeForm = ({ formData, onChange, errors, currentEmployee }) => {
           <Grid item xs={12}>
             <TextField
               name="reason"
-              label="Reason for Rate Change *"
+              label="Reason for Promotion *"
               multiline
               rows={6}
               value={formData.reason || ''}
@@ -170,8 +211,24 @@ const RateChangeForm = ({ formData, onChange, errors, currentEmployee }) => {
               fullWidth
               required
               error={!!errors.reason}
-              helperText={errors.reason || 'Minimum 10 characters - explain the reason for this rate change'}
-              placeholder="Provide detailed explanation for the rate change (e.g., performance review, cost of living adjustment, promotion, market adjustment, annual increase)"
+              helperText={errors.reason || 'Minimum 10 characters - explain the justification for this promotion'}
+              placeholder="Explain the reason for this promotion (e.g., performance excellence, additional responsibilities, career advancement)"
+              InputProps={{
+                style: { fontSize: '1.1rem' }
+              }}
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField
+              name="newResponsibilities"
+              label="New Responsibilities"
+              multiline
+              rows={4}
+              value={formData.newResponsibilities || ''}
+              onChange={handleChange}
+              fullWidth
+              placeholder="Describe any new responsibilities or duties that come with this position"
               InputProps={{
                 style: { fontSize: '1.1rem' }
               }}
@@ -183,11 +240,11 @@ const RateChangeForm = ({ formData, onChange, errors, currentEmployee }) => {
               name="notes"
               label="Additional Notes (Optional)"
               multiline
-              rows={4}
+              rows={3}
               value={formData.notes || ''}
               onChange={handleChange}
               fullWidth
-              placeholder="Any additional information or comments about this rate change"
+              placeholder="Any additional information relevant to this promotion"
               InputProps={{
                 style: { fontSize: '1.1rem' }
               }}
@@ -197,10 +254,10 @@ const RateChangeForm = ({ formData, onChange, errors, currentEmployee }) => {
       </Paper>
 
       <Alert severity="info" sx={{ fontSize: '1rem' }}>
-        <strong>Note:</strong> Rate changes require approval from HR and may also require Finance department approval depending on the amount.
+        <strong>Note:</strong> Promotions require approval from both HR and Finance departments due to salary changes.
       </Alert>
     </Box>
   );
 };
 
-export default RateChangeForm;
+export default PromotionForm;

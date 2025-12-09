@@ -1,5 +1,5 @@
-// src/pages/hr-actions/HRActionsReviewDashboard.jsx
-// COMPLETE VERSION - HR/Admin view with Pending, Approved, Rejected tabs
+// src/pages/hr-actions/MyHRRequestsPage.jsx
+// COMPLETE VERSION - All 8 Action Types + Approved/Rejected Tabs
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -13,19 +13,11 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  Alert,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Grid
+  Alert
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Visibility as ViewIcon,
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
   AttachMoney as MoneyIcon,
   SwapHoriz as TransferIcon,
   TrendingUp as PromotionIcon,
@@ -35,8 +27,8 @@ import {
   AccountBalance as PayrollIcon,
   BeachAccess as LeaveIcon,
   CheckCircle as ApprovedIcon,
-  HourglassEmpty as PendingIcon,
-  History as HistoryIcon
+  Cancel as RejectedIcon,
+  HourglassEmpty as PendingIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -51,7 +43,7 @@ import hrActionService from '../../services/hrActionService';
 // Models
 import { formatDate, formatCurrency, getStatusColor } from './models/hrActionModels';
 
-const HRActionsReviewDashboard = () => {
+const MyHRRequestsPage = () => {
   const navigate = useNavigate();
   
   // State
@@ -60,22 +52,13 @@ const HRActionsReviewDashboard = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Dialog state
-  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState(null);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [approvalComments, setApprovalComments] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
 
   // Tab definitions
   const statusTabs = [
-    { label: 'Pending Review', value: 'Pending', icon: <PendingIcon /> },
+    { label: 'Pending', value: 'Pending', icon: <PendingIcon /> },
     { label: 'Approved', value: 'Approved', icon: <ApprovedIcon /> },
-    { label: 'Rejected', value: 'Rejected', icon: <RejectIcon /> }
+    { label: 'Rejected', value: 'Rejected', icon: <RejectedIcon /> }
   ];
 
   const actionTypeTabs = [
@@ -91,14 +74,13 @@ const HRActionsReviewDashboard = () => {
   ];
 
   useEffect(() => {
-    fetchAllRequests();
+    fetchMyRequests();
   }, []);
 
-  const fetchAllRequests = async () => {
+  const fetchMyRequests = async () => {
     try {
       setLoading(true);
-      // Fetch ALL requests (not just pending)
-      const data = await hrActionService.getAllRequests(); // We'll need this endpoint
+      const data = await hrActionService.getMyRequests();
       setRequests(data);
     } catch (err) {
       console.error('Error fetching requests:', err);
@@ -120,58 +102,7 @@ const HRActionsReviewDashboard = () => {
     navigate(`/hr-actions/request/${requestId}`);
   };
 
-  // Approve dialog
-  const handleApproveClick = (request, event) => {
-    event.stopPropagation();
-    setSelectedRequest(request);
-    setApprovalComments('');
-    setApproveDialogOpen(true);
-  };
-
-  const handleApproveConfirm = async () => {
-    if (!selectedRequest) return;
-    
-    try {
-      setActionLoading(true);
-      await hrActionService.approveRequest(selectedRequest.requestId, approvalComments);
-      setSuccess(`Request ${selectedRequest.requestNumber} approved successfully!`);
-      setApproveDialogOpen(false);
-      fetchAllRequests(); // Refresh
-    } catch (err) {
-      setError(err.message || 'Failed to approve request');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Reject dialog
-  const handleRejectClick = (request, event) => {
-    event.stopPropagation();
-    setSelectedRequest(request);
-    setRejectionReason('');
-    setRejectDialogOpen(true);
-  };
-
-  const handleRejectConfirm = async () => {
-    if (!selectedRequest || !rejectionReason.trim()) {
-      setError('Rejection reason is required');
-      return;
-    }
-    
-    try {
-      setActionLoading(true);
-      await hrActionService.rejectRequest(selectedRequest.requestId, rejectionReason);
-      setSuccess(`Request ${selectedRequest.requestNumber} rejected.`);
-      setRejectDialogOpen(false);
-      fetchAllRequests(); // Refresh
-    } catch (err) {
-      setError(err.message || 'Failed to reject request');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Filter requests
+  // Filter requests by status and action type
   const getFilteredRequests = () => {
     let filtered = requests;
 
@@ -190,8 +121,8 @@ const HRActionsReviewDashboard = () => {
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter(req =>
         req.requestNumber?.toLowerCase().includes(search) ||
-        req.employee?.name?.toLowerCase().includes(search) ||
-        req.actionType?.toLowerCase().includes(search)
+        req.actionType?.toLowerCase().includes(search) ||
+        req.reason?.toLowerCase().includes(search)
       );
     }
 
@@ -213,7 +144,7 @@ const HRActionsReviewDashboard = () => {
       return `Transfer to ${newLocation}`;
     }
     
-    return request.reason?.substring(0, 60) + '...' || 'No details';
+    return request.reason?.substring(0, 50) + '...' || 'No details';
   };
 
   const filteredRequests = getFilteredRequests();
@@ -221,7 +152,7 @@ const HRActionsReviewDashboard = () => {
   if (loading) {
     return (
       <Layout>
-        <Loading message="Loading HR requests..." />
+        <Loading message="Loading your requests..." />
       </Layout>
     );
   }
@@ -229,20 +160,14 @@ const HRActionsReviewDashboard = () => {
   return (
     <Layout>
       <PageHeader
-        icon={HistoryIcon}
-        title="HR Actions Review Dashboard"
-        subtitle="Review, approve, and track all HR action requests"
+        icon={PendingIcon}
+        title="My HR Action Requests"
+        subtitle="View and track your submitted HR action requests"
       />
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
           {error}
-        </Alert>
-      )}
-
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess('')}>
-          {success}
         </Alert>
       )}
 
@@ -278,7 +203,7 @@ const HRActionsReviewDashboard = () => {
           ))}
         </Tabs>
 
-        {/* ACTION TYPE TABS */}
+        {/* ACTION TYPE TABS (All/Rate Change/Transfer/etc) */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: '#f5f5f5' }}>
           <Tabs
             value={activeTypeTab}
@@ -307,7 +232,7 @@ const HRActionsReviewDashboard = () => {
         <Box sx={{ p: 2 }}>
           <TextField
             fullWidth
-            placeholder="Search by request number, employee name, or action type..."
+            placeholder="Search by request number or employee name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
@@ -338,7 +263,7 @@ const HRActionsReviewDashboard = () => {
                 justifyContent: 'center'
               }}
             >
-              <HistoryIcon sx={{ fontSize: 40, color: 'text.secondary' }} />
+              <PendingIcon sx={{ fontSize: 40, color: 'text.secondary' }} />
             </Box>
           </Box>
           <Typography variant="h6" gutterBottom>
@@ -347,7 +272,7 @@ const HRActionsReviewDashboard = () => {
           <Typography variant="body2" color="text.secondary">
             {activeTypeTab > 0 
               ? `No ${actionTypeTabs[activeTypeTab].label.toLowerCase()} requests with status "${statusTabs[activeTab].label}"`
-              : `There are no ${statusTabs[activeTab].label.toLowerCase()} at the moment.`
+              : `There are no ${statusTabs[activeTab].label.toLowerCase()} requests at the moment.`
             }
           </Typography>
         </Paper>
@@ -368,8 +293,8 @@ const HRActionsReviewDashboard = () => {
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box sx={{ flex: 1 }}>
-                  {/* Request Header */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, flexWrap: 'wrap' }}>
+                  {/* Request Number & Action Type */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                     <Typography variant="h6" component="span">
                       {request.requestNumber}
                     </Typography>
@@ -389,60 +314,34 @@ const HRActionsReviewDashboard = () => {
                     />
                   </Box>
 
-                  {/* Employee Info */}
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    <strong>Employee:</strong> {request.employee?.name || 'Unknown'} 
-                    {request.employee?.department && ` • ${request.employee.department}`}
-                  </Typography>
-
                   {/* Request Summary */}
-                  <Typography variant="body1" sx={{ mb: 1 }}>
+                  <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
                     {getRequestSummary(request)}
                   </Typography>
 
                   {/* Dates */}
-                  <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ display: 'flex', gap: 3, mt: 2 }}>
+                    <Box>
                       <Typography variant="caption" color="text.secondary">
                         Requested On
                       </Typography>
                       <Typography variant="body2">
                         {formatDate(request.requestDate)}
                       </Typography>
-                    </Grid>
+                    </Box>
                     {request.effectiveDate && (
-                      <Grid item xs={12} sm={6} md={3}>
+                      <Box>
                         <Typography variant="caption" color="text.secondary">
                           Effective Date
                         </Typography>
                         <Typography variant="body2">
                           {formatDate(request.effectiveDate)}
                         </Typography>
-                      </Grid>
+                      </Box>
                     )}
-                    {request.status === 'Approved' && request.approvedAt && (
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">
-                          Approved On
-                        </Typography>
-                        <Typography variant="body2" color="success.main">
-                          {formatDate(request.approvedAt)}
-                        </Typography>
-                      </Grid>
-                    )}
-                    {request.status === 'Rejected' && request.rejectedAt && (
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">
-                          Rejected On
-                        </Typography>
-                        <Typography variant="body2" color="error.main">
-                          {formatDate(request.rejectedAt)}
-                        </Typography>
-                      </Grid>
-                    )}
-                  </Grid>
+                  </Box>
 
-                  {/* Rejection Reason */}
+                  {/* Rejection Reason (if rejected) */}
                   {request.status === 'Rejected' && request.rejectionReason && (
                     <Alert severity="error" sx={{ mt: 2 }}>
                       <Typography variant="body2" fontWeight={600}>
@@ -455,126 +354,25 @@ const HRActionsReviewDashboard = () => {
                   )}
                 </Box>
 
-                {/* Action Buttons */}
-                <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
-                  {request.status === 'Pending' && (
-                    <>
-                      <Tooltip title="Approve Request">
-                        <IconButton
-                          color="success"
-                          onClick={(e) => handleApproveClick(request, e)}
-                        >
-                          <ApproveIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Reject Request">
-                        <IconButton
-                          color="error"
-                          onClick={(e) => handleRejectClick(request, e)}
-                        >
-                          <RejectIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </>
-                  )}
-                  <Tooltip title="View Details">
-                    <IconButton
-                      color="primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewDetails(request.requestId);
-                      }}
-                    >
-                      <ViewIcon />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
+                {/* View Button */}
+                <Tooltip title="View Details">
+                  <IconButton
+                    color="primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewDetails(request.requestId);
+                    }}
+                  >
+                    <ViewIcon />
+                  </IconButton>
+                </Tooltip>
               </Box>
             </Paper>
           ))}
         </Box>
       )}
-
-      {/* APPROVE DIALOG */}
-      <Dialog open={approveDialogOpen} onClose={() => setApproveDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Approve HR Action Request</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Are you sure you want to approve this request?
-          </Typography>
-          <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-            Request: {selectedRequest?.requestNumber}
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Employee: {selectedRequest?.employee?.name}
-          </Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
-            label="Comments (Optional)"
-            value={approvalComments}
-            onChange={(e) => setApprovalComments(e.target.value)}
-            placeholder="Add any comments about this approval..."
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setApproveDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleApproveConfirm}
-            variant="contained"
-            color="success"
-            disabled={actionLoading}
-          >
-            {actionLoading ? 'Approving...' : 'Approve'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* REJECT DIALOG */}
-      <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Reject HR Action Request</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Please provide a reason for rejecting this request:
-          </Typography>
-          <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-            Request: {selectedRequest?.requestNumber}
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Employee: {selectedRequest?.employee?.name}
-          </Typography>
-          <TextField
-            fullWidth
-            required
-            multiline
-            rows={4}
-            label="Rejection Reason"
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="Explain why this request is being rejected..."
-            error={!rejectionReason.trim()}
-            helperText={!rejectionReason.trim() ? 'Rejection reason is required' : ''}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRejectDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleRejectConfirm}
-            variant="contained"
-            color="error"
-            disabled={actionLoading || !rejectionReason.trim()}
-          >
-            {actionLoading ? 'Rejecting...' : 'Reject'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Layout>
   );
 };
 
-export default HRActionsReviewDashboard;
+export default MyHRRequestsPage;
