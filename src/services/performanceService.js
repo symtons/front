@@ -1,11 +1,53 @@
+// src/services/performanceService.js
 import api from './authService';
 
-export const performanceService = {
-  // =============================================
-  // PERFORMANCE REVIEWS
-  // =============================================
+/**
+ * Performance Management Service
+ * Handles all API calls for performance reviews, goals, and feedback
+ */
 
-  // Get employee's reviews
+const performanceService = {
+  
+  // =============================================
+  // REVIEW PERIODS
+  // =============================================
+  
+  createPeriod: async (periodData) => {
+    try {
+      const response = await api.post('/PerformanceReview/CreatePeriod', periodData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to create review period' };
+    }
+  },
+
+  // =============================================
+  // RATINGS (What I need to rate)
+  // =============================================
+  
+  getMyRatings: async (periodId = null) => {
+    try {
+      const params = periodId ? { periodId } : {};
+      const response = await api.get('/PerformanceReview/MyRatings', { params });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load ratings' };
+    }
+  },
+
+  submitRating: async (ratingData) => {
+    try {
+      const response = await api.post('/PerformanceReview/SubmitRating', ratingData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to submit rating' };
+    }
+  },
+
+  // =============================================
+  // MY REVIEWS (My performance reviews)
+  // =============================================
+  
   getMyReviews: async () => {
     try {
       const response = await api.get('/PerformanceReview/MyReviews');
@@ -15,73 +57,36 @@ export const performanceService = {
     }
   },
 
-  // Get review by ID
-  getReviewById: async (id) => {
+  getReviewDetails: async (employeeReviewId) => {
     try {
-      const response = await api.get(`/PerformanceReview/${id}`);
+      const response = await api.get(`/PerformanceReview/ReviewDetails/${employeeReviewId}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Failed to load review details' };
     }
   },
 
-  // Submit self-assessment
-  submitSelfAssessment: async (reviewData) => {
+  // =============================================
+  // RANKINGS
+  // =============================================
+  
+  getRankings: async (periodId, filter = 'all') => {
     try {
-      const response = await api.post('/PerformanceReview/SubmitSelfAssessment', reviewData);
+      const params = { filter };
+      const response = await api.get(`/PerformanceReview/Rankings/${periodId}`, { params });
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to submit self-assessment' };
-    }
-  },
-
-  // Submit manager assessment
-  submitManagerAssessment: async (reviewData) => {
-    try {
-      const response = await api.post('/PerformanceReview/SubmitManagerAssessment', reviewData);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to submit manager assessment' };
-    }
-  },
-
-  // Get team reviews (for managers)
-  getTeamReviews: async (params) => {
-    try {
-      const response = await api.get('/PerformanceReview/TeamReviews', { params });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load team reviews' };
-    }
-  },
-
-  // Get active review cycles
-  getActiveReviewCycles: async () => {
-    try {
-      const response = await api.get('/PerformanceReview/ActiveCycles');
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load review cycles' };
-    }
-  },
-
-  // Get performance summary
-  getPerformanceSummary: async () => {
-    try {
-      const response = await api.get('/PerformanceReview/Summary');
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load performance summary' };
+      throw error.response?.data || { message: 'Failed to load rankings' };
     }
   },
 
   // =============================================
   // GOALS
   // =============================================
-
-  // Get employee's goals
-  getMyGoals: async (params) => {
+  
+  getMyGoals: async (status = null) => {
     try {
+      const params = status ? { status } : {};
       const response = await api.get('/Goal/MyGoals', { params });
       return response.data;
     } catch (error) {
@@ -89,17 +94,6 @@ export const performanceService = {
     }
   },
 
-  // Get goal by ID
-  getGoalById: async (id) => {
-    try {
-      const response = await api.get(`/Goal/${id}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load goal details' };
-    }
-  },
-
-  // Create new goal
   createGoal: async (goalData) => {
     try {
       const response = await api.post('/Goal', goalData);
@@ -109,92 +103,47 @@ export const performanceService = {
     }
   },
 
-  // Update goal
-  updateGoal: async (id, goalData) => {
+  updateProgress: async (goalId, progress) => {
     try {
-      const response = await api.put(`/Goal/${id}`, goalData);
+      const response = await api.put(`/Goal/${goalId}/Progress`, { progress });
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to update goal' };
+      throw error.response?.data || { message: 'Failed to update progress' };
     }
   },
 
-  // Add goal update
-  addGoalUpdate: async (id, updateData) => {
+  deleteGoal: async (goalId) => {
     try {
-      const response = await api.post(`/Goal/${id}/Update`, updateData);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to add goal update' };
-    }
-  },
-
-  // Delete goal
-  deleteGoal: async (id) => {
-    try {
-      const response = await api.delete(`/Goal/${id}`);
+      const response = await api.delete(`/Goal/${goalId}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Failed to delete goal' };
     }
   },
 
-  // Get team goals (for managers)
-  getTeamGoals: async (params) => {
-    try {
-      const response = await api.get('/Goal/TeamGoals', { params });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load team goals' };
-    }
-  },
-
-  // Get goal statistics
-  getGoalStatistics: async () => {
-    try {
-      const response = await api.get('/Goal/Statistics');
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load goal statistics' };
-    }
-  },
-
   // =============================================
   // FEEDBACK
   // =============================================
-
-  // Get received feedback
-  getReceivedFeedback: async (params) => {
+  
+  getReceivedFeedback: async () => {
     try {
-      const response = await api.get('/Feedback/Received', { params });
+      const response = await api.get('/Feedback/Received');
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Failed to load received feedback' };
     }
   },
 
-  // Get given feedback
-  getGivenFeedback: async (params) => {
+  getGivenFeedback: async () => {
     try {
-      const response = await api.get('/Feedback/Given', { params });
+      const response = await api.get('/Feedback/Given');
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Failed to load given feedback' };
     }
   },
 
-  // Get feedback by ID
-  getFeedbackById: async (id) => {
-    try {
-      const response = await api.get(`/Feedback/${id}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load feedback details' };
-    }
-  },
-
-  // Create feedback
-  createFeedback: async (feedbackData) => {
+  giveFeedback: async (feedbackData) => {
     try {
       const response = await api.post('/Feedback', feedbackData);
       return response.data;
@@ -203,43 +152,12 @@ export const performanceService = {
     }
   },
 
-  // Mark feedback as read
-  markFeedbackAsRead: async (id) => {
+  markFeedbackAsRead: async (feedbackId) => {
     try {
-      const response = await api.put(`/Feedback/${id}/MarkAsRead`);
+      const response = await api.put(`/Feedback/${feedbackId}/MarkAsRead`);
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Failed to mark feedback as read' };
-    }
-  },
-
-  // Delete feedback
-  deleteFeedback: async (id) => {
-    try {
-      const response = await api.delete(`/Feedback/${id}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to delete feedback' };
-    }
-  },
-
-  // Get feedback statistics
-  getFeedbackStatistics: async () => {
-    try {
-      const response = await api.get('/Feedback/Statistics');
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load feedback statistics' };
-    }
-  },
-
-  // Get team feedback (for managers)
-  getTeamFeedback: async (params) => {
-    try {
-      const response = await api.get('/Feedback/TeamFeedback', { params });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to load team feedback' };
     }
   }
 };

@@ -37,6 +37,15 @@ import FeedbackPage from '../pages/performance/FeedbackPage';
 import MyTimesheets from '../pages/timesheets/MyTimesheets';
 import ApproveTimesheets from '../pages/timesheets/ApproveTimesheets';
 
+
+import {
+  PerformanceOverview,
+  MyRatings,
+  MyReviews,
+  Rankings,
+  GoalsPage,
+  FeedbackPage
+} from '../pages/performance';
 // Import Department components
 import DepartmentList from '../pages/departments/DepartmentList';
 import DepartmentDetail from '../pages/departments/DepartmentDetail';
@@ -225,24 +234,34 @@ export const attendanceRoutes = [
   },
 ];
 
-// Performance Management Routes
+// =============================================
+// PERFORMANCE MANAGEMENT ROUTES
+// =============================================
 export const performanceRoutes = [
   {
     path: '/performance',
-    element: <PerformanceOverview />,
+    element: <ProtectedRoute><PerformanceOverview /></ProtectedRoute>
   },
   {
-    path: '/performance/overview',
-    element: <PerformanceOverview />,
+    path: '/performance/my-ratings',
+    element: <ProtectedRoute><MyRatings /></ProtectedRoute>
+  },
+  {
+    path: '/performance/my-reviews',
+    element: <ProtectedRoute><MyReviews /></ProtectedRoute>
+  },
+  {
+    path: '/performance/rankings',
+    element: <ProtectedRoute><Rankings /></ProtectedRoute>
   },
   {
     path: '/performance/goals',
-    element: <GoalsPage />,
+    element: <ProtectedRoute><GoalsPage /></ProtectedRoute>
   },
   {
     path: '/performance/feedback',
-    element: <FeedbackPage />,
-  },
+    element: <ProtectedRoute><FeedbackPage /></ProtectedRoute>
+  }
 ];
 
 // Settings Routes (to be added later)
