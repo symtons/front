@@ -4,7 +4,8 @@ import { Navigate } from 'react-router-dom';
 import JobApplicationForm from '../pages/recruitment/JobApplicationForm';
 import { ApplicationReviewDashboard } from '../pages/recruitment';
 
-import { HRActionRequestForm, HRActionsReviewDashboard } from '../pages/hr-actions'
+import { HRActionRequestForm, HRActionsReviewDashboard } from '../pages/hr-actions';
+import MyHRRequestsPage from '../pages/hr-actions/MyHRRequestsPage';
 
 // Import components
 import Login from '../pages/auth/Login';
@@ -177,7 +178,8 @@ export const leaveRoutes = [
 ];
 export const hrActionRoutes = [
   { path: '/hr-actions/request', element: <HRActionRequestForm /> },
-  { path: '/hr-actions/review', element: <HRActionsReviewDashboard /> }
+  { path: '/hr-actions/review', element: <HRActionsReviewDashboard /> },
+  { path: '/hr-actions/my-requests', element: <MyHRRequestsPage /> }
 ];
 // Recruitment Routes
 export const recruitmentRoutes = [
