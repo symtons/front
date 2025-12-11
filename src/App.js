@@ -19,6 +19,7 @@ import {
   redirectRoutes,
   profileRoutes,
   hrActionRoutes,
+  reportRoutes,
 } from './routes';
 
 const theme = createTheme({
@@ -139,6 +140,29 @@ function App() {
           ))}
 
           {/* Redirect Routes (catch-all and home) */}
+          {redirectRoutes.map((route, index) => (
+            <Route key={`redirect-${index}`} path={route.path} element={route.element} />
+          ))}
+
+          {/* Protected Performance Routes */}
+          {performanceRoutes.map((route, index) => (
+            <Route
+              key={`performance-${index}`}
+              path={route.path}
+              element={<ProtectedRoute>{route.element}</ProtectedRoute>}
+            />
+          ))}
+
+          {/* Protected Report Routes */}
+          {reportRoutes.map((route, index) => (
+            <Route
+              key={`report-${index}`}
+              path={route.path}
+              element={route.element}
+            />
+          ))}
+
+          {/* Redirect Routes */}
           {redirectRoutes.map((route, index) => (
             <Route key={`redirect-${index}`} path={route.path} element={route.element} />
           ))}

@@ -37,6 +37,9 @@ import MyTimesheets from '../pages/timesheets/MyTimesheets';
 import ApproveTimesheets from '../pages/timesheets/ApproveTimesheets';
 
 
+import ReportsOverview from '../pages/reports/ReportsOverview';
+
+
 import {
   PerformanceOverview,
   MyRatings,
@@ -262,7 +265,13 @@ export const performanceRoutes = [
     element: <ProtectedRoute><FeedbackPage /></ProtectedRoute>
   }
 ];
-
+export const reportRoutes = [
+  {
+    path: '/reports',
+    element: <ProtectedRoute><ReportsOverview /></ProtectedRoute>
+  },
+  // Placeholder comments for future report pages
+];
 // Settings Routes (to be added later)
 export const settingsRoutes = [];
 
@@ -292,6 +301,8 @@ export const allRoutes = [
   ...settingsRoutes,
   ...profileRoutes,
   ...redirectRoutes,
+  ...hrActionRoutes,  
+  ...reportRoutes,
 ];
 
 // Export individual route groups for flexibility

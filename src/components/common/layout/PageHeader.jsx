@@ -6,13 +6,16 @@ import { Box, Typography, Button, Chip } from '@mui/material';
  * PageHeader Component
  * Reusable header that displays at the top of each page with contextual information
  * Updated with TPA brand colors
+ * 
+ * FIXED: Added support for 'actions' prop (plural) to allow multiple action buttons
  */
 const PageHeader = ({
   icon: IconComponent,
   title,
   subtitle,
   chips = [],
-  actionButton,
+  actionButton,  // Legacy support - single button object with {onClick, icon, label}
+  actions,       // NEW - accepts React element with multiple buttons
   backgroundColor = 'linear-gradient(135deg, #5B8FCC 0%, #4A73A6 100%)', // TPA Blue gradient
   error
 }) => {
@@ -72,8 +75,15 @@ const PageHeader = ({
             </Box>
           </Box>
 
-          {/* Action Button */}
-          {actionButton && (
+          {/* Action Area - NEW: Support both single actionButton and multiple actions */}
+          {actions && (
+            <Box>
+              {actions}
+            </Box>
+          )}
+          
+          {/* Legacy Action Button Support - kept for backward compatibility */}
+          {!actions && actionButton && (
             <Button
               variant="contained"
               onClick={actionButton.onClick}
@@ -97,25 +107,21 @@ const PageHeader = ({
           )}
         </Box>
 
-        {/* Info Chips */}
+        {/* Chips */}
         {chips && chips.length > 0 && (
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 2 }}>
             {chips.map((chip, index) => (
               <Chip
                 key={index}
                 icon={chip.icon}
                 label={chip.label}
                 sx={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
                   color: '#fff',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  backdropFilter: 'blur(10px)',
-                  fontWeight: 500,
-                  fontSize: '0.95rem',
-                  py: 2.5,
-                  px: 1,
+                  fontWeight: 600,
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
                   '& .MuiChip-icon': {
-                    color: '#FDB94E' // TPA yellow/gold for icons
+                    color: '#fff'
                   }
                 }}
               />
@@ -124,59 +130,19 @@ const PageHeader = ({
         )}
       </Box>
 
-      {/* Decorative Background Elements */}
+      {/* Decorative Background Pattern */}
       <Box
         sx={{
           position: 'absolute',
-          top: -50,
-          right: -50,
-          width: 200,
-          height: 200,
-          borderRadius: '50%',
-          backgroundColor: 'rgba(255, 255, 255, 0.08)',
-          zIndex: 0
+          top: 0,
+          right: 0,
+          width: '40%',
+          height: '100%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
+          backgroundSize: '20px 20px',
+          opacity: 0.5
         }}
       />
-      <Box
-        sx={{
-          position: 'absolute',
-          bottom: -30,
-          left: -30,
-          width: 150,
-          height: 150,
-          borderRadius: '50%',
-          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-          zIndex: 0
-        }}
-      />
-
-      {/* Error Message Below Header */}
-      {error && (
-        <Box
-          sx={{
-            mt: 2,
-            p: 2,
-            backgroundColor: 'rgba(244, 67, 54, 0.1)',
-            border: '1px solid rgba(244, 67, 54, 0.3)',
-            borderRadius: 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1
-          }}
-        >
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              backgroundColor: '#f44336'
-            }}
-          />
-          <Typography sx={{ color: '#fff', fontSize: '0.9rem' }}>
-            {error}
-          </Typography>
-        </Box>
-      )}
     </Box>
   );
 };
