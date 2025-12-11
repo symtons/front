@@ -20,7 +20,7 @@ import {
   TrendingUp as TrendingUpIcon,
   EmojiEvents as GoalIcon
 } from '@mui/icons-material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Layout from '../../components/common/layout/Layout';
 import PageHeader from '../../components/common/layout/PageHeader';
 import DataTable from '../../components/common/tables/DataTable';
@@ -46,8 +46,14 @@ const PerformanceReports = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   
-  const [selectedPeriod, setSelectedPeriod] = useState('');
-  const [periods] = useState(['2024-Q1', '2024-Q2', '2024-Q3', '2024-Q4']);
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
+  const [periods] = useState([
+    { value: 'all', label: 'All Periods' },
+    { value: 1, label: 'Period 1' },
+    { value: 2, label: 'Period 2' },
+    { value: 3, label: 'Period 3' },
+    { value: 4, label: 'Period 4' }
+  ]);
 
   useEffect(() => {
     loadData();
@@ -58,17 +64,18 @@ const PerformanceReports = () => {
       setLoading(true);
       setError(null);
 
-      const params = selectedPeriod ? { periodId: selectedPeriod } : {};
+      const periodParam = selectedPeriod === 'all' ? null : selectedPeriod;
 
       const [summaryRes, deptRes, goalsRes] = await Promise.all([
-        getPerformanceSummary(params),
-        getPerformanceByDepartment(params),
+        getPerformanceSummary(periodParam),
+        getPerformanceByDepartment(periodParam),
         getGoalCompletion()
       ]);
 
-      setPerformanceSummary(summaryRes.data || []);
-      setPerformanceByDept(deptRes.data || []);
-      setGoalCompletion(goalsRes.data || []);
+      // ✅ FIXED: Extract data from nested response objects
+      setPerformanceSummary(summaryRes.data?.reviews || []);
+      setPerformanceByDept(deptRes.data?.performance || []);
+      setGoalCompletion(goalsRes.data?.goals || []);
 
     } catch (err) {
       console.error('Error loading performance data:', err);
@@ -131,116 +138,133 @@ const PerformanceReports = () => {
     );
   }
 
-  // Calculate statistics
+  // Calculate statistics - ✅ FIXED: Using PascalCase field names
   const avgRating = performanceSummary.length > 0
-    ? performanceSummary.reduce((sum, p) => sum + (p.averageRating || 0), 0) / performanceSummary.length
+    ? performanceSummary.reduce((sum, p) => sum + (p.OverallRating || 0), 0) / performanceSummary.length
     : 0;
-  const completedReviews = performanceSummary.filter(p => p.status === 'Completed').length;
-  const goalCompletionRate = goalCompletion.length > 0
-    ? goalCompletion.reduce((sum, g) => sum + (g.completionRate || 0), 0) / goalCompletion.length
+  const completedReviews = performanceSummary.filter(p => p.Status === 'Completed').length;
+  const totalReviews = performanceSummary.length;
+  const avgGoalProgress = goalCompletion.length > 0
+    ? goalCompletion.reduce((sum, g) => sum + (g.AvgProgress || 0), 0) / goalCompletion.length
     : 0;
-
-  const COLORS = [TPA_COLORS.success, TPA_COLORS.primary, TPA_COLORS.warning, TPA_COLORS.error, TPA_COLORS.info];
 
   // Define columns for Performance Summary table
   const performanceSummaryColumns = [
     {
-      id: 'employeeName',
-      label: 'Employee',
-      minWidth: 180
+      id: 'FirstName',
+      label: 'First Name',
+      minWidth: 120
     },
     {
-      id: 'departmentName',
+      id: 'LastName',
+      label: 'Last Name',
+      minWidth: 120
+    },
+    {
+      id: 'DepartmentName',
       label: 'Department',
       minWidth: 150
     },
     {
-      id: 'reviewPeriod',
-      label: 'Review Period',
+      id: 'PeriodName',
+      label: 'Period',
       minWidth: 130
     },
     {
-      id: 'selfRating',
-      label: 'Self Rating',
-      minWidth: 110,
+      id: 'OverallRating',
+      label: 'Overall Rating',
+      minWidth: 130,
       align: 'right',
-      render: (row) => row.selfRating?.toFixed(1)
+      render: (row) => row.OverallRating?.toFixed(2)
     },
     {
-      id: 'managerRating',
-      label: 'Manager Rating',
-      minWidth: 140,
-      align: 'right',
-      render: (row) => row.managerRating?.toFixed(1)
-    },
-    {
-      id: 'averageRating',
-      label: 'Average',
-      minWidth: 100,
-      align: 'right',
-      render: (row) => row.averageRating?.toFixed(1)
-    },
-    {
-      id: 'status',
+      id: 'Status',
       label: 'Status',
       minWidth: 100
+    },
+    {
+      id: 'CompanyWideRank',
+      label: 'Company Rank',
+      minWidth: 130,
+      align: 'right'
     }
   ];
 
   // Define columns for Performance by Department table
   const perfDeptColumns = [
     {
-      id: 'departmentName',
+      id: 'DepartmentName',
       label: 'Department',
       minWidth: 200
     },
     {
-      id: 'reviewCount',
-      label: 'Reviews',
-      minWidth: 100,
+      id: 'TotalReviews',
+      label: 'Total Reviews',
+      minWidth: 130,
       align: 'right'
     },
     {
-      id: 'averageRating',
+      id: 'AvgRating',
       label: 'Avg Rating',
       minWidth: 120,
       align: 'right',
-      render: (row) => row.averageRating?.toFixed(2)
+      render: (row) => row.AvgRating?.toFixed(2)
     },
     {
-      id: 'completionRate',
-      label: 'Completion %',
+      id: 'CompletedReviews',
+      label: 'Completed',
+      minWidth: 120,
+      align: 'right'
+    },
+    {
+      id: 'InProgressReviews',
+      label: 'In Progress',
       minWidth: 130,
-      align: 'right',
-      render: (row) => `${row.completionRate?.toFixed(1)}%`
+      align: 'right'
     }
   ];
 
   // Define columns for Goal Completion table
   const goalCompletionColumns = [
     {
-      id: 'departmentName',
-      label: 'Department',
-      minWidth: 200
+      id: 'FirstName',
+      label: 'First Name',
+      minWidth: 120
     },
     {
-      id: 'totalGoals',
+      id: 'LastName',
+      label: 'Last Name',
+      minWidth: 120
+    },
+    {
+      id: 'DepartmentName',
+      label: 'Department',
+      minWidth: 150
+    },
+    {
+      id: 'TotalGoals',
       label: 'Total Goals',
       minWidth: 120,
       align: 'right'
     },
     {
-      id: 'completedGoals',
+      id: 'CompletedGoals',
       label: 'Completed',
       minWidth: 120,
       align: 'right'
     },
     {
-      id: 'completionRate',
-      label: 'Rate',
+      id: 'ActiveGoals',
+      label: 'Active',
       minWidth: 100,
+      align: 'right'
+    },
+    {
+      id: 'AvgProgress',
+      label: 'Avg Progress %',
+      minWidth: 140,
       align: 'right',
-      render: (row) => `${row.completionRate?.toFixed(1)}%`
+      render: (row) => `${row.AvgProgress?.toFixed(1)}%`
     }
   ];
 
@@ -255,33 +279,43 @@ const PerformanceReports = () => {
       <Box sx={{ p: 3 }} id="performance-report-content">
         {/* Summary Stats */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <StatCard
               title="Average Rating"
               value={avgRating.toFixed(2)}
-              icon={PerformanceIcon}
+              icon={TrendingUpIcon}
               color={TPA_COLORS.primary}
-              subtitle="Out of 5.0"
+              subtitle="Overall performance"
             />
           </Grid>
           
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <StatCard
               title="Completed Reviews"
               value={completedReviews}
-              icon={TrendingUpIcon}
+              icon={PerformanceIcon}
               color={TPA_COLORS.success}
-              subtitle="This period"
+              subtitle={`Out of ${totalReviews}`}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={3}>
+            <StatCard
+              title="In Progress"
+              value={totalReviews - completedReviews}
+              icon={PerformanceIcon}
+              color={TPA_COLORS.warning}
+              subtitle="Pending reviews"
             />
           </Grid>
           
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <StatCard
-              title="Goal Completion"
-              value={`${goalCompletionRate.toFixed(1)}%`}
+              title="Avg Goal Progress"
+              value={`${avgGoalProgress.toFixed(1)}%`}
               icon={GoalIcon}
-              color={TPA_COLORS.warning}
-              subtitle="Average completion"
+              color={TPA_COLORS.info}
+              subtitle="Goal completion"
             />
           </Grid>
         </Grid>
@@ -295,9 +329,10 @@ const PerformanceReports = () => {
               label="Review Period"
               onChange={(e) => setSelectedPeriod(e.target.value)}
             >
-              <MenuItem value="">All Periods</MenuItem>
               {periods.map((period) => (
-                <MenuItem key={period} value={period}>{period}</MenuItem>
+                <MenuItem key={period.value} value={period.value}>
+                  {period.label}
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -357,11 +392,12 @@ const PerformanceReports = () => {
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={performanceByDept}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="departmentName" />
-                <YAxis domain={[0, 5]} />
+                <XAxis dataKey="DepartmentName" />
+                <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="averageRating" fill={TPA_COLORS.primary} name="Average Rating" />
+                <Bar dataKey="AvgRating" fill={TPA_COLORS.primary} name="Avg Rating" />
+                <Bar dataKey="CompletedReviews" fill={TPA_COLORS.success} name="Completed" />
               </BarChart>
             </ResponsiveContainer>
 
@@ -377,43 +413,22 @@ const PerformanceReports = () => {
         )}
 
         {activeTab === 2 && (
-          <Paper sx={{ p: 3 }}>
+          <Box>
             <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-              Goal Completion
+              Goal Completion Summary
             </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <ResponsiveContainer width="100%" height={400}>
-                  <PieChart>
-                    <Pie
-                      data={goalCompletion}
-                      dataKey="completedGoals"
-                      nameKey="departmentName"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={120}
-                      label
-                    >
-                      {goalCompletion.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <DataTable
-                  columns={goalCompletionColumns}
-                  data={goalCompletion}
-                  loading={loading}
-                  emptyMessage="No goal data available"
-                />
-              </Grid>
-            </Grid>
-          </Paper>
+            <DataTable
+              columns={goalCompletionColumns}
+              data={goalCompletion}
+              loading={loading}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              totalCount={goalCompletion.length}
+              onPageChange={handlePageChange}
+              onRowsPerPageChange={handleRowsPerPageChange}
+              emptyMessage="No goal data available"
+            />
+          </Box>
         )}
       </Box>
     </Layout>

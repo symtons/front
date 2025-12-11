@@ -16,9 +16,9 @@ import {
 import {
   Download as DownloadIcon,
   Print as PrintIcon,
-  Assignment as ActionIcon,
+  Assignment as HRActionIcon,
   TrendingUp as TrendingUpIcon,
-  Speed as SpeedIcon
+  CheckCircle as CheckIcon
 } from '@mui/icons-material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Layout from '../../components/common/layout/Layout';
@@ -29,7 +29,7 @@ import {
   getHRActionsSummary,
   getHRActionsByType
 } from '../../services/reportsApi';
-import { exportToCSV, printReport } from './helpers/reportsHelpers';
+import { exportToCSV, printReport, formatDate } from './helpers/reportsHelpers';
 import { TPA_COLORS } from './models/reportsModels';
 
 const HRActionsReports = () => {
@@ -56,13 +56,14 @@ const HRActionsReports = () => {
       setLoading(true);
       setError(null);
 
-      const [summaryRes, typeRes] = await Promise.all([
+      const [actionsRes, typeRes] = await Promise.all([
         getHRActionsSummary(selectedYear),
         getHRActionsByType(selectedYear)
       ]);
 
-      setActionsSummary(summaryRes.data || []);
-      setActionsByType(typeRes.data || []);
+      // ✅ FIXED: Extract data from nested response objects
+      setActionsSummary(actionsRes.data?.hrActions || []);
+      setActionsByType(typeRes.data?.actionTypes || []);
 
     } catch (err) {
       console.error('Error loading HR actions data:', err);
@@ -87,8 +88,22 @@ const HRActionsReports = () => {
   };
 
   const handleExport = () => {
-    const data = activeTab === 0 ? actionsSummary : actionsByType;
-    const filename = activeTab === 0 ? 'hr_actions_summary' : 'hr_actions_by_type';
+    let data = [];
+    let filename = '';
+
+    switch (activeTab) {
+      case 0:
+        data = actionsSummary;
+        filename = `hr_actions_summary_${selectedYear}`;
+        break;
+      case 1:
+        data = actionsByType;
+        filename = `hr_actions_by_type_${selectedYear}`;
+        break;
+      default:
+        break;
+    }
+
     exportToCSV(data, filename);
   };
 
@@ -99,7 +114,7 @@ const HRActionsReports = () => {
   if (error) {
     return (
       <Layout>
-        <PageHeader title="HR Actions Reports" subtitle="HR Request Analytics" />
+        <PageHeader title="HR Actions Reports" subtitle="HR Action Request Analytics" />
         <Box sx={{ p: 3 }}>
           <Typography color="error">{error}</Typography>
         </Box>
@@ -107,74 +122,94 @@ const HRActionsReports = () => {
     );
   }
 
-  // Calculate statistics
-  const totalActions = actionsSummary.reduce((sum, a) => sum + (a.totalRequests || 0), 0);
-  const completedActions = actionsSummary.reduce((sum, a) => sum + (a.completed || 0), 0);
+  // Calculate statistics - ✅ FIXED: Using PascalCase field names
+  const totalRequests = actionsSummary.length;
+  const approvedRequests = actionsSummary.filter(a => a.Status === 'Approved').length;
+  const pendingRequests = actionsSummary.filter(a => a.Status === 'Pending').length;
   const avgProcessingDays = actionsSummary.length > 0
-    ? actionsSummary.reduce((sum, a) => sum + (a.avgProcessingDays || 0), 0) / actionsSummary.length
+    ? actionsSummary.reduce((sum, a) => sum + (a.ProcessingDays || 0), 0) / actionsSummary.length
     : 0;
 
-  const COLORS = [TPA_COLORS.primary, TPA_COLORS.secondary, TPA_COLORS.success, TPA_COLORS.warning, TPA_COLORS.error, TPA_COLORS.info];
+  const COLORS = [TPA_COLORS.success, TPA_COLORS.primary, TPA_COLORS.warning, TPA_COLORS.error, TPA_COLORS.info];
 
   // Define columns for HR Actions Summary table
   const actionsSummaryColumns = [
     {
-      id: 'monthName',
-      label: 'Month',
+      id: 'RequestNumber',
+      label: 'Request #',
       minWidth: 120
     },
     {
-      id: 'totalRequests',
+      id: 'FirstName',
+      label: 'First Name',
+      minWidth: 120
+    },
+    {
+      id: 'LastName',
+      label: 'Last Name',
+      minWidth: 120
+    },
+    {
+      id: 'DepartmentName',
+      label: 'Department',
+      minWidth: 150
+    },
+    {
+      id: 'ActionType',
+      label: 'Action Type',
+      minWidth: 150
+    },
+    {
+      id: 'Status',
+      label: 'Status',
+      minWidth: 120
+    },
+    {
+      id: 'SubmittedDate',
+      label: 'Submitted',
+      minWidth: 130,
+      render: (row) => formatDate(row.SubmittedDate)
+    },
+    {
+      id: 'ProcessingDays',
+      label: 'Processing Days',
+      minWidth: 140,
+      align: 'right',
+      render: (row) => row.ProcessingDays != null ? row.ProcessingDays : 'Pending'
+    }
+  ];
+
+  // Define columns for Actions By Type table
+  const actionsByTypeColumns = [
+    {
+      id: 'ActionType',
+      label: 'Action Type',
+      minWidth: 200
+    },
+    {
+      id: 'TotalRequests',
       label: 'Total Requests',
       minWidth: 140,
       align: 'right'
     },
     {
-      id: 'pending',
+      id: 'PendingRequests',
       label: 'Pending',
-      minWidth: 100,
-      align: 'right'
-    },
-    {
-      id: 'completed',
-      label: 'Completed',
       minWidth: 120,
       align: 'right'
     },
     {
-      id: 'avgProcessingDays',
-      label: 'Avg Days',
-      minWidth: 100,
-      align: 'right',
-      render: (row) => row.avgProcessingDays?.toFixed(1)
-    }
-  ];
-
-  // Define columns for HR Actions By Type table
-  const actionsByTypeColumns = [
-    {
-      id: 'actionTypeName',
-      label: 'Action Type',
-      minWidth: 200
-    },
-    {
-      id: 'totalRequests',
-      label: 'Requests',
-      minWidth: 110,
-      align: 'right'
-    },
-    {
-      id: 'completed',
-      label: 'Completed',
+      id: 'ApprovedRequests',
+      label: 'Approved',
       minWidth: 120,
       align: 'right'
     },
     {
-      id: 'avgProcessingDays',
-      label: 'Avg Days',
-      minWidth: 100,
+      id: 'AvgProcessingDays',
+      label: 'Avg Processing Days',
+      minWidth: 160,
       align: 'right',
-      render: (row) => row.avgProcessingDays?.toFixed(1)
+      render: (row) => row.AvgProcessingDays != null ? row.AvgProcessingDays.toFixed(1) : 'N/A'
     }
   ];
 
@@ -182,39 +217,49 @@ const HRActionsReports = () => {
     <Layout>
       <PageHeader 
         title="HR Actions Reports" 
-        subtitle="HR Request Analytics"
-        icon={ActionIcon}
+        subtitle="HR Action Request Analytics"
+        icon={HRActionIcon}
       />
       
       <Box sx={{ p: 3 }} id="hr-actions-report-content">
         {/* Summary Stats */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <StatCard
               title="Total Requests"
-              value={totalActions}
-              icon={ActionIcon}
+              value={totalRequests}
+              icon={HRActionIcon}
               color={TPA_COLORS.primary}
               subtitle={`Year ${selectedYear}`}
             />
           </Grid>
           
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <StatCard
-              title="Completed"
-              value={completedActions}
-              icon={TrendingUpIcon}
+              title="Approved"
+              value={approvedRequests}
+              icon={CheckIcon}
               color={TPA_COLORS.success}
-              subtitle="Processed requests"
+              subtitle="Completed requests"
+            />
+          </Grid>
+
+          <Grid item xs={12} md={3}>
+            <StatCard
+              title="Pending"
+              value={pendingRequests}
+              icon={TrendingUpIcon}
+              color={TPA_COLORS.warning}
+              subtitle="Awaiting approval"
             />
           </Grid>
           
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <StatCard
               title="Avg Processing Time"
               value={`${avgProcessingDays.toFixed(1)} days`}
-              icon={SpeedIcon}
-              color={TPA_COLORS.warning}
+              icon={TrendingUpIcon}
+              color={TPA_COLORS.info}
               subtitle="Time to complete"
             />
           </Grid>
@@ -256,8 +301,8 @@ const HRActionsReports = () => {
         {/* Tabs */}
         <Paper sx={{ mb: 3 }}>
           <Tabs value={activeTab} onChange={handleTabChange}>
-            <Tab label="Summary" />
-            <Tab label="By Type" />
+            <Tab label="All Requests" />
+            <Tab label="By Action Type" />
           </Tabs>
         </Paper>
 
@@ -265,7 +310,7 @@ const HRActionsReports = () => {
         {activeTab === 0 && (
           <Box>
             <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-              HR Actions Summary ({selectedYear})
+              HR Action Requests - {selectedYear}
             </Typography>
             <DataTable
               columns={actionsSummaryColumns}
@@ -276,7 +321,7 @@ const HRActionsReports = () => {
               totalCount={actionsSummary.length}
               onPageChange={handlePageChange}
               onRowsPerPageChange={handleRowsPerPageChange}
-              emptyMessage="No HR action data available"
+              emptyMessage="No HR action requests found"
             />
           </Box>
         )}
@@ -284,55 +329,54 @@ const HRActionsReports = () => {
         {activeTab === 1 && (
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-              HR Actions by Type ({selectedYear})
+              HR Actions by Type - {selectedYear}
             </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <ResponsiveContainer width="100%" height={400}>
-                  <PieChart>
-                    <Pie
-                      data={actionsByType}
-                      dataKey="totalRequests"
-                      nameKey="actionTypeName"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={120}
-                      label
-                    >
-                      {actionsByType.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Grid>
+            
+            {/* Bar Chart */}
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={actionsByType}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="ActionType" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="TotalRequests" fill={TPA_COLORS.primary} name="Total" />
+                <Bar dataKey="ApprovedRequests" fill={TPA_COLORS.success} name="Approved" />
+                <Bar dataKey="PendingRequests" fill={TPA_COLORS.warning} name="Pending" />
+              </BarChart>
+            </ResponsiveContainer>
 
-              <Grid item xs={12} md={6}>
-                <DataTable
-                  columns={actionsByTypeColumns}
-                  data={actionsByType}
-                  loading={loading}
-                  emptyMessage="No action type data available"
-                />
-              </Grid>
-            </Grid>
-
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Processing Time Comparison
-              </Typography>
+            {/* Pie Chart */}
+            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={actionsByType}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="actionTypeName" />
-                  <YAxis />
+                <PieChart>
+                  <Pie
+                    data={actionsByType}
+                    dataKey="TotalRequests"
+                    nameKey="ActionType"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label
+                  >
+                    {actionsByType.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="avgProcessingDays" fill={TPA_COLORS.warning} name="Avg Processing Days" />
-                </BarChart>
+                </PieChart>
               </ResponsiveContainer>
+            </Box>
+
+            {/* Table */}
+            <Box sx={{ mt: 3 }}>
+              <DataTable
+                columns={actionsByTypeColumns}
+                data={actionsByType}
+                loading={loading}
+                emptyMessage="No action type data available"
+              />
             </Box>
           </Paper>
         )}

@@ -46,12 +46,29 @@ const LeaveReports = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   
+  // Filter states
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState('all'); // 'all' or 1-12
   const [years] = useState([2023, 2024, 2025]);
+  const [months] = useState([
+    { value: 'all', label: 'All Months' },
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' }
+  ]);
 
   useEffect(() => {
     loadData();
-  }, [selectedYear]);
+  }, [selectedYear, selectedMonth]);
 
   const loadData = async () => {
     try {
@@ -64,9 +81,17 @@ const LeaveReports = () => {
         getPTOBalances()
       ]);
 
-      setLeaveSummary(summaryRes.data || []);
-      setLeaveByDept(deptRes.data || []);
-      setPtoBalances(ptoRes.data || []);
+      // Extract data from nested response objects
+      const leaveData = summaryRes.data?.leave || [];
+      
+      // Apply month filter on frontend if selected
+      const filteredLeaveData = selectedMonth === 'all' 
+        ? leaveData 
+        : leaveData.filter(leave => leave.LeaveMonth === selectedMonth);
+
+      setLeaveSummary(filteredLeaveData);
+      setLeaveByDept(deptRes.data?.usage || []);
+      setPtoBalances(ptoRes.data?.balances || []);
 
     } catch (err) {
       console.error('Error loading leave data:', err);
@@ -97,7 +122,7 @@ const LeaveReports = () => {
     switch (activeTab) {
       case 0:
         data = leaveSummary;
-        filename = 'leave_summary';
+        filename = `leave_summary_${selectedYear}${selectedMonth !== 'all' ? `_${selectedMonth}` : ''}`;
         break;
       case 1:
         data = leaveByDept;
@@ -130,44 +155,61 @@ const LeaveReports = () => {
   }
 
   // Calculate statistics
-  const totalLeaveDays = leaveSummary.reduce((sum, leave) => sum + (leave.totalDays || 0), 0);
-  const approvedRequests = leaveSummary.filter(l => l.status === 'Approved').length;
+  const totalLeaveDays = leaveSummary.reduce((sum, leave) => sum + (leave.TotalDays || 0), 0);
+  const approvedRequests = leaveSummary.filter(l => l.Status === 'Approved').length;
+  const pendingRequests = leaveSummary.filter(l => l.Status === 'Pending').length;
   const avgPTOBalance = ptoBalances.length > 0
-    ? ptoBalances.reduce((sum, emp) => sum + (emp.remainingBalance || 0), 0) / ptoBalances.length
+    ? ptoBalances.reduce((sum, emp) => sum + (emp.PTOBalance || 0), 0) / ptoBalances.length
     : 0;
+
+  // Get month name for display
+  const getMonthName = () => {
+    if (selectedMonth === 'all') return 'All Months';
+    return months.find(m => m.value === selectedMonth)?.label || '';
+  };
 
   // Define columns for Leave Summary table
   const leaveSummaryColumns = [
     {
-      id: 'employeeName',
-      label: 'Employee',
-      minWidth: 180
+      id: 'FirstName',
+      label: 'First Name',
+      minWidth: 120
     },
     {
-      id: 'leaveType',
+      id: 'LastName',
+      label: 'Last Name',
+      minWidth: 120
+    },
+    {
+      id: 'DepartmentName',
+      label: 'Department',
+      minWidth: 150
+    },
+    {
+      id: 'LeaveType',
       label: 'Leave Type',
       minWidth: 130
     },
     {
-      id: 'startDate',
+      id: 'StartDate',
       label: 'Start Date',
       minWidth: 120,
-      render: (row) => formatDate(row.startDate)
+      render: (row) => formatDate(row.StartDate)
     },
     {
-      id: 'endDate',
+      id: 'EndDate',
       label: 'End Date',
       minWidth: 120,
-      render: (row) => formatDate(row.endDate)
+      render: (row) => formatDate(row.EndDate)
     },
     {
-      id: 'totalDays',
+      id: 'TotalDays',
       label: 'Days',
       minWidth: 80,
       align: 'right'
     },
     {
-      id: 'status',
+      id: 'Status',
       label: 'Status',
       minWidth: 100
     }
@@ -176,58 +218,62 @@ const LeaveReports = () => {
   // Define columns for Leave Usage table
   const leaveUsageColumns = [
     {
-      id: 'departmentName',
+      id: 'DepartmentName',
       label: 'Department',
       minWidth: 200
     },
     {
-      id: 'totalLeaveDays',
+      id: 'LeaveType',
+      label: 'Leave Type',
+      minWidth: 150
+    },
+    {
+      id: 'TotalDaysUsed',
       label: 'Total Days',
       minWidth: 120,
       align: 'right'
     },
     {
-      id: 'averageDaysPerEmployee',
-      label: 'Avg Days/Employee',
-      minWidth: 160,
+      id: 'AvgDaysPerRequest',
+      label: 'Avg Days/Request',
+      minWidth: 140,
       align: 'right',
-      render: (row) => row.averageDaysPerEmployee?.toFixed(1)
+      render: (row) => row.AvgDaysPerRequest?.toFixed(1)
     }
   ];
 
   // Define columns for PTO Balances table
   const ptoBalanceColumns = [
     {
-      id: 'employeeCode',
+      id: 'EmployeeCode',
       label: 'Employee Code',
       minWidth: 130
     },
     {
-      id: 'employeeName',
-      label: 'Employee Name',
-      minWidth: 180
+      id: 'FirstName',
+      label: 'First Name',
+      minWidth: 120
     },
     {
-      id: 'departmentName',
+      id: 'LastName',
+      label: 'Last Name',
+      minWidth: 120
+    },
+    {
+      id: 'DepartmentName',
       label: 'Department',
       minWidth: 150
     },
     {
-      id: 'totalAllocation',
-      label: 'Total Allocation',
-      minWidth: 140,
-      align: 'right'
-    },
-    {
-      id: 'usedDays',
-      label: 'Used',
-      minWidth: 100,
-      align: 'right'
-    },
-    {
-      id: 'remainingBalance',
-      label: 'Remaining',
+      id: 'PTOBalance',
+      label: 'PTO Balance',
       minWidth: 120,
+      align: 'right'
+    },
+    {
+      id: 'PTOUsedThisYear',
+      label: 'Used This Year',
+      minWidth: 140,
       align: 'right'
     }
   ];
@@ -243,51 +289,78 @@ const LeaveReports = () => {
       <Box sx={{ p: 3 }} id="leave-report-content">
         {/* Summary Stats */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <StatCard
               title="Total Leave Days"
               value={totalLeaveDays}
               icon={CalendarIcon}
               color={TPA_COLORS.primary}
-              subtitle={`Year ${selectedYear}`}
+              subtitle={selectedMonth === 'all' ? `Year ${selectedYear}` : `${getMonthName()} ${selectedYear}`}
             />
           </Grid>
           
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <StatCard
               title="Approved Requests"
               value={approvedRequests}
               icon={TrendingUpIcon}
               color={TPA_COLORS.success}
-              subtitle="This year"
+              subtitle="In selected period"
+            />
+          </Grid>
+
+          <Grid item xs={12} md={3}>
+            <StatCard
+              title="Pending Requests"
+              value={pendingRequests}
+              icon={LeaveIcon}
+              color={TPA_COLORS.warning}
+              subtitle="Awaiting approval"
             />
           </Grid>
           
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <StatCard
               title="Avg PTO Balance"
               value={avgPTOBalance.toFixed(1)}
               icon={LeaveIcon}
-              color={TPA_COLORS.warning}
+              color={TPA_COLORS.info}
               subtitle="Days remaining"
             />
           </Grid>
         </Grid>
 
         {/* Actions Bar */}
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <FormControl sx={{ minWidth: 150 }}>
-            <InputLabel>Year</InputLabel>
-            <Select
-              value={selectedYear}
-              label="Year"
-              onChange={(e) => setSelectedYear(e.target.value)}
-            >
-              {years.map((year) => (
-                <MenuItem key={year} value={year}>{year}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <FormControl sx={{ minWidth: 120 }}>
+              <InputLabel>Year</InputLabel>
+              <Select
+                value={selectedYear}
+                label="Year"
+                onChange={(e) => setSelectedYear(e.target.value)}
+              >
+                {years.map((year) => (
+                  <MenuItem key={year} value={year}>{year}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl sx={{ minWidth: 150 }}>
+              <InputLabel>Month</InputLabel>
+              <Select
+                value={selectedMonth}
+                label="Month"
+                onChange={(e) => setSelectedMonth(e.target.value)}
+              >
+                {months.map((month) => (
+                  <MenuItem key={month.value} value={month.value}>
+                    {month.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
 
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
@@ -320,7 +393,7 @@ const LeaveReports = () => {
         {activeTab === 0 && (
           <Box>
             <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-              Leave Summary ({selectedYear})
+              Leave Summary - {selectedMonth === 'all' ? selectedYear : `${getMonthName()} ${selectedYear}`}
             </Typography>
             <DataTable
               columns={leaveSummaryColumns}
@@ -344,12 +417,12 @@ const LeaveReports = () => {
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={leaveByDept}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="departmentName" />
+                <XAxis dataKey="DepartmentName" />
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="totalLeaveDays" fill={TPA_COLORS.primary} name="Total Leave Days" />
-                <Bar dataKey="averageDaysPerEmployee" fill={TPA_COLORS.secondary} name="Avg Days/Employee" />
+                <Bar dataKey="TotalDaysUsed" fill={TPA_COLORS.primary} name="Total Leave Days" />
+                <Bar dataKey="AvgDaysPerRequest" fill={TPA_COLORS.secondary} name="Avg Days/Request" />
               </BarChart>
             </ResponsiveContainer>
 

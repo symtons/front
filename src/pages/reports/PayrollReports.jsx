@@ -12,10 +12,11 @@ import {
 import {
   Download as DownloadIcon,
   Print as PrintIcon,
-  AttachMoney as MoneyIcon,
-  TrendingUp as TrendingUpIcon
+  AttachMoney as PayrollIcon,
+  TrendingUp as TrendingUpIcon,
+  Business as DepartmentIcon
 } from '@mui/icons-material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Layout from '../../components/common/layout/Layout';
 import PageHeader from '../../components/common/layout/PageHeader';
 import DataTable from '../../components/common/tables/DataTable';
@@ -34,7 +35,7 @@ const PayrollReports = () => {
   
   const [payrollByDept, setPayrollByDept] = useState([]);
   const [salaryByRole, setSalaryByRole] = useState([]);
-
+  
   // Pagination states
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -48,13 +49,14 @@ const PayrollReports = () => {
       setLoading(true);
       setError(null);
 
-      const [payrollRes, salaryRes] = await Promise.all([
+      const [deptRes, roleRes] = await Promise.all([
         getPayrollByDepartment(),
         getSalaryByRole()
       ]);
 
-      setPayrollByDept(payrollRes.data || []);
-      setSalaryByRole(salaryRes.data || []);
+      // ✅ FIXED: Extract data from nested response objects
+      setPayrollByDept(deptRes.data?.payroll || []);
+      setSalaryByRole(roleRes.data?.salaries || []);
 
     } catch (err) {
       console.error('Error loading payroll data:', err);
@@ -79,8 +81,22 @@ const PayrollReports = () => {
   };
 
   const handleExport = () => {
-    const data = activeTab === 0 ? payrollByDept : salaryByRole;
-    const filename = activeTab === 0 ? 'payroll_by_department' : 'salary_by_role';
+    let data = [];
+    let filename = '';
+
+    switch (activeTab) {
+      case 0:
+        data = payrollByDept;
+        filename = 'payroll_by_department';
+        break;
+      case 1:
+        data = salaryByRole;
+        filename = 'salary_by_role';
+        break;
+      default:
+        break;
+    }
+
     exportToCSV(data, filename);
   };
 
@@ -91,7 +107,7 @@ const PayrollReports = () => {
   if (error) {
     return (
       <Layout>
-        <PageHeader title="Payroll Reports" subtitle="Compensation & Salary Analysis" />
+        <PageHeader title="Payroll Reports" subtitle="Compensation & Salary Analytics" />
         <Box sx={{ p: 3 }}>
           <Typography color="error">{error}</Typography>
         </Box>
@@ -99,76 +115,93 @@ const PayrollReports = () => {
     );
   }
 
-  // Calculate statistics
-  const totalPayroll = payrollByDept.reduce((sum, dept) => sum + (dept.totalSalary || 0), 0);
-  const avgSalary = salaryByRole.length > 0 
-    ? salaryByRole.reduce((sum, role) => sum + (role.averageSalary || 0), 0) / salaryByRole.length 
-    : 0;
-
-  const COLORS = [TPA_COLORS.primary, TPA_COLORS.secondary, TPA_COLORS.success, TPA_COLORS.warning, TPA_COLORS.info, TPA_COLORS.error];
+  // Calculate statistics - ✅ FIXED: Using PascalCase field names
+  const totalPayroll = payrollByDept.reduce((sum, dept) => sum + (dept.TotalPayroll || 0), 0);
+  const totalEmployees = payrollByDept.reduce((sum, dept) => sum + (dept.EmployeeCount || 0), 0);
+  const avgSalary = totalEmployees > 0 ? totalPayroll / totalEmployees : 0;
+  const departmentCount = payrollByDept.length;
 
   // Define columns for Payroll by Department table
   const payrollDeptColumns = [
     {
-      id: 'departmentName',
+      id: 'DepartmentName',
       label: 'Department',
       minWidth: 200
     },
     {
-      id: 'employeeCount',
+      id: 'EmployeeCount',
       label: 'Employee Count',
       minWidth: 150,
       align: 'right'
     },
     {
-      id: 'totalSalary',
-      label: 'Total Salary',
+      id: 'TotalPayroll',
+      label: 'Total Payroll',
       minWidth: 150,
       align: 'right',
-      render: (row) => formatCurrency(row.totalSalary)
+      render: (row) => formatCurrency(row.TotalPayroll)
     },
     {
-      id: 'averageSalary',
-      label: 'Average Salary',
-      minWidth: 150,
+      id: 'AvgSalary',
+      label: 'Avg Salary',
+      minWidth: 140,
       align: 'right',
-      render: (row) => formatCurrency(row.averageSalary)
+      render: (row) => formatCurrency(row.AvgSalary)
+    },
+    {
+      id: 'MinSalary',
+      label: 'Min Salary',
+      minWidth: 140,
+      align: 'right',
+      render: (row) => formatCurrency(row.MinSalary)
+    },
+    {
+      id: 'MaxSalary',
+      label: 'Max Salary',
+      minWidth: 140,
+      align: 'right',
+      render: (row) => formatCurrency(row.MaxSalary)
     }
   ];
 
   // Define columns for Salary by Role table
   const salaryRoleColumns = [
     {
-      id: 'roleLevel',
-      label: 'Role Level',
-      minWidth: 150
+      id: 'JobTitle',
+      label: 'Job Title',
+      minWidth: 200
     },
     {
-      id: 'employeeCount',
+      id: 'DepartmentName',
+      label: 'Department',
+      minWidth: 180
+    },
+    {
+      id: 'EmployeeCount',
       label: 'Employee Count',
       minWidth: 150,
       align: 'right'
     },
     {
-      id: 'averageSalary',
+      id: 'AvgSalary',
       label: 'Avg Salary',
-      minWidth: 130,
+      minWidth: 140,
       align: 'right',
-      render: (row) => formatCurrency(row.averageSalary)
+      render: (row) => formatCurrency(row.AvgSalary)
     },
     {
-      id: 'minSalary',
+      id: 'MinSalary',
       label: 'Min Salary',
-      minWidth: 130,
+      minWidth: 140,
       align: 'right',
-      render: (row) => formatCurrency(row.minSalary)
+      render: (row) => formatCurrency(row.MinSalary)
     },
     {
-      id: 'maxSalary',
+      id: 'MaxSalary',
       label: 'Max Salary',
-      minWidth: 130,
+      minWidth: 140,
       align: 'right',
-      render: (row) => formatCurrency(row.maxSalary)
+      render: (row) => formatCurrency(row.MaxSalary)
     }
   ];
 
@@ -176,57 +209,79 @@ const PayrollReports = () => {
     <Layout>
       <PageHeader 
         title="Payroll Reports" 
-        subtitle="Compensation & Salary Analysis"
-        icon={MoneyIcon}
+        subtitle="Compensation & Salary Analytics"
+        icon={PayrollIcon}
       />
       
       <Box sx={{ p: 3 }} id="payroll-report-content">
         {/* Summary Stats */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={3}>
             <StatCard
               title="Total Payroll"
               value={formatCurrency(totalPayroll)}
-              icon={MoneyIcon}
+              icon={PayrollIcon}
               color={TPA_COLORS.primary}
-              subtitle="All departments"
+              subtitle="Annual compensation"
             />
           </Grid>
           
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={3}>
+            <StatCard
+              title="Total Employees"
+              value={totalEmployees}
+              icon={TrendingUpIcon}
+              color={TPA_COLORS.success}
+              subtitle="Active headcount"
+            />
+          </Grid>
+
+          <Grid item xs={12} md={3}>
             <StatCard
               title="Average Salary"
               value={formatCurrency(avgSalary)}
-              icon={TrendingUpIcon}
-              color={TPA_COLORS.success}
-              subtitle="Across all roles"
+              icon={PayrollIcon}
+              color={TPA_COLORS.info}
+              subtitle="Per employee"
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={3}>
+            <StatCard
+              title="Departments"
+              value={departmentCount}
+              icon={DepartmentIcon}
+              color={TPA_COLORS.warning}
+              subtitle="Total departments"
             />
           </Grid>
         </Grid>
 
         {/* Actions Bar */}
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<DownloadIcon />}
-            onClick={handleExport}
-          >
-            Export CSV
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<PrintIcon />}
-            onClick={handlePrint}
-          >
-            Print
-          </Button>
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={handleExport}
+            >
+              Export CSV
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<PrintIcon />}
+              onClick={handlePrint}
+            >
+              Print
+            </Button>
+          </Box>
         </Box>
 
         {/* Tabs */}
         <Paper sx={{ mb: 3 }}>
           <Tabs value={activeTab} onChange={handleTabChange}>
-            <Tab label="Payroll by Department" />
-            <Tab label="Salary by Role" />
+            <Tab label="By Department" />
+            <Tab label="By Role" />
           </Tabs>
         </Paper>
 
@@ -236,28 +291,26 @@ const PayrollReports = () => {
             <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
               Payroll by Department
             </Typography>
+            
+            {/* Bar Chart */}
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={payrollByDept}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="departmentName" />
+                <XAxis dataKey="DepartmentName" />
                 <YAxis />
                 <Tooltip formatter={(value) => formatCurrency(value)} />
                 <Legend />
-                <Bar dataKey="totalSalary" fill={TPA_COLORS.primary} name="Total Salary" />
-                <Bar dataKey="averageSalary" fill={TPA_COLORS.secondary} name="Average Salary" />
+                <Bar dataKey="TotalPayroll" fill={TPA_COLORS.primary} name="Total Payroll" />
+                <Bar dataKey="AvgSalary" fill={TPA_COLORS.secondary} name="Avg Salary" />
               </BarChart>
             </ResponsiveContainer>
 
+            {/* Table */}
             <Box sx={{ mt: 3 }}>
               <DataTable
                 columns={payrollDeptColumns}
                 data={payrollByDept}
                 loading={loading}
-                page={page}
-                rowsPerPage={rowsPerPage}
-                totalCount={payrollByDept.length}
-                onPageChange={handlePageChange}
-                onRowsPerPageChange={handleRowsPerPageChange}
                 emptyMessage="No payroll data available"
               />
             </Box>
@@ -265,43 +318,22 @@ const PayrollReports = () => {
         )}
 
         {activeTab === 1 && (
-          <Paper sx={{ p: 3 }}>
+          <Box>
             <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
               Salary by Role
             </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <ResponsiveContainer width="100%" height={400}>
-                  <PieChart>
-                    <Pie
-                      data={salaryByRole}
-                      dataKey="averageSalary"
-                      nameKey="roleLevel"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={120}
-                      label
-                    >
-                      {salaryByRole.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <DataTable
-                  columns={salaryRoleColumns}
-                  data={salaryByRole}
-                  loading={loading}
-                  emptyMessage="No salary data available"
-                />
-              </Grid>
-            </Grid>
-          </Paper>
+            <DataTable
+              columns={salaryRoleColumns}
+              data={salaryByRole}
+              loading={loading}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              totalCount={salaryByRole.length}
+              onPageChange={handlePageChange}
+              onRowsPerPageChange={handleRowsPerPageChange}
+              emptyMessage="No salary data available"
+            />
+          </Box>
         )}
       </Box>
     </Layout>
