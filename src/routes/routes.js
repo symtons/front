@@ -31,9 +31,8 @@ import {
   AttendanceReports,
   AttendanceSchedule
 } from '../pages/attendance';
-import PerformanceOverview from '../pages/performance/PerformanceOverview';
-import GoalsPage from '../pages/performance/GoalsPage';
-import FeedbackPage from '../pages/performance/FeedbackPage';
+
+
 import MyTimesheets from '../pages/timesheets/MyTimesheets';
 import ApproveTimesheets from '../pages/timesheets/ApproveTimesheets';
 

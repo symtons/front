@@ -2,6 +2,8 @@
 /**
  * Performance Overview Dashboard
  * Main landing page showing summary of reviews, ratings, goals, and feedback
+ * 
+ * FIXED: Role check to properly read from localStorage
  */
 
 import React, { useState, useEffect } from 'react';
@@ -55,8 +57,12 @@ import {
 
 const PerformanceOverview = () => {
   const navigate = useNavigate();
-  const userRole = localStorage.getItem('userRole');
-  const isExecutive = userRole === 'Admin' || userRole === 'Executive';
+  
+ 
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+const userRole = user.role;
+const isExecutive = userRole === 'Admin' || userRole === 'Executive';
 
   // Data states
   const [loading, setLoading] = useState(true);
@@ -265,52 +271,43 @@ const PerformanceOverview = () => {
               </Box>
 
               {latestReview ? (
-                <Box>
+                <Box sx={{ p: 2, backgroundColor: '#f8f9fa', borderRadius: 2 }}>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <Box sx={{ 
-                        p: 2, 
-                        backgroundColor: '#f8f9fa', 
-                        borderRadius: 2,
-                        textAlign: 'center' 
-                      }}>
-                        <Typography variant="h3" sx={{ 
-                          fontWeight: 700, 
-                          color: getRatingColor(latestReview.finalScore),
-                          mb: 0.5
-                        }}>
-                          {formatScore(latestReview.finalScore)}
+                    <Grid item xs={12} md={6}>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Review Period
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Overall Score
+                        <Typography variant="body1" fontWeight={600}>
+                          {latestReview.periodName}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          {formatDate(latestReview.startDate)} - {formatDate(latestReview.endDate)}
                         </Typography>
                       </Box>
                     </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                      <Box sx={{ p: 2 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Period:
-                          </Typography>
-                          <Typography variant="body2" fontWeight={600}>
-                            {latestReview.periodName}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Completed:
-                          </Typography>
-                          <Typography variant="body2" fontWeight={600}>
-                            {formatDate(latestReview.completedAt)}
-                          </Typography>
-                        </Box>
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="h3" sx={{ fontWeight: 700, color: getRatingColor(latestReview.finalScore), mb: 1 }}>
+                          {formatScore(latestReview.finalScore)}
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={latestReview.finalScore}
+                          sx={{
+                            height: 10,
+                            borderRadius: 5,
+                            backgroundColor: '#e0e0e0',
+                            '& .MuiLinearProgress-bar': {
+                              backgroundColor: getRatingColor(latestReview.finalScore),
+                              borderRadius: 5
+                            }
+                          }}
+                        />
                         {latestReview.companyWideRank && (
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="body2" color="text.secondary">
-                              Company Rank:
-                            </Typography>
+                          <Box sx={{ mt: 1 }}>
                             <Chip
+                              icon={getRankBadge(latestReview.companyWideRank).icon}
                               label={getRankBadge(latestReview.companyWideRank).label}
                               size="small"
                               sx={{ 
@@ -384,63 +381,54 @@ const PerformanceOverview = () => {
                       key={rating.assignmentId}
                       sx={{
                         p: 2,
-                        mb: index < 2 ? 2 : 0,
-                        backgroundColor: '#f8f9fa',
-                        borderRadius: 2,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
+                        mb: index < 2 ? 1 : 0,
+                        backgroundColor: '#fff4e5',
+                        borderRadius: 1,
+                        borderLeft: '4px solid #FDB94E'
                       }}
                     >
-                      <Box>
-                        <Typography variant="body1" fontWeight={600}>
-                          {rating.employee?.employeeName}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {rating.employee?.jobTitle} • {rating.raterRole}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                          <ClockIcon sx={{ fontSize: 14, color: '#FDB94E' }} />
-                          <Typography variant="caption" color="text.secondary">
-                            Deadline: {formatDate(rating.employee?.ratingDeadline)}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box>
+                          <Typography variant="body1" fontWeight={600}>
+                            {rating.employeeName}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {rating.jobTitle} • {rating.department}
                           </Typography>
                         </Box>
+                        <Chip
+                          icon={<ClockIcon />}
+                          label="Pending"
+                          size="small"
+                          sx={{ backgroundColor: '#FDB94E', color: 'white', fontWeight: 600 }}
+                        />
                       </Box>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        onClick={() => navigate('/performance/my-ratings')}
-                        sx={{
-                          backgroundColor: '#FDB94E',
-                          '&:hover': { backgroundColor: '#f59e42' }
-                        }}
-                      >
-                        Rate Now
-                      </Button>
                     </Box>
                   ))}
-
                   {pendingRatings.length > 3 && (
-                    <Box sx={{ mt: 2, textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        +{pendingRatings.length - 3} more pending
-                      </Typography>
-                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
+                      +{pendingRatings.length - 3} more ratings to complete
+                    </Typography>
                   )}
                 </Box>
               ) : (
                 <EmptyState
-                  icon="info"
+                  icon="check"
                   title="All Caught Up!"
-                  message="You have no pending ratings to complete."
+                  message="You don't have any pending ratings to complete."
                   variant="minimal"
                 />
               )}
             </CardContent>
           </Card>
 
+        </Grid>
+
+        {/* Right Column */}
+        <Grid item xs={12} md={4}>
+          
           {/* Active Goals */}
-          <Card elevation={2} sx={{ borderRadius: 2 }}>
+          <Card elevation={2} sx={{ mb: 3, borderRadius: 2 }}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -460,142 +448,46 @@ const PerformanceOverview = () => {
 
               {activeGoals.length > 0 ? (
                 <Box>
-                  {activeGoals.slice(0, 3).map((goal) => {
-                    const transformed = transformGoalForDisplay(goal);
-                    return (
-                      <Box
-                        key={goal.goalId}
-                        sx={{
-                          p: 2,
-                          mb: 2,
-                          backgroundColor: '#f8f9fa',
-                          borderRadius: 2
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                          <Typography variant="body1" fontWeight={600}>
-                            {goal.title}
-                          </Typography>
-                          <Chip
-                            label={`${goal.progress}%`}
-                            size="small"
-                            sx={{
-                              backgroundColor: '#E8F5E9',
-                              color: '#6AB4A8',
-                              fontWeight: 600
-                            }}
-                          />
-                        </Box>
+                  {activeGoals.slice(0, 3).map((goal, index) => (
+                    <Box
+                      key={goal.goalId}
+                      sx={{
+                        p: 2,
+                        mb: index < 2 ? 1 : 0,
+                        backgroundColor: '#f0f9f7',
+                        borderRadius: 1
+                      }}
+                    >
+                      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+                        {goal.title}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <LinearProgress
                           variant="determinate"
                           value={goal.progress}
                           sx={{
+                            flexGrow: 1,
                             height: 8,
                             borderRadius: 4,
-                            backgroundColor: '#e0e0e0',
+                            backgroundColor: '#d4edda',
                             '& .MuiLinearProgress-bar': {
                               backgroundColor: '#6AB4A8',
                               borderRadius: 4
                             }
                           }}
                         />
-                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                          Due: {transformed.dueDateFormatted} • {transformed.daysUntilLabel}
+                        <Typography variant="caption" fontWeight={600} sx={{ color: '#6AB4A8', minWidth: 40 }}>
+                          {goal.progress}%
                         </Typography>
                       </Box>
-                    );
-                  })}
+                    </Box>
+                  ))}
                 </Box>
               ) : (
                 <EmptyState
                   icon="info"
                   title="No Active Goals"
-                  message="Create goals to track your progress."
-                  variant="minimal"
-                  actionButton={{
-                    label: 'Create Goal',
-                    onClick: () => navigate('/performance/goals')
-                  }}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Right Column */}
-        <Grid item xs={12} md={4}>
-          
-          {/* Recent Feedback */}
-          <Card elevation={2} sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <FeedbackIcon sx={{ color: '#f59e42', fontSize: 28 }} />
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Recent Feedback
-                  </Typography>
-                  {stats.feedback.unread > 0 && (
-                    <Chip
-                      label={stats.feedback.unread}
-                      size="small"
-                      sx={{
-                        backgroundColor: '#FFF4E5',
-                        color: '#f59e42',
-                        fontWeight: 600
-                      }}
-                    />
-                  )}
-                </Box>
-              </Box>
-
-              {recentFeedback.length > 0 ? (
-                <Box>
-                  {recentFeedback.map((feedback, index) => (
-                    <Box key={feedback.feedbackId}>
-                      <Box sx={{ py: 2 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                          <Typography variant="body2" fontWeight={600}>
-                            {feedback.fromName}
-                          </Typography>
-                          <StatusChip
-                            status={feedback.feedbackType}
-                            size="small"
-                          />
-                        </Box>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          {feedback.content}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                          {formatDate(feedback.createdAt)}
-                        </Typography>
-                      </Box>
-                      {index < recentFeedback.length - 1 && <Divider />}
-                    </Box>
-                  ))}
-
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    onClick={() => navigate('/performance/feedback')}
-                    sx={{ mt: 2, borderColor: '#f59e42', color: '#f59e42' }}
-                  >
-                    View All Feedback
-                  </Button>
-                </Box>
-              ) : (
-                <EmptyState
-                  icon="info"
-                  title="No Feedback Yet"
-                  message="Feedback from colleagues will appear here."
+                  message="Set goals to track your progress."
                   variant="minimal"
                 />
               )}
