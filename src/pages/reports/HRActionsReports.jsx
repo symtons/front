@@ -57,8 +57,8 @@ const HRActionsReports = () => {
       setError(null);
 
       const [summaryRes, typeRes] = await Promise.all([
-        getHRActionsSummary({ year: selectedYear }),
-        getHRActionsByType({ year: selectedYear })
+        getHRActionsSummary(selectedYear),
+        getHRActionsByType(selectedYear)
       ]);
 
       setActionsSummary(summaryRes.data || []);

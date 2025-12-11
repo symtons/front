@@ -60,8 +60,8 @@ const RecruitmentReports = () => {
       setError(null);
 
       const [appsRes, funnelRes] = await Promise.all([
-        getApplicationSummary({ year: selectedYear }),
-        getHiringFunnel({ year: selectedYear })
+        getApplicationSummary( selectedYear ),
+        getHiringFunnel( selectedYear )
       ]);
 
       setApplications(appsRes.data || []);
