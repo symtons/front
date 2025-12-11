@@ -59,7 +59,7 @@ const LeaveReports = () => {
       setError(null);
 
       const [summaryRes, deptRes, ptoRes] = await Promise.all([
-        getLeaveSummary({ year: selectedYear }),
+        getLeaveSummary(selectedYear),
         getLeaveUsageByDepartment(),
         getPTOBalances()
       ]);

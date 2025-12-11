@@ -7,6 +7,14 @@ import { ApplicationReviewDashboard } from '../pages/recruitment';
 import { HRActionRequestForm, HRActionsReviewDashboard } from '../pages/hr-actions';
 import MyHRRequestsPage from '../pages/hr-actions/MyHRRequestsPage';
 
+
+import WorkforceReports from '../pages/reports/WorkforceReports';
+import PayrollReports from '../pages/reports/PayrollReports';
+import LeaveReports from '../pages/reports/LeaveReports';
+import PerformanceReports from '../pages/reports/PerformanceReports';
+import RecruitmentReports from '../pages/reports/RecruitmentReports';
+import HRActionsReports from '../pages/reports/HRActionsReports';
+
 // Import components
 import Login from '../pages/auth/Login';
 import Dashboard from '../pages/dashboard/Dashboard';
@@ -270,8 +278,32 @@ export const reportRoutes = [
     path: '/reports',
     element: <ProtectedRoute><ReportsOverview /></ProtectedRoute>
   },
-  // Placeholder comments for future report pages
+  {
+    path: '/reports/workforce',
+    element: <ProtectedRoute><WorkforceReports /></ProtectedRoute>
+  },
+  {
+    path: '/reports/payroll',
+    element: <ProtectedRoute><PayrollReports /></ProtectedRoute>
+  },
+  {
+    path: '/reports/leave',
+    element: <ProtectedRoute><LeaveReports /></ProtectedRoute>
+  },
+  {
+    path: '/reports/performance',
+    element: <ProtectedRoute><PerformanceReports /></ProtectedRoute>
+  },
+  {
+    path: '/reports/recruitment',
+    element: <ProtectedRoute><RecruitmentReports /></ProtectedRoute>
+  },
+  {
+    path: '/reports/hr-actions',
+    element: <ProtectedRoute><HRActionsReports /></ProtectedRoute>
+  }
 ];
+
 // Settings Routes (to be added later)
 export const settingsRoutes = [];
 
