@@ -77,39 +77,51 @@ export const formatNumber = (value) => {
 // ============================================
 
 /**
- * Export data to CSV
+ * Export data to CSV - IMPROVED VERSION
  * @param {Array} data - Array of objects to export
  * @param {string} filename - Name of the CSV file (without extension)
  */
 export const exportToCSV = (data, filename = 'export') => {
-  if (!data || data.length === 0) {
-    alert('No data to export');
+  // Validation
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    console.warn('No data to export:', data);
+    alert('No data available to export');
     return;
   }
 
   try {
+    console.log('Exporting data:', { rowCount: data.length, filename, firstRow: data[0] });
+    
     // Get headers from first object
     const headers = Object.keys(data[0]);
     
-    // Create CSV content
+    if (headers.length === 0) {
+      alert('No columns found in data');
+      return;
+    }
+    
+    // Create CSV header row
     let csvContent = headers.join(',') + '\n';
     
-    // Add rows
+    // Add data rows
     data.forEach(row => {
       const values = headers.map(header => {
         let value = row[header];
         
         // Handle null/undefined
         if (value === null || value === undefined) {
-          value = '';
+          return '';
         }
         
-        // Convert to string and escape quotes
-        value = String(value).replace(/"/g, '""');
+        // Convert to string
+        value = String(value);
+        
+        // Escape quotes by doubling them
+        value = value.replace(/"/g, '""');
         
         // Wrap in quotes if contains comma, newline, or quote
         if (value.includes(',') || value.includes('\n') || value.includes('"')) {
-          value = `"${value}"`;
+          return `"${value}"`;
         }
         
         return value;
@@ -118,22 +130,34 @@ export const exportToCSV = (data, filename = 'export') => {
       csvContent += values.join(',') + '\n';
     });
 
-    // Create blob and download
+    // Create blob
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    // Create download link
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const fullFilename = `${filename}_${timestamp}.csv`;
+    
     link.setAttribute('href', url);
-    link.setAttribute('download', `${filename}_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', fullFilename);
     link.style.visibility = 'hidden';
     
+    // Trigger download
     document.body.appendChild(link);
     link.click();
+    
+    // Cleanup
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    console.log('Export successful:', fullFilename);
     
   } catch (error) {
     console.error('Error exporting to CSV:', error);
-    alert('Failed to export data. Please try again.');
+    alert('Failed to export data. Please check console for details.');
   }
 };
 
@@ -208,149 +232,53 @@ export const printReport = (elementId) => {
 };
 
 // ============================================
-// DATA PROCESSING HELPERS
+// DATA TRANSFORMATION HELPERS
 // ============================================
 
 /**
- * Calculate percentage
- * @param {number} part - The part value
- * @param {number} total - The total value
- * @param {number} decimals - Number of decimal places (default: 1)
- * @returns {number} Calculated percentage
+ * Flatten nested objects for CSV export
+ * @param {Array} data - Array of objects
+ * @returns {Array} Flattened array
  */
-export const calculatePercentage = (part, total, decimals = 1) => {
-  if (!total || total === 0) return 0;
-  return parseFloat(((part / total) * 100).toFixed(decimals));
-};
-
-/**
- * Sort array of objects by key
- * @param {Array} data - Array to sort
- * @param {string} key - Key to sort by
- * @param {string} order - 'asc' or 'desc'
- * @returns {Array} Sorted array
- */
-export const sortData = (data, key, order = 'asc') => {
-  if (!data || !Array.isArray(data)) return [];
+export const flattenForExport = (data) => {
+  if (!Array.isArray(data) || data.length === 0) return [];
   
-  return [...data].sort((a, b) => {
-    const valueA = a[key];
-    const valueB = b[key];
+  return data.map(item => {
+    const flattened = {};
     
-    if (valueA === valueB) return 0;
+    Object.keys(item).forEach(key => {
+      const value = item[key];
+      
+      // If value is object, flatten it
+      if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+        Object.keys(value).forEach(subKey => {
+          flattened[`${key}_${subKey}`] = value[subKey];
+        });
+      } else {
+        flattened[key] = value;
+      }
+    });
     
-    if (order === 'asc') {
-      return valueA > valueB ? 1 : -1;
-    } else {
-      return valueA < valueB ? 1 : -1;
-    }
+    return flattened;
   });
 };
 
 /**
- * Filter data by search term
- * @param {Array} data - Array to filter
- * @param {string} searchTerm - Search term
- * @param {Array} searchFields - Fields to search in
+ * Filter columns for export
+ * @param {Array} data - Array of objects
+ * @param {Array} excludeColumns - Column names to exclude
  * @returns {Array} Filtered array
  */
-export const filterData = (data, searchTerm, searchFields = []) => {
-  if (!searchTerm || !data || !Array.isArray(data)) return data;
+export const filterColumnsForExport = (data, excludeColumns = []) => {
+  if (!Array.isArray(data) || data.length === 0) return [];
   
-  const term = searchTerm.toLowerCase();
-  
-  return data.filter(item => {
-    // If no fields specified, search all string values
-    if (searchFields.length === 0) {
-      return Object.values(item).some(value => 
-        String(value).toLowerCase().includes(term)
-      );
-    }
-    
-    // Search specified fields
-    return searchFields.some(field => 
-      String(item[field] || '').toLowerCase().includes(term)
-    );
+  return data.map(item => {
+    const filtered = {};
+    Object.keys(item).forEach(key => {
+      if (!excludeColumns.includes(key)) {
+        filtered[key] = item[key];
+      }
+    });
+    return filtered;
   });
-};
-
-/**
- * Group data by key
- * @param {Array} data - Array to group
- * @param {string} key - Key to group by
- * @returns {Object} Grouped data object
- */
-export const groupBy = (data, key) => {
-  if (!data || !Array.isArray(data)) return {};
-  
-  return data.reduce((result, item) => {
-    const groupKey = item[key];
-    if (!result[groupKey]) {
-      result[groupKey] = [];
-    }
-    result[groupKey].push(item);
-    return result;
-  }, {});
-};
-
-// ============================================
-// DATE HELPERS
-// ============================================
-
-/**
- * Get date range for preset
- * @param {string} preset - Date range preset
- * @returns {Object} Object with startDate and endDate
- */
-export const getDateRange = (preset) => {
-  const today = new Date();
-  let startDate, endDate;
-  
-  switch (preset) {
-    case 'today':
-      startDate = endDate = today;
-      break;
-      
-    case 'this_week':
-      startDate = new Date(today.setDate(today.getDate() - today.getDay()));
-      endDate = new Date(today.setDate(today.getDate() - today.getDay() + 6));
-      break;
-      
-    case 'this_month':
-      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      break;
-      
-    case 'this_quarter':
-      const quarter = Math.floor(today.getMonth() / 3);
-      startDate = new Date(today.getFullYear(), quarter * 3, 1);
-      endDate = new Date(today.getFullYear(), quarter * 3 + 3, 0);
-      break;
-      
-    case 'this_year':
-      startDate = new Date(today.getFullYear(), 0, 1);
-      endDate = new Date(today.getFullYear(), 11, 31);
-      break;
-      
-    case 'last_month':
-      startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      endDate = new Date(today.getFullYear(), today.getMonth(), 0);
-      break;
-      
-    case 'last_quarter':
-      const lastQuarter = Math.floor(today.getMonth() / 3) - 1;
-      startDate = new Date(today.getFullYear(), lastQuarter * 3, 1);
-      endDate = new Date(today.getFullYear(), lastQuarter * 3 + 3, 0);
-      break;
-      
-    case 'last_year':
-      startDate = new Date(today.getFullYear() - 1, 0, 1);
-      endDate = new Date(today.getFullYear() - 1, 11, 31);
-      break;
-      
-    default:
-      startDate = endDate = today;
-  }
-  
-  return { startDate, endDate };
 };

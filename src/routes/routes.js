@@ -8,6 +8,7 @@ import { HRActionRequestForm, HRActionsReviewDashboard } from '../pages/hr-actio
 import MyHRRequestsPage from '../pages/hr-actions/MyHRRequestsPage';
 
 
+
 import WorkforceReports from '../pages/reports/WorkforceReports';
 import PayrollReports from '../pages/reports/PayrollReports';
 import LeaveReports from '../pages/reports/LeaveReports';
@@ -99,31 +100,35 @@ export const profileRoutes = [
   },
 ];
 
-// Dashboard Routes (Role-based)
 export const dashboardRoutes = [
   {
+    path: '/dashboard',
+    element: <Dashboard />, // Smart router - detects role and shows appropriate dashboard
+  },
+  // Legacy routes redirect to unified dashboard
+  {
     path: '/admin/dashboard',
-    element: <Dashboard />,
+    element: <Navigate to="/dashboard" replace />,
   },
   {
     path: '/executive/dashboard',
-    element: <Dashboard />,
+    element: <Navigate to="/dashboard" replace />,
   },
   {
     path: '/director/dashboard',
-    element: <Dashboard />,
+    element: <Navigate to="/dashboard" replace />,
   },
   {
     path: '/programcoordinator/dashboard',
-    element: <Dashboard />,
+    element: <Navigate to="/dashboard" replace />,
   },
   {
     path: '/fieldoperatormanager/dashboard',
-    element: <Dashboard />,
+    element: <Navigate to="/dashboard" replace />,
   },
   {
     path: '/fieldoperator/dashboard',
-    element: <Dashboard />,
+    element: <Navigate to="/dashboard" replace />,
   },
 ];
 export const timesheetRoutes = [
