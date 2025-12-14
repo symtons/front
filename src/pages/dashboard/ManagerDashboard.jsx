@@ -1,7 +1,7 @@
 // src/pages/dashboard/ManagerDashboard.jsx
 /**
  * Manager Dashboard (Field Operator Manager)
- * Field operations and team scheduling overview
+ * Field operations and team scheduling overview - DATABASE DRIVEN
  */
 
 import React, { useState, useEffect } from 'react';
@@ -20,8 +20,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
-  Paper
+  Chip
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/layout/Layout';
@@ -29,7 +28,7 @@ import PageHeader from '../../components/common/layout/PageHeader';
 import WelcomeHeader from './components/WelcomeHeader';
 import StatCard from './components/StatCard';
 import dashboardService from '../../services/dashboardService';
-import { getMetric } from './models/dashboardModels';
+import { getMetric, formatDate } from './models/dashboardModels';
 
 const ManagerDashboard = ({ user }) => {
   const navigate = useNavigate();
@@ -59,43 +58,6 @@ const ManagerDashboard = ({ user }) => {
       setError('Failed to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Mock field staff data (replace with actual data from API)
-  const fieldStaff = [
-    { id: 1, name: 'John Smith', shift: '7:00 AM - 3:00 PM', location: 'Client Home - 123 Main St', status: 'clocked-in' },
-    { id: 2, name: 'Jane Doe', shift: '8:00 AM - 4:00 PM', location: 'Client Home - 456 Oak Ave', status: 'clocked-in' },
-    { id: 3, name: 'Bob Johnson', shift: '9:00 AM - 5:00 PM', location: 'Client Home - 789 Pine Rd', status: 'scheduled' },
-    { id: 4, name: 'Sarah Williams', shift: '7:00 AM - 3:00 PM', location: 'Client Home - 321 Elm St', status: 'on-break' },
-    { id: 5, name: 'Mike Brown', shift: '10:00 AM - 6:00 PM', location: 'Client Home - 654 Maple Dr', status: 'scheduled' },
-    { id: 6, name: 'Lisa Davis', shift: '8:00 AM - 4:00 PM', location: 'Client Home - 987 Cedar Ln', status: 'clocked-in' },
-  ];
-
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'clocked-in': return '#6AB4A8';
-      case 'on-break': return '#FDB94E';
-      case 'scheduled': return '#667eea';
-      default: return '#757575';
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    switch(status) {
-      case 'clocked-in': return 'On Duty';
-      case 'on-break': return 'On Break';
-      case 'scheduled': return 'Scheduled';
-      default: return 'Unknown';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch(status) {
-      case 'clocked-in': return '🟢';
-      case 'on-break': return '🟡';
-      case 'scheduled': return '🔵';
-      default: return '⚪';
     }
   };
 
@@ -135,7 +97,7 @@ const ManagerDashboard = ({ user }) => {
         role={`Field Operator Manager - ${metrics.DepartmentName || 'Department'}`}
       />
 
-      {/* Stat Cards Row */}
+      {/* Stat Cards Row - ALL FROM DATABASE */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
@@ -149,96 +111,93 @@ const ManagerDashboard = ({ user }) => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="On Duty Today"
-            value={fieldStaff.filter(s => s.status === 'clocked-in').length}
+            title="Available Today"
+            value={getMetric(metrics, 'TotalTeamMembers', 0) - getMetric(metrics, 'OnLeaveToday', 0)}
             type="number"
-            subtitle="Currently Working"
+            subtitle="Active Workers"
             icon="🟢"
             color="#6AB4A8"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Scheduled Tomorrow"
-            value={7}
+            title="On Leave Today"
+            value={getMetric(metrics, 'OnLeaveToday', 0)}
             type="number"
-            subtitle="Upcoming Shifts"
-            icon="📅"
+            subtitle="Team Members"
+            icon="🏖️"
             color="#FDB94E"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="On Leave"
-            value={getMetric(metrics, 'OnLeaveToday', 0)}
+            title="Pending Requests"
+            value={getMetric(metrics, 'PendingLeaveRequests', 0)}
             type="number"
-            subtitle="Today"
-            icon="🏖️"
+            subtitle="Awaiting Approval"
+            icon="⏳"
             color="#5B8FCC"
           />
         </Grid>
       </Grid>
 
       <Grid container spacing={3}>
-        {/* Live Field Staff Status */}
-        <Grid item xs={12}>
-          <Card>
+        {/* Team Status Overview */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  📍 Live Field Staff Status
-                </Typography>
-                <Button size="small" onClick={loadDashboardData}>
-                  🔄 Refresh
-                </Button>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                📊 Team Status Overview
+              </Typography>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Field Operators
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                    {getMetric(metrics, 'TotalTeamMembers', 0)}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Available for Assignment
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#6AB4A8' }}>
+                    {getMetric(metrics, 'TotalTeamMembers', 0) - getMetric(metrics, 'OnLeaveToday', 0)}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Coverage Rate
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                    {getMetric(metrics, 'TotalTeamMembers', 0) > 0 
+                      ? ((getMetric(metrics, 'TotalTeamMembers', 0) - getMetric(metrics, 'OnLeaveToday', 0)) / getMetric(metrics, 'TotalTeamMembers', 1) * 100).toFixed(0)
+                      : 0}%
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Average Team Rating
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                    {getMetric(metrics, 'TeamAvgRating', 0).toFixed(1)} ⭐
+                  </Typography>
+                </Box>
               </Box>
 
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell width="50">Status</TableCell>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Shift Time</TableCell>
-                      <TableCell>Location</TableCell>
-                      <TableCell align="center">Clock Status</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {fieldStaff.map((staff) => (
-                      <TableRow key={staff.id} hover>
-                        <TableCell>
-                          <Typography variant="h6">
-                            {getStatusIcon(staff.status)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {staff.name}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>{staff.shift}</TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {staff.location}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Chip 
-                            label={getStatusLabel(staff.status)}
-                            size="small"
-                            sx={{ 
-                              bgcolor: getStatusColor(staff.status) + '20',
-                              color: getStatusColor(staff.status),
-                              fontWeight: 600
-                            }}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <Button 
+                fullWidth 
+                variant="outlined" 
+                sx={{ mt: 3 }}
+                onClick={() => navigate(`/employees?department=${user.departmentId}`)}
+              >
+                📋 View Full Team Roster
+              </Button>
             </CardContent>
           </Card>
         </Grid>
@@ -252,36 +211,59 @@ const ManagerDashboard = ({ user }) => {
               </Typography>
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Alert severity="warning">
-                  <Typography variant="body2">
-                    <strong>⚠️ Coverage Needed</strong><br />
-                    Tomorrow 7:00 AM shift needs 1 more operator
-                  </Typography>
-                </Alert>
+                {/* Coverage Alert */}
+                {getMetric(metrics, 'OnLeaveToday', 0) > (getMetric(metrics, 'TotalTeamMembers', 0) * 0.3) && (
+                  <Alert severity="warning">
+                    <Typography variant="body2">
+                      <strong>⚠️ Low Coverage Alert</strong><br />
+                      {getMetric(metrics, 'OnLeaveToday', 0)} team members on leave today - consider backup staffing
+                    </Typography>
+                  </Alert>
+                )}
 
+                {/* Pending Approvals */}
                 {getMetric(metrics, 'PendingLeaveRequests', 0) > 0 && (
                   <Alert severity="info">
                     <Typography variant="body2">
                       <strong>📝 Pending Approvals</strong><br />
                       {getMetric(metrics, 'PendingLeaveRequests', 0)} leave requests awaiting your approval
-                      <Button size="small" sx={{ ml: 1 }} onClick={() => navigate('/leave/approvals')}>
+                      <Button 
+                        size="small" 
+                        sx={{ ml: 1 }}
+                        onClick={() => navigate('/leave/approve')}
+                      >
                         Review →
                       </Button>
                     </Typography>
                   </Alert>
                 )}
 
+                {/* Good Performance */}
+                {getMetric(metrics, 'TeamAvgRating', 0) >= 4.5 && (
+                  <Alert severity="success">
+                    <Typography variant="body2">
+                      <strong>✅ Excellent Team Performance</strong><br />
+                      Team maintains {getMetric(metrics, 'TeamAvgRating', 0).toFixed(1)} average rating
+                    </Typography>
+                  </Alert>
+                )}
+
+                {/* All Clear */}
+                {getMetric(metrics, 'PendingLeaveRequests', 0) === 0 && 
+                 getMetric(metrics, 'OnLeaveToday', 0) === 0 && (
+                  <Alert severity="success">
+                    <Typography variant="body2">
+                      <strong>✅ Full Team Available</strong><br />
+                      All field operators are available for assignment today
+                    </Typography>
+                  </Alert>
+                )}
+
+                {/* Information */}
                 <Alert severity="info">
                   <Typography variant="body2">
-                    <strong>🔄 Shift Swap Request</strong><br />
-                    John Smith requested to swap Friday shift with Jane Doe
-                  </Typography>
-                </Alert>
-
-                <Alert severity="success">
-                  <Typography variant="body2">
-                    <strong>✅ Perfect Attendance</strong><br />
-                    Sarah Williams - 30 days no absences
+                    <strong>ℹ️ Tip</strong><br />
+                    Use the Team Roster to view detailed availability and schedules
                   </Typography>
                 </Alert>
               </Box>
@@ -289,71 +271,77 @@ const ManagerDashboard = ({ user }) => {
           </Card>
         </Grid>
 
-        {/* This Week's Schedule */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%' }}>
+        {/* Quick Access to Common Tasks */}
+        <Grid item xs={12}>
+          <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                📅 This Week's Schedule
+                📋 Field Operations Management
               </Typography>
 
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Day</TableCell>
-                      <TableCell align="right">Scheduled</TableCell>
-                      <TableCell align="right">Required</TableCell>
-                      <TableCell align="center">Status</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {[
-                      { day: 'Monday', scheduled: 8, required: 8, status: 'full' },
-                      { day: 'Tuesday', scheduled: 7, required: 8, status: 'short' },
-                      { day: 'Wednesday', scheduled: 8, required: 8, status: 'full' },
-                      { day: 'Thursday', scheduled: 8, required: 8, status: 'full' },
-                      { day: 'Friday', scheduled: 6, required: 8, status: 'critical' },
-                    ].map((day) => (
-                      <TableRow key={day.day}>
-                        <TableCell sx={{ fontWeight: 600 }}>{day.day}</TableCell>
-                        <TableCell align="right">{day.scheduled}</TableCell>
-                        <TableCell align="right">{day.required}</TableCell>
-                        <TableCell align="center">
-                          <Chip 
-                            label={
-                              day.status === 'full' ? 'Fully Staffed' :
-                              day.status === 'short' ? 'Short 1' :
-                              'Critical'
-                            }
-                            size="small"
-                            sx={{ 
-                              bgcolor: 
-                                day.status === 'full' ? '#6AB4A820' :
-                                day.status === 'short' ? '#FDB94E20' :
-                                '#F4433620',
-                              color: 
-                                day.status === 'full' ? '#6AB4A8' :
-                                day.status === 'short' ? '#FDB94E' :
-                                '#F44336',
-                              fontWeight: 600
-                            }}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={4}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                        👥 Team Roster
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        View and manage field operator assignments
+                      </Typography>
+                      <Button 
+                        fullWidth 
+                        variant="contained"
+                        onClick={() => navigate(`/employees?department=${user.departmentId}`)}
+                      >
+                        View Roster →
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Grid>
 
-              <Button 
-                fullWidth 
-                variant="outlined" 
-                sx={{ mt: 2 }}
-                onClick={() => navigate('/schedule')}
-              >
-                📅 View Full Schedule
-              </Button>
+                <Grid item xs={12} md={4}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                        ✅ Leave Approvals
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Review and approve time-off requests
+                      </Typography>
+                      <Button 
+                        fullWidth 
+                        variant="contained"
+                        onClick={() => navigate('/leave/approve')}
+                      >
+                        {getMetric(metrics, 'PendingLeaveRequests', 0) > 0 
+                          ? `Review ${getMetric(metrics, 'PendingLeaveRequests', 0)} Request${getMetric(metrics, 'PendingLeaveRequests', 0) > 1 ? 's' : ''}`
+                          : 'View Approvals'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                        📊 Reports
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        View team performance and metrics
+                      </Typography>
+                      <Button 
+                        fullWidth 
+                        variant="contained"
+                        onClick={() => navigate('/reports')}
+                      >
+                        View Reports →
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
             </CardContent>
           </Card>
         </Grid>
@@ -371,18 +359,18 @@ const ManagerDashboard = ({ user }) => {
                   <Button 
                     fullWidth 
                     variant="outlined"
-                    onClick={() => navigate('/schedule')}
+                    onClick={() => navigate(`/employees?department=${user.departmentId}`)}
                   >
-                    📅 Manage Schedule
+                    👥 Team Roster
                   </Button>
                 </Grid>
                 <Grid item xs={6} sm={4} md={3}>
                   <Button 
                     fullWidth 
                     variant="outlined"
-                    onClick={() => navigate('/leave/approvals')}
+                    onClick={() => navigate('/leave/approve')}
                   >
-                    ✅ Approve Requests
+                    ✅ Approve Leave
                   </Button>
                 </Grid>
                 <Grid item xs={6} sm={4} md={3}>
@@ -391,7 +379,7 @@ const ManagerDashboard = ({ user }) => {
                     variant="outlined"
                     onClick={() => navigate('/attendance')}
                   >
-                    ⏰ Clock In/Out
+                    ⏰ Attendance
                   </Button>
                 </Grid>
                 <Grid item xs={6} sm={4} md={3}>
@@ -416,9 +404,9 @@ const ManagerDashboard = ({ user }) => {
                   <Button 
                     fullWidth 
                     variant="outlined"
-                    onClick={() => navigate(`/employees?department=${user.departmentId}`)}
+                    onClick={() => navigate('/performance')}
                   >
-                    👥 My Team
+                    ⭐ Performance
                   </Button>
                 </Grid>
               </Grid>

@@ -1,8 +1,10 @@
+// src/services/dashboardService.js
+/**
+ * Dashboard Service
+ * Handles all dashboard-related API calls
+ */
+
 import api from './authService';
-// =============================================
-// DASHBOARD API SERVICE
-// Handles all dashboard-related API calls
-// =============================================
 
 const dashboardService = {
   // =============================================
@@ -13,32 +15,48 @@ const dashboardService = {
    * Get complete admin dashboard data
    */
   getAdminDashboard: async () => {
-    const response = await api.get('/dashboard/admin');
-    return response.data;
+    try {
+      const response = await api.get('/dashboard/admin');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load admin dashboard' };
+    }
   },
 
   /**
    * Get admin metrics only
    */
   getAdminMetrics: async () => {
-    const response = await api.get('/dashboard/admin/metrics');
-    return response.data;
+    try {
+      const response = await api.get('/dashboard/admin/metrics');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load admin metrics' };
+    }
   },
 
   /**
    * Get admin department breakdown
    */
   getAdminDepartments: async () => {
-    const response = await api.get('/dashboard/admin/departments');
-    return response.data;
+    try {
+      const response = await api.get('/dashboard/admin/departments');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load department breakdown' };
+    }
   },
 
   /**
    * Get admin recent activity
    */
   getAdminActivity: async () => {
-    const response = await api.get('/dashboard/admin/activity');
-    return response.data;
+    try {
+      const response = await api.get('/dashboard/admin/activity');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load recent activity' };
+    }
   },
 
   // =============================================
@@ -49,32 +67,48 @@ const dashboardService = {
    * Get complete executive dashboard data
    */
   getExecutiveDashboard: async () => {
-    const response = await api.get('/dashboard/executive');
-    return response.data;
+    try {
+      const response = await api.get('/dashboard/executive');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load executive dashboard' };
+    }
   },
 
   /**
    * Get executive metrics only
    */
   getExecutiveMetrics: async () => {
-    const response = await api.get('/dashboard/executive/metrics');
-    return response.data;
+    try {
+      const response = await api.get('/dashboard/executive/metrics');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load executive metrics' };
+    }
   },
 
   /**
    * Get executive headcount trend
    */
   getExecutiveHeadcountTrend: async () => {
-    const response = await api.get('/dashboard/executive/headcount-trend');
-    return response.data;
+    try {
+      const response = await api.get('/dashboard/executive/headcount-trend');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load headcount trend' };
+    }
   },
 
   /**
    * Get executive department performance
    */
   getExecutiveDepartmentPerformance: async () => {
-    const response = await api.get('/dashboard/executive/department-performance');
-    return response.data;
+    try {
+      const response = await api.get('/dashboard/executive/department-performance');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load department performance' };
+    }
   },
 
   // =============================================
@@ -85,32 +119,48 @@ const dashboardService = {
    * Get complete director dashboard data
    */
   getDirectorDashboard: async (departmentId) => {
-    const response = await api.get(`/dashboard/director/${departmentId}`);
-    return response.data;
+    try {
+      const response = await api.get(`/dashboard/director/${departmentId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load director dashboard' };
+    }
   },
 
   /**
    * Get director metrics only
    */
   getDirectorMetrics: async (departmentId) => {
-    const response = await api.get(`/dashboard/director/${departmentId}/metrics`);
-    return response.data;
+    try {
+      const response = await api.get(`/dashboard/director/${departmentId}/metrics`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load director metrics' };
+    }
   },
 
   /**
    * Get director pending approvals
    */
   getDirectorPendingApprovals: async (departmentId) => {
-    const response = await api.get(`/dashboard/director/${departmentId}/pending-approvals`);
-    return response.data;
+    try {
+      const response = await api.get(`/dashboard/director/${departmentId}/pending-approvals`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load pending approvals' };
+    }
   },
 
   /**
    * Get director team status
    */
   getDirectorTeamStatus: async (departmentId) => {
-    const response = await api.get(`/dashboard/director/${departmentId}/team-status`);
-    return response.data;
+    try {
+      const response = await api.get(`/dashboard/director/${departmentId}/team-status`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load team status' };
+    }
   },
 
   // =============================================
@@ -121,8 +171,12 @@ const dashboardService = {
    * Get coordinator dashboard data
    */
   getCoordinatorDashboard: async (employeeId) => {
-    const response = await api.get(`/dashboard/coordinator/${employeeId}`);
-    return response.data;
+    try {
+      const response = await api.get(`/dashboard/coordinator/${employeeId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load coordinator dashboard' };
+    }
   },
 
   // =============================================
@@ -133,8 +187,12 @@ const dashboardService = {
    * Get manager dashboard data
    */
   getManagerDashboard: async (employeeId) => {
-    const response = await api.get(`/dashboard/manager/${employeeId}`);
-    return response.data;
+    try {
+      const response = await api.get(`/dashboard/manager/${employeeId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load manager dashboard' };
+    }
   },
 
   // =============================================
@@ -145,32 +203,48 @@ const dashboardService = {
    * Get complete employee dashboard data
    */
   getEmployeeDashboard: async (employeeId) => {
-    const response = await api.get(`/dashboard/employee/${employeeId}`);
-    return response.data;
+    try {
+      const response = await api.get(`/dashboard/employee/${employeeId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load employee dashboard' };
+    }
   },
 
   /**
    * Get employee metrics only
    */
   getEmployeeMetrics: async (employeeId) => {
-    const response = await api.get(`/dashboard/employee/${employeeId}/metrics`);
-    return response.data;
+    try {
+      const response = await api.get(`/dashboard/employee/${employeeId}/metrics`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load employee metrics' };
+    }
   },
 
   /**
    * Get employee leave requests
    */
   getEmployeeLeaveRequests: async (employeeId) => {
-    const response = await api.get(`/dashboard/employee/${employeeId}/leave-requests`);
-    return response.data;
+    try {
+      const response = await api.get(`/dashboard/employee/${employeeId}/leave-requests`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load leave requests' };
+    }
   },
 
   /**
    * Get employee upcoming events
    */
   getEmployeeUpcomingEvents: async (employeeId) => {
-    const response = await api.get(`/dashboard/employee/${employeeId}/upcoming-events`);
-    return response.data;
+    try {
+      const response = await api.get(`/dashboard/employee/${employeeId}/upcoming-events`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to load upcoming events' };
+    }
   },
 };
 
