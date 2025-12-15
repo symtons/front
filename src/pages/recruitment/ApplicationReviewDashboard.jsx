@@ -207,7 +207,7 @@ const ApplicationReviewDashboard = () => {
   const handleApproveConfirm = async () => {
     try {
       setApproving(true);
-      await applicationReviewService.updateApprovalStatus(
+      await applicationReviewService.approveApplication(
         selectedApplication.applicationId,
         APPROVAL_STATUS.APPROVED
       );
