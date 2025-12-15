@@ -1,11 +1,13 @@
 // src/pages/dashboard/Dashboard.jsx
 /**
- * Dashboard Router Component
+ * Dashboard Router Component - FIXED FOR ONBOARDING
  * Detects user role and renders appropriate dashboard
+ * Redirects employees with incomplete onboarding to their tasks page
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, CircularProgress } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import AdminDashboard from './AdminDashboard';
 import ExecutiveDashboard from './ExecutiveDashboard';
@@ -15,6 +17,7 @@ import ManagerDashboard from './ManagerDashboard';
 import EmployeeDashboard from './EmployeeDashboard';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const user = authService.getCurrentUser();
   const employee = JSON.parse(localStorage.getItem('employee') || '{}');
 
@@ -26,13 +29,39 @@ const Dashboard = () => {
     departmentId: employee.departmentId || user.departmentId,
     departmentName: employee.departmentName || user.departmentName,
     roleLevel: user.roleLevel,
+    onboardingStatus: user.onboardingStatus || employee.onboardingStatus,
   };
+
+  // ✅ FIX: Check if onboarding is required and redirect
+  useEffect(() => {
+    // Only check for Field Operators (roleLevel 6)
+    if (currentUser.roleLevel === 6) {
+      const onboardingStatus = currentUser.onboardingStatus;
+      
+      // If onboarding is not completed, redirect to tasks page
+      if (onboardingStatus !== 'Completed') {
+        console.log('Onboarding not complete, redirecting to tasks page');
+        navigate('/onboarding/my-tasks');
+        return;
+      }
+    }
+  }, [currentUser.roleLevel, currentUser.onboardingStatus, navigate]);
 
   // Loading state
   if (!currentUser || !currentUser.roleLevel) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <CircularProgress size={48} />
+      </Box>
+    );
+  }
+
+  // ✅ FIX: Don't render dashboard if onboarding is incomplete
+  if (currentUser.roleLevel === 6 && currentUser.onboardingStatus !== 'Completed') {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress size={48} />
+        <p style={{ marginLeft: '1rem' }}>Redirecting to onboarding tasks...</p>
       </Box>
     );
   }

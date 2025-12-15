@@ -264,6 +264,18 @@ const PersonalInfoSection = ({ formData, onChange, errors = {} }) => {
             helperText={errors.cellNumber}
           />
         </Grid>
+
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            label="Email"
+            name="email"
+            value={formData.email || ''}
+            onChange={handleChange}
+            placeholder=""
+            
+          />
+        </Grid>
       </Grid>
 
       {/* EMERGENCY CONTACT SECTION */}

@@ -1,5 +1,7 @@
-// ApplicationDetailDialog with debugging and better N/A handling
-import React, { useState, useEffect } from 'react';
+// src/pages/recruitment/components/ApplicationDetailDialog.jsx
+// FIXED VERSION - Handles both camelCase and PascalCase API responses
+
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -28,13 +30,6 @@ import {
 const ApplicationDetailDialog = ({ open, onClose, application, onApprove, onReject, onAddNotes }) => {
   const [activeTab, setActiveTab] = useState(0);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('=== ApplicationDetailDialog ===');
-    console.log('open:', open);
-    console.log('application:', application);
-  }, [open, application]);
-
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
@@ -44,11 +39,7 @@ const ApplicationDetailDialog = ({ open, onClose, application, onApprove, onReje
     onClose();
   };
 
-  // If no application, don't render
-  if (!application) {
-    console.log('No application provided to dialog');
-    return null;
-  }
+  if (!application) return null;
 
   return (
     <Dialog
@@ -76,9 +67,11 @@ const ApplicationDetailDialog = ({ open, onClose, application, onApprove, onReje
             Application Details
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {application.fullName || `${application.firstName || ''} ${application.lastName || ''}`.trim() || 'Applicant'} 
+            {getField(application, 'fullName') || 
+             `${getField(application, 'firstName')} ${getField(application, 'lastName')}`.trim() || 
+             'Applicant'} 
             {' - '}
-            {application.positionAppliedFor || application.position1 || 'Position Not Specified'}
+            {getField(application, 'positionAppliedFor') || getField(application, 'position1') || 'Position Not Specified'}
           </Typography>
         </Box>
         <IconButton onClick={handleClose}>
@@ -89,15 +82,15 @@ const ApplicationDetailDialog = ({ open, onClose, application, onApprove, onReje
       {/* Status Chips */}
       <Box sx={{ px: 3, pt: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
         <Chip
-          label={application.approvalStatus || 'Pending'}
+          label={getField(application, 'approvalStatus') || 'Pending'}
           color={
-            application.approvalStatus === 'Approved' ? 'success' :
-            application.approvalStatus === 'Rejected' ? 'error' : 'warning'
+            getField(application, 'approvalStatus') === 'Approved' ? 'success' :
+            getField(application, 'approvalStatus') === 'Rejected' ? 'error' : 'warning'
           }
           size="small"
         />
         <Typography variant="body2" color="text.secondary">
-          Application ID: {application.applicationId || 'N/A'}
+          Application ID: {getField(application, 'applicationId') || 'N/A'}
         </Typography>
       </Box>
 
@@ -148,7 +141,7 @@ const ApplicationDetailDialog = ({ open, onClose, application, onApprove, onReje
         >
           Add Notes
         </Button>
-        {application.approvalStatus === 'Pending' && (
+        {getField(application, 'approvalStatus') === 'Pending' && (
           <>
             <Button
               variant="contained"
@@ -173,36 +166,97 @@ const ApplicationDetailDialog = ({ open, onClose, application, onApprove, onReje
   );
 };
 
-// Helper function to safely get value
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Get field value - tries both camelCase and PascalCase
+ * @param {Object} obj - Object to get field from
+ * @param {string} fieldName - Field name in camelCase
+ * @returns {any} Field value or null
+ */
+const getField = (obj, fieldName) => {
+  if (!obj) return null;
+  
+  // Try camelCase first (e.g., "phoneNumber")
+  if (obj[fieldName] !== undefined && obj[fieldName] !== null) {
+    return obj[fieldName];
+  }
+  
+  // Try PascalCase (e.g., "PhoneNumber")
+  const pascalCase = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+  if (obj[pascalCase] !== undefined && obj[pascalCase] !== null) {
+    return obj[pascalCase];
+  }
+  
+  return null;
+};
+
+/**
+ * Get value or "Not Provided"
+ */
 const getValue = (value) => value || 'Not Provided';
 
-// Tabs
+/**
+ * Table Row Component
+ */
+const Row = ({ label, value }) => (
+  <TableRow>
+    <TableCell sx={{ fontWeight: 600, width: '30%', borderBottom: '1px solid #f0f0f0' }}>
+      {label}
+    </TableCell>
+    <TableCell sx={{ borderBottom: '1px solid #f0f0f0' }}>
+      {getValue(value)}
+    </TableCell>
+  </TableRow>
+);
+
+// ============================================
+// TAB COMPONENTS
+// ============================================
+
 const PersonalTab = ({ app }) => (
   <Box>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Personal Information</Typography>
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>
+      Personal Information
+    </Typography>
     <Table size="small">
       <TableBody>
-        <Row label="Full Name" value={app.fullName || `${app.firstName || ''} ${app.middleName || ''} ${app.lastName || ''}`.trim()} />
-        <Row label="Email" value={app.email} />
-        <Row label="Phone" value={app.phoneNumber} />
-        <Row label="Cell" value={app.cellNumber} />
-        <Row label="Address" value={app.homeAddress} />
-        <Row label="City" value={app.city} />
-        <Row label="State" value={app.state} />
-        <Row label="Zip" value={app.zipCode} />
-        <Row label="SSN" value={app.socialSecurityNumber ? '***-**-' + app.socialSecurityNumber.slice(-4) : 'Not Provided'} />
-        <Row label="Driver's License" value={app.driversLicenseNumber} />
-        <Row label="License State" value={app.driversLicenseState} />
+        <Row 
+          label="Full Name" 
+          value={getField(app, 'fullName') || 
+                 `${getField(app, 'firstName') || ''} ${getField(app, 'middleName') || ''} ${getField(app, 'lastName') || ''}`.trim()} 
+        />
+        <Row label="Email" value={getField(app, 'email')} />
+        <Row label="Phone" value={getField(app, 'phoneNumber')} />
+        <Row label="Cell" value={getField(app, 'cellNumber')} />
+        <Row label="Address" value={getField(app, 'address') || getField(app, 'homeAddress')} />
+        <Row label="City" value={getField(app, 'city')} />
+        <Row label="State" value={getField(app, 'state')} />
+        <Row label="Zip" value={getField(app, 'zipCode') || getField(app, 'zip')} />
+        <Row 
+          label="SSN" 
+          value={getField(app, 'socialSecurityNumber') ? 
+                '***-**-' + getField(app, 'socialSecurityNumber').slice(-4) : 
+                'Not Provided'} 
+        />
+        <Row label="Driver's License" value={getField(app, 'driversLicenseNumber')} />
+        <Row label="License State" value={getField(app, 'driversLicenseState')} />
       </TableBody>
     </Table>
+    
     <Divider sx={{ my: 3 }} />
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Emergency Contact</Typography>
+    
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>
+      Emergency Contact
+    </Typography>
     <Table size="small">
       <TableBody>
-        <Row label="Name" value={app.emergencyContactPerson} />
-        <Row label="Relationship" value={app.emergencyContactRelationship} />
-        <Row label="Address" value={app.emergencyContactAddress} />
-        <Row label="Phone" value={app.emergencyContactPhone} />
+        <Row label="Name" value={getField(app, 'emergencyContactPerson')} />
+        <Row label="Relationship" value={getField(app, 'emergencyContactRelationship')} />
+        <Row label="Address" value={getField(app, 'emergencyContactAddress')} />
+        <Row label="Phone" value={getField(app, 'emergencyContactPhone')} />
       </TableBody>
     </Table>
   </Box>
@@ -210,120 +264,266 @@ const PersonalTab = ({ app }) => (
 
 const PositionTab = ({ app }) => (
   <Box>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Position Details</Typography>
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>
+      Position Details
+    </Typography>
     <Table size="small">
       <TableBody>
-        <Row label="Position 1" value={app.position1 || app.positionAppliedFor} />
-        <Row label="Position 2" value={app.position2} />
-        <Row label="Salary Desired" value={app.salaryDesired} />
-        <Row label="Employment Type" value={app.employmentSought} />
-        <Row label="Start Date" value={app.availableStartDate} />
+        <Row label="Position 1" value={getField(app, 'position1') || getField(app, 'positionAppliedFor')} />
+        <Row label="Position 2" value={getField(app, 'position2')} />
+        <Row label="Salary Desired" value={getField(app, 'salaryDesired') || getField(app, 'desiredSalary')} />
+        <Row label="Salary Type" value={getField(app, 'salaryType')} />
+        <Row label="Employment Type" value={getField(app, 'employmentSought')} />
+        <Row label="Start Date" value={getField(app, 'availableStartDate') || getField(app, 'expectedStartDate')} />
+        <Row label="Desired Locations" value={getField(app, 'desiredLocations')} />
+        <Row label="Shift Preferences" value={getField(app, 'shiftPreferences')} />
+        <Row label="Days Available" value={getField(app, 'daysAvailable')} />
       </TableBody>
     </Table>
   </Box>
 );
 
-const EducationTab = ({ app }) => (
-  <Box>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Education</Typography>
-    <Box sx={{ mb: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>High School</Typography>
-      <Table size="small">
-        <TableBody>
-          <Row label="Name" value={app.highSchoolName} />
-          <Row label="Location" value={app.highSchoolLocation} />
-          <Row label="Graduated" value={app.highSchoolGraduated ? 'Yes' : 'No'} />
-        </TableBody>
-      </Table>
-    </Box>
-    <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>College</Typography>
-      <Table size="small">
-        <TableBody>
-          <Row label="Name" value={app.collegeName} />
-          <Row label="Location" value={app.collegeLocation} />
-          <Row label="Degree" value={app.collegeDegree} />
-          <Row label="Graduated" value={app.collegeGraduated ? 'Yes' : 'No'} />
-        </TableBody>
-      </Table>
-    </Box>
-  </Box>
-);
+const EducationTab = ({ app }) => {
+  // Try to parse education data if it's JSON
+  let educationData = null;
+  const educationField = getField(app, 'education');
+  if (educationField && typeof educationField === 'string') {
+    try {
+      educationData = JSON.parse(educationField);
+    } catch (e) {
+      // Not JSON, use as is
+    }
+  }
 
-const LicensesTab = ({ app }) => (
-  <Box>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Licenses & Certifications</Typography>
-    <Table size="small">
-      <TableBody>
-        <Row label="RN License" value={app.rnLicense} />
-        <Row label="LPN License" value={app.lpnLicense} />
-        <Row label="CPR Certified" value={app.cprCertification} />
-        <Row label="First Aid" value={app.firstAidCertification} />
-        <Row label="Other" value={app.otherCertifications} />
-      </TableBody>
-    </Table>
-  </Box>
-);
-
-const ReferencesTab = ({ app }) => (
-  <Box>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>References</Typography>
-    {[1, 2, 3].map(num => (
-      <Box key={num} sx={{ mb: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Reference {num}</Typography>
+  return (
+    <Box>
+      <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>
+        Education
+      </Typography>
+      
+      <Box sx={{ mb: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+          Elementary School
+        </Typography>
         <Table size="small">
           <TableBody>
-            <Row label="Name" value={app[`reference${num}Name`]} />
-            <Row label="Company" value={app[`reference${num}Company`]} />
-            <Row label="Title" value={app[`reference${num}Title`]} />
-            <Row label="Phone" value={app[`reference${num}Phone`]} />
+            <Row label="School Name" value={getField(app, 'elementarySchool')} />
+            <Row label="Years Completed" value={getField(app, 'elementaryYearsCompleted')} />
+            <Row label="Diploma" value={getField(app, 'elementaryDiploma') ? 'Yes' : 'No'} />
           </TableBody>
         </Table>
       </Box>
-    ))}
-  </Box>
-);
 
-const EmploymentTab = ({ app }) => (
-  <Box>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Employment History</Typography>
-    {[1, 2, 3].map(num => app[`employer${num}Name`] && (
-      <Box key={num} sx={{ mb: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Employer {num}</Typography>
+      <Box sx={{ mb: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+          High School
+        </Typography>
         <Table size="small">
           <TableBody>
-            <Row label="Company" value={app[`employer${num}Name`]} />
-            <Row label="Job Title" value={app[`employer${num}JobTitle`]} />
-            <Row label="Supervisor" value={app[`employer${num}Supervisor`]} />
-            <Row label="Phone" value={app[`employer${num}Phone`]} />
-            <Row label="Reason for Leaving" value={app[`employer${num}ReasonForLeaving`]} />
+            <Row label="School Name" value={getField(app, 'highSchool')} />
+            <Row label="Years Completed" value={getField(app, 'highSchoolYearsCompleted')} />
+            <Row label="Diploma" value={getField(app, 'highSchoolDiploma') ? 'Yes' : 'No'} />
           </TableBody>
         </Table>
       </Box>
-    ))}
-  </Box>
-);
+
+      <Box sx={{ mb: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+          Undergraduate
+        </Typography>
+        <Table size="small">
+          <TableBody>
+            <Row label="School Name" value={getField(app, 'undergraduateSchool')} />
+            <Row label="Years Completed" value={getField(app, 'undergraduateYearsCompleted')} />
+            <Row label="Degree" value={getField(app, 'undergraduateDegree') ? 'Yes' : 'No'} />
+            <Row label="Skills/Major" value={getField(app, 'undergraduateSkills')} />
+          </TableBody>
+        </Table>
+      </Box>
+
+      <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+          Graduate School
+        </Typography>
+        <Table size="small">
+          <TableBody>
+            <Row label="School Name" value={getField(app, 'graduateSchool')} />
+            <Row label="Years Completed" value={getField(app, 'graduateYearsCompleted')} />
+            <Row label="Degree" value={getField(app, 'graduateDegree') ? 'Yes' : 'No'} />
+            <Row label="Skills/Major" value={getField(app, 'graduateSkills')} />
+          </TableBody>
+        </Table>
+      </Box>
+
+      <Box sx={{ mt: 2 }}>
+        <Row label="Special Knowledge/Skills" value={getField(app, 'specialKnowledge')} />
+      </Box>
+    </Box>
+  );
+};
+
+const LicensesTab = ({ app }) => {
+  // Try to parse licenses if JSON
+  let licenses = [];
+  const licensesField = getField(app, 'licenses');
+  if (licensesField) {
+    if (typeof licensesField === 'string') {
+      try {
+        licenses = JSON.parse(licensesField);
+      } catch (e) {
+        // Not JSON
+      }
+    } else if (Array.isArray(licensesField)) {
+      licenses = licensesField;
+    }
+  }
+
+  return (
+    <Box>
+      <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>
+        Licenses & Certifications
+      </Typography>
+      
+      {licenses && licenses.length > 0 ? (
+        licenses.map((license, index) => (
+          <Box key={index} sx={{ mb: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              License {index + 1}
+            </Typography>
+            <Table size="small">
+              <TableBody>
+                <Row label="License Type" value={license.licenseType || license.LicenseType} />
+                <Row label="State" value={license.state || license.State} />
+                <Row label="Number" value={license.number || license.Number} />
+                <Row label="Expiration" value={license.expirationDate || license.ExpirationDate} />
+              </TableBody>
+            </Table>
+          </Box>
+        ))
+      ) : (
+        <Typography color="text.secondary">No licenses or certifications provided</Typography>
+      )}
+
+      <Divider sx={{ my: 3 }} />
+      
+      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+        DIDD Training Classes
+      </Typography>
+      <Typography>
+        {getValue(getField(app, 'diddTrainingClasses'))}
+      </Typography>
+    </Box>
+  );
+};
+
+const ReferencesTab = ({ app }) => {
+  // Try to parse references if JSON
+  let references = [];
+  const referencesField = getField(app, 'references');
+  if (referencesField) {
+    if (typeof referencesField === 'string') {
+      try {
+        references = JSON.parse(referencesField);
+      } catch (e) {
+        // Not JSON
+      }
+    } else if (Array.isArray(referencesField)) {
+      references = referencesField;
+    }
+  }
+
+  return (
+    <Box>
+      <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>
+        Professional References
+      </Typography>
+      
+      {references && references.length > 0 ? (
+        references.map((ref, index) => (
+          <Box key={index} sx={{ mb: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              Reference {index + 1}
+            </Typography>
+            <Table size="small">
+              <TableBody>
+                <Row label="Name" value={`${ref.firstName || ref.FirstName || ''} ${ref.lastName || ref.LastName || ''}`.trim()} />
+                <Row label="Phone" value={ref.phoneNumber || ref.PhoneNumber} />
+                <Row label="Email" value={ref.email || ref.Email} />
+                <Row label="Years Known" value={ref.yearsKnown || ref.YearsKnown} />
+              </TableBody>
+            </Table>
+          </Box>
+        ))
+      ) : (
+        <Typography color="text.secondary">No references provided</Typography>
+      )}
+    </Box>
+  );
+};
+
+const EmploymentTab = ({ app }) => {
+  // Try to parse employment history if JSON
+  let employmentHistory = [];
+  const employmentField = getField(app, 'employmentHistory');
+  if (employmentField) {
+    if (typeof employmentField === 'string') {
+      try {
+        employmentHistory = JSON.parse(employmentField);
+      } catch (e) {
+        // Not JSON
+      }
+    } else if (Array.isArray(employmentField)) {
+      employmentHistory = employmentField;
+    }
+  }
+
+  return (
+    <Box>
+      <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>
+        Employment History
+      </Typography>
+      
+      {employmentHistory && employmentHistory.length > 0 ? (
+        employmentHistory.map((job, index) => (
+          <Box key={index} sx={{ mb: 3, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              Position {index + 1}
+            </Typography>
+            <Table size="small">
+              <TableBody>
+                <Row label="Employer" value={job.employer || job.Employer} />
+                <Row label="Job Title" value={job.jobTitle || job.JobTitle} />
+                <Row label="Supervisor" value={job.supervisor || job.Supervisor} />
+                <Row label="Address" value={job.address || job.Address} />
+                <Row label="Phone" value={job.telephoneNumber || job.TelephoneNumber} />
+                <Row label="From" value={job.employedFrom || job.EmployedFrom} />
+                <Row label="To" value={job.employedTo || job.EmployedTo} />
+                <Row label="Starting Pay" value={job.startingPay || job.StartingPay} />
+                <Row label="Final Pay" value={job.finalPay || job.FinalPay} />
+                <Row label="Work Performed" value={job.workPerformed || job.WorkPerformed} />
+                <Row label="Reason for Leaving" value={job.reasonForLeaving || job.ReasonForLeaving} />
+              </TableBody>
+            </Table>
+          </Box>
+        ))
+      ) : (
+        <Typography color="text.secondary">No employment history provided</Typography>
+      )}
+    </Box>
+  );
+};
 
 const NotesTab = ({ app }) => (
   <Box>
-    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>Review Notes</Typography>
-    {app.reviewNotes ? (
-      <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
-        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{app.reviewNotes}</Typography>
-      </Box>
-    ) : (
-      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-        No review notes yet
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#667eea' }}>
+      Review Notes
+    </Typography>
+    <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1, minHeight: 200 }}>
+      <Typography sx={{ whiteSpace: 'pre-wrap' }}>
+        {getField(app, 'reviewNotes') || 'No notes added yet.'}
       </Typography>
-    )}
+    </Box>
   </Box>
-);
-
-const Row = ({ label, value }) => (
-  <TableRow>
-    <TableCell sx={{ fontWeight: 600, width: '35%', border: 'none', py: 1 }}>{label}</TableCell>
-    <TableCell sx={{ border: 'none', py: 1 }}>{getValue(value)}</TableCell>
-  </TableRow>
 );
 
 export default ApplicationDetailDialog;

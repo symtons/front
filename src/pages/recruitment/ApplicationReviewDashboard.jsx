@@ -177,10 +177,27 @@ const ApplicationReviewDashboard = () => {
   };
 
   // Dialog handlers
-  const handleViewApplication = (application) => {
-    setSelectedApplication(application);
+  // const handleViewApplication = (application) => {
+  //   setSelectedApplication(application);
+  //   setDetailDialogOpen(true);
+  // };
+  const handleViewApplication = async (application) => {
+  try {
+    // ✅ FIX: Fetch FULL application data from API
+    console.log('Fetching full application data for ID:', application.applicationId);
+    
+    const fullApplicationData = await applicationReviewService.getApplicationById(application.applicationId);
+    
+    console.log('Full application data received:', fullApplicationData);
+    
+    // Set the FULL data (not the transformed/limited data)
+    setSelectedApplication(fullApplicationData);
     setDetailDialogOpen(true);
-  };
+  } catch (err) {
+    console.error('Error fetching application details:', err);
+    setError('Failed to load application details');
+  }
+};
 
   const handleApproveClick = (application) => {
     setSelectedApplication(application);
