@@ -14,7 +14,8 @@ import {
   Alert,
   CircularProgress,
   InputAdornment,
-  IconButton
+  IconButton,
+  Snackbar
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -23,12 +24,14 @@ import {
   PersonAdd as PersonAddIcon,
   Person as PersonIcon,
   Badge as BadgeIcon,
-  Business as BusinessIcon
+  Business as BusinessIcon,
+  Upload as UploadIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/layout/Layout';
 import PageHeader from '../../components/common/layout/PageHeader';
 import api from '../../services/authService';
+import BulkImportModal from './BulkImportModal';
 
 // Import from models
 import {
@@ -50,6 +53,11 @@ const AddEmployee = () => {
   const [managers, setManagers] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  
+  // Bulk import state
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Initialize form data using model
   const [formData, setFormData] = useState(getInitialEmployeeRegistrationData());
@@ -157,12 +165,33 @@ const AddEmployee = () => {
   return (
     <Layout>
       <Box sx={{ p: 3 }}>
-        {/* Page Header */}
+        {/* Page Header with Bulk Import Button */}
         <PageHeader
           icon={PersonAddIcon}
           title="Add New Employee"
           subtitle="Create a new employee account and profile"
           chips={headerChips}
+          actionButton={
+            <Button
+              variant="contained"
+              startIcon={<UploadIcon />}
+              onClick={() => {
+  console.log('Button clicked!');
+  alert('Button works!');
+  setBulkImportOpen(true);
+}}
+              sx={{ 
+                backgroundColor: 'white',
+                color: '#667eea',
+                fontWeight: 600,
+                '&:hover': {
+                  backgroundColor: '#f5f5f5'
+                }
+              }}
+            >
+              Bulk Import
+            </Button>
+          }
           backgroundColor="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
         />
 
@@ -228,23 +257,15 @@ const AddEmployee = () => {
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                        >
                           {showPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
                       </InputAdornment>
                     )
                   }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Confirm Password"
-                  name="confirmPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
                 />
               </Grid>
             </Grid>
@@ -323,10 +344,9 @@ const AddEmployee = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Personal Email"
-                  name="personalEmail"
-                  type="email"
-                  value={formData.personalEmail}
+                  label="Address"
+                  name="address"
+                  value={formData.address}
                   onChange={handleChange}
                 />
               </Grid>
@@ -338,14 +358,21 @@ const AddEmployee = () => {
             </Typography>
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Employee Code"
-                  name="employeeCode"
-                  value={formData.employeeCode}
-                  onChange={handleChange}
-                  required
-                />
+                <FormControl fullWidth required>
+                  <InputLabel>Department</InputLabel>
+                  <Select
+                    name="departmentId"
+                    value={formData.departmentId}
+                    onChange={handleChange}
+                    label="Department"
+                  >
+                    {departments.map((dept) => (
+                      <MenuItem key={dept.departmentId} value={dept.departmentId}>
+                        {dept.departmentName}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth required>
@@ -365,7 +392,7 @@ const AddEmployee = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth required>
+                <FormControl fullWidth>
                   <InputLabel>Employment Type</InputLabel>
                   <Select
                     name="employmentType"
@@ -382,17 +409,17 @@ const AddEmployee = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>Department</InputLabel>
+                <FormControl fullWidth>
+                  <InputLabel>Employment Status</InputLabel>
                   <Select
-                    name="departmentId"
-                    value={formData.departmentId}
+                    name="employmentStatus"
+                    value={formData.employmentStatus}
                     onChange={handleChange}
-                    label="Department"
+                    label="Employment Status"
                   >
-                    {departments.map((dept) => (
-                      <MenuItem key={dept.departmentId} value={dept.departmentId}>
-                        {dept.departmentName}
+                    {EMPLOYMENT_STATUS_OPTIONS.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
                       </MenuItem>
                     ))}
                   </Select>
@@ -465,6 +492,33 @@ const AddEmployee = () => {
           </Box>
         </Paper>
       </Box>
+
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        open={bulkImportOpen}
+        onClose={() => setBulkImportOpen(false)}
+        onSuccess={(message) => {
+          setSuccessMessage(message);
+          setShowSuccess(true);
+          setBulkImportOpen(false);
+        }}
+      />
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={showSuccess}
+        autoHideDuration={6000}
+        onClose={() => setShowSuccess(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setShowSuccess(false)} 
+          severity="success" 
+          sx={{ width: '100%' }}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Layout>
   );
 };
