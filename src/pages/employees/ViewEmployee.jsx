@@ -1,5 +1,5 @@
 // src/pages/employees/ViewEmployee.jsx
-// FIXED VERSION: Better alignment + proper Edit permission check
+// FIXED VERSION: Better alignment + proper Edit permission check + NEW BULK IMPORT FIELDS
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -29,7 +29,10 @@ import {
   LocationOn as LocationIcon,
   CalendarToday as CalendarIcon,
   Work as WorkIcon,
-  ContactEmergency as EmergencyIcon
+  ContactEmergency as EmergencyIcon,
+  Info as InfoIcon,
+  LocalHospital as LocalHospitalIcon,
+  CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/layout/Layout';
@@ -115,7 +118,7 @@ const ViewEmployee = () => {
       const employeeMenu = findMenu(response.data);
       if (employeeMenu) {
         setCanEdit(employeeMenu.canEdit || false);
-        console.log('Edit permission:', employeeMenu.canEdit); // Debug log
+        console.log('Edit permission:', employeeMenu.canEdit);
       }
     } catch (err) {
       console.error('Error checking permissions:', err);
@@ -135,7 +138,7 @@ const ViewEmployee = () => {
     setSuccessMessage(message);
     setShowSuccess(true);
     setEditModalOpen(false);
-    fetchEmployee(); // Refresh employee data
+    fetchEmployee();
   };
 
   const formatDate = (dateString) => {
@@ -193,7 +196,6 @@ const ViewEmployee = () => {
   return (
     <Layout>
       <Box sx={{ p: 3 }}>
-        {/* Success Message */}
         {showSuccess && (
           <Alert 
             severity="success" 
@@ -204,7 +206,6 @@ const ViewEmployee = () => {
           </Alert>
         )}
 
-        {/* Page Header with TPA Colors */}
         <PageHeader
           icon={PersonIcon}
           title={formatEmployeeName(employee)}
@@ -339,7 +340,7 @@ const ViewEmployee = () => {
             </Card>
           </Grid>
 
-          {/* Employment Information - BETTER ALIGNED */}
+          {/* Employment Information */}
           <Grid item xs={12}>
             <Card elevation={2}>
               <CardContent>
@@ -359,7 +360,6 @@ const ViewEmployee = () => {
                   backgroundColor: '#f8f9fa',
                   borderRadius: 1
                 }}>
-                  {/* Row 1 */}
                   <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
                       Employee Code
@@ -402,7 +402,6 @@ const ViewEmployee = () => {
                     </Typography>
                   </Box>
 
-                  {/* Row 2 */}
                   <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
                       Employment Status
@@ -440,6 +439,153 @@ const ViewEmployee = () => {
                     </Box>
                   )}
                 </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Additional Information - NEW */}
+          <Grid item xs={12} md={6}>
+            <Card elevation={2}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <InfoIcon sx={{ color: '#5B8FCC', mr: 1 }} />
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#2c3e50' }}>
+                    Additional Information
+                  </Typography>
+                </Box>
+                <Divider sx={{ mb: 2 }} />
+                
+                <Table size="small">
+                  <TableBody>
+                    {employee.ssnLast4 && (
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 500, color: 'text.secondary', width: '50%', border: 'none' }}>
+                          SSN (Last 4)
+                        </TableCell>
+                        <TableCell sx={{ border: 'none' }}>***-**-{employee.ssnLast4}</TableCell>
+                      </TableRow>
+                    )}
+
+                    {employee.workHoursCategory && (
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 500, color: 'text.secondary', border: 'none' }}>
+                          Work Hours
+                        </TableCell>
+                        <TableCell sx={{ border: 'none' }}>{employee.workHoursCategory}</TableCell>
+                      </TableRow>
+                    )}
+
+                    {employee.driversLicenseExpiration && (
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 500, color: 'text.secondary', border: 'none' }}>
+                          Driver's License Exp.
+                        </TableCell>
+                        <TableCell sx={{ border: 'none' }}>
+                          {formatDate(employee.driversLicenseExpiration)}
+                        </TableCell>
+                      </TableRow>
+                    )}
+
+                    {employee.nursingLicenseExpiration && (
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 500, color: 'text.secondary', border: 'none' }}>
+                          Nursing License Exp.
+                        </TableCell>
+                        <TableCell sx={{ border: 'none' }}>
+                          {formatDate(employee.nursingLicenseExpiration)}
+                        </TableCell>
+                      </TableRow>
+                    )}
+
+                    {!employee.ssnLast4 && !employee.workHoursCategory && 
+                     !employee.driversLicenseExpiration && !employee.nursingLicenseExpiration && (
+                      <TableRow>
+                        <TableCell colSpan={2} sx={{ border: 'none', textAlign: 'center' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            No additional information available
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Benefits Eligibility - NEW */}
+          <Grid item xs={12} md={6}>
+            <Card elevation={2}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <LocalHospitalIcon sx={{ color: '#5B8FCC', mr: 1 }} />
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#2c3e50' }}>
+                    Benefits Eligibility
+                  </Typography>
+                </Box>
+                <Divider sx={{ mb: 2 }} />
+                
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {employee.isEligibleForInsurance && (
+                    <Chip
+                      label="Health Insurance"
+                      color="success"
+                      variant="outlined"
+                      icon={<CheckCircleIcon />}
+                    />
+                  )}
+                  {employee.isEligibleForDental && (
+                    <Chip
+                      label="Dental"
+                      color="success"
+                      variant="outlined"
+                      icon={<CheckCircleIcon />}
+                    />
+                  )}
+                  {employee.isEligibleForVision && (
+                    <Chip
+                      label="Vision"
+                      color="success"
+                      variant="outlined"
+                      icon={<CheckCircleIcon />}
+                    />
+                  )}
+                  {employee.isEligibleForLife && (
+                    <Chip
+                      label="Life Insurance"
+                      color="success"
+                      variant="outlined"
+                      icon={<CheckCircleIcon />}
+                    />
+                  )}
+                  {employee.isEligibleFor403B && (
+                    <Chip
+                      label="403(b) Retirement"
+                      color="success"
+                      variant="outlined"
+                      icon={<CheckCircleIcon />}
+                    />
+                  )}
+                  {employee.isEligibleForPTO && (
+                    <Chip
+                      label={`PTO (${employee.ptoBalance || 0} days)`}
+                      color="success"
+                      variant="outlined"
+                      icon={<CheckCircleIcon />}
+                    />
+                  )}
+                </Box>
+
+                {!employee.isEligibleForInsurance && 
+                 !employee.isEligibleForDental && 
+                 !employee.isEligibleForVision &&
+                 !employee.isEligibleForLife && 
+                 !employee.isEligibleFor403B && 
+                 !employee.isEligibleForPTO && (
+                  <Typography variant="body2" color="text.secondary">
+                    No benefits currently assigned
+                  </Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -565,7 +711,6 @@ const ViewEmployee = () => {
           )}
         </Box>
 
-        {/* Edit Employee Modal */}
         <EditEmployeeModal
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}

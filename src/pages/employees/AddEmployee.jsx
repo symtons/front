@@ -165,35 +165,83 @@ const AddEmployee = () => {
   return (
     <Layout>
       <Box sx={{ p: 3 }}>
-        {/* Page Header with Bulk Import Button */}
-        <PageHeader
-          icon={PersonAddIcon}
-          title="Add New Employee"
-          subtitle="Create a new employee account and profile"
-          chips={headerChips}
-          actionButton={
-            <Button
-              variant="contained"
-              startIcon={<UploadIcon />}
-              onClick={() => {
-  console.log('Button clicked!');
-  alert('Button works!');
-  setBulkImportOpen(true);
-}}
+        {/* Page Header with Bulk Import Button Inside */}
+        <Box 
+          sx={{ 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: 2,
+            p: 3,
+            mb: 3,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box 
               sx={{ 
-                backgroundColor: 'white',
-                color: '#667eea',
-                fontWeight: 600,
-                '&:hover': {
-                  backgroundColor: '#f5f5f5'
-                }
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: 2,
+                p: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              Bulk Import
-            </Button>
-          }
-          backgroundColor="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-        />
+              <PersonAddIcon sx={{ fontSize: 32, color: 'white' }} />
+            </Box>
+            <Box>
+              <Typography variant="h4" sx={{ color: 'white', fontWeight: 600, mb: 0.5 }}>
+                Add New Employee
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+                Create a new employee account and profile
+              </Typography>
+              {headerChips.length > 0 && (
+                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                  {headerChips.map((chip, index) => (
+                    <Box 
+                      key={index}
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 0.5,
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        borderRadius: 1,
+                        px: 1.5,
+                        py: 0.5
+                      }}
+                    >
+                      {chip.icon && <Box sx={{ color: 'white', display: 'flex' }}>{chip.icon}</Box>}
+                      <Typography variant="body2" sx={{ color: 'white' }}>
+                        {chip.label}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          </Box>
+          
+          {/* Bulk Import Button - Inside Header */}
+          <Button
+            variant="contained"
+            startIcon={<UploadIcon />}
+            onClick={() => setBulkImportOpen(true)}
+            sx={{ 
+              backgroundColor: 'white',
+              color: '#667eea',
+              fontWeight: 600,
+              px: 3,
+              py: 1,
+              '&:hover': {
+                backgroundColor: '#f5f5f5'
+              }
+            }}
+          >
+            Bulk Import
+          </Button>
+        </Box>
 
         {/* Form */}
         <Paper elevation={2} sx={{ p: 4, mt: 3 }}>
