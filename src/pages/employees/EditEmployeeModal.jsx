@@ -1,108 +1,102 @@
 // src/pages/employees/EditEmployeeModal.jsx
-// NOTE: This is a MODAL, so it doesn't need PageHeader
-// PageHeader is only for full pages, not modals
 import React, { useState, useEffect } from 'react';
 import {
+  Box,
   Grid,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
   MenuItem,
+  FormControlLabel,
+  Checkbox,
   Alert,
-  CircularProgress,
-  Box,
+  Button,
   Typography,
-  Button
+  Divider
 } from '@mui/material';
-import { Save as SaveIcon, Close as CloseIcon } from '@mui/icons-material';
+import {
+  Save as SaveIcon,
+  Close as CloseIcon
+} from '@mui/icons-material';
 import CustomModal from '../../components/common/feedback/CustomModal';
 import { employeeService } from '../../services/employeeService';
-import api from '../../services/authService';
 
-// Import from models
-import {
-  getInitialEmployeeFormData,
-  mapEmployeeToFormData,
-  GENDER_OPTIONS,
-  EMPLOYEE_TYPE_OPTIONS,
-  EMPLOYMENT_STATUS_OPTIONS
-} from './models';
-
-const EditEmployeeModal = ({ open, onClose, employeeId, onSuccess }) => {
+const EditEmployeeModal = ({ open, onClose, employeeId, employee, onSuccess }) => {
+  const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
-  const [fetchingEmployee, setFetchingEmployee] = useState(false);
   const [error, setError] = useState('');
-  const [departments, setDepartments] = useState([]);
-  const [managers, setManagers] = useState([]);
-  
-  // Initialize form data using model
-  const [formData, setFormData] = useState(getInitialEmployeeFormData());
 
+  // Initialize form data when employee changes
   useEffect(() => {
-    if (open && employeeId) {
-      fetchDepartments();
-      fetchManagers();
-      fetchEmployeeDetails();
-    }
-  }, [open, employeeId]);
-
-  const fetchEmployeeDetails = async () => {
-    try {
-      setFetchingEmployee(true);
-      const employee = await employeeService.getEmployeeById(employeeId);
-      
-      // Use mapping helper - automatic mapping from API to form!
-      const mappedData = mapEmployeeToFormData(employee);
-      setFormData(mappedData);
-      
-    } catch (err) {
-      setError(err.message || 'Failed to load employee details');
-    } finally {
-      setFetchingEmployee(false);
-    }
-  };
-
-  const fetchDepartments = async () => {
-    try {
-      const response = await api.get('/Department/All');
-      setDepartments(response.data);
-    } catch (err) {
-      console.error('Error fetching departments:', err);
-    }
-  };
-
-  const fetchManagers = async () => {
-    try {
-      const response = await api.get('/Employee/Directory', {
-        params: { pageSize: 100 }
+    if (employee) {
+      setFormData({
+        firstName: employee.firstName || '',
+        lastName: employee.lastName || '',
+        middleName: employee.middleName || '',
+        dateOfBirth: employee.dateOfBirth ? employee.dateOfBirth.split('T')[0] : '',
+        gender: employee.gender || '',
+        maritalStatus: employee.maritalStatus || '',
+        
+        phoneNumber: employee.phoneNumber || '',
+        personalEmail: employee.personalEmail || '',
+        address: employee.address || '',
+        city: employee.city || '',
+        state: employee.state || '',
+        zipCode: employee.zipCode || '',
+        country: employee.country || 'USA',
+        
+        emergencyContactName: employee.emergencyContactName || '',
+        emergencyContactPhone: employee.emergencyContactPhone || '',
+        emergencyContactRelationship: employee.emergencyContactRelationship || '',
+        
+        departmentId: employee.department?.departmentId || null,
+        managerId: employee.manager?.employeeId || null,
+        jobTitle: employee.jobTitle || '',
+        employeeType: employee.employeeType || 'AdminStaff',
+        employmentType: employee.employmentType || 'Full-Time',
+        payFrequency: employee.payFrequency || '',
+        salary: employee.salary || '',
+        
+        ssn: employee.ssn || '',
+        driversLicenseNumber: employee.driversLicenseNumber || '',
+        driversLicenseState: employee.driversLicenseState || '',
+        driversLicenseExpiration: employee.driversLicenseExpiration ? employee.driversLicenseExpiration.split('T')[0] : '',
+        nursingLicenseNumber: employee.nursingLicenseNumber || '',
+        nursingLicenseState: employee.nursingLicenseState || '',
+        nursingLicenseExpiration: employee.nursingLicenseExpiration ? employee.nursingLicenseExpiration.split('T')[0] : '',
+        
+        isEligibleForPTO: employee.isEligibleForPTO || false,
+        ptoBalance: employee.ptoBalance || 0,
+        isEligibleForInsurance: employee.isEligibleForInsurance || false,
+        isEligibleForDental: employee.isEligibleForDental || false,
+        isEligibleForVision: employee.isEligibleForVision || false,
+        isEligibleForLife: employee.isEligibleForLife || false,
+        isEligibleFor403B: employee.isEligibleFor403B || false
       });
-      setManagers(response.data.employees || []);
-    } catch (err) {
-      console.error('Error fetching managers:', err);
     }
-  };
+  }, [employee]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
+  const handleSubmit = async () => {
     try {
+      setLoading(true);
+      setError('');
+      
+      // Prepare data for API
       const requestData = {
         ...formData,
-        dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
-        hireDate: formData.hireDate ? new Date(formData.hireDate).toISOString() : null,
+        dateOfBirth: formData.dateOfBirth || null,
+        driversLicenseExpiration: formData.driversLicenseExpiration || null,
+        nursingLicenseExpiration: formData.nursingLicenseExpiration || null,
         departmentId: formData.departmentId ? parseInt(formData.departmentId) : null,
-        managerId: formData.managerId ? parseInt(formData.managerId) : null
+        managerId: formData.managerId ? parseInt(formData.managerId) : null,
+        salary: formData.salary ? parseFloat(formData.salary) : null,
+        ptoBalance: formData.ptoBalance ? parseFloat(formData.ptoBalance) : 0
       };
 
       await employeeService.updateEmployee(employeeId, requestData);
@@ -135,9 +129,9 @@ const EditEmployeeModal = ({ open, onClose, employeeId, onSuccess }) => {
       </Button>
       <Button
         onClick={handleSubmit}
-        disabled={loading || fetchingEmployee}
+        disabled={loading}
         variant="contained"
-        startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
+        startIcon={<SaveIcon />}
         sx={{
           background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
           '&:hover': {
@@ -156,248 +150,351 @@ const EditEmployeeModal = ({ open, onClose, employeeId, onSuccess }) => {
       onClose={handleClose}
       title="Edit Employee"
       subtitle="Update employee information"
-      size="lg"
+      maxWidth="md"
       actions={modalActions}
     >
-      {fetchingEmployee ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <Box component="form" onSubmit={handleSubmit}>
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
-              {error}
-            </Alert>
-          )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-          {/* Personal Information */}
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#2c3e50' }}>
+      <Grid container spacing={3}>
+        {/* Personal Information */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle1" fontWeight={600} color="primary">
             Personal Information
           </Typography>
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="First Name"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Last Name"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Date of Birth"
-                name="dateOfBirth"
-                type="date"
-                value={formData.dateOfBirth}
-                onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={loading}>
-                <InputLabel>Gender</InputLabel>
-                <Select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  label="Gender"
-                >
-                  {GENDER_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Phone Number"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Personal Email"
-                name="personalEmail"
-                type="email"
-                value={formData.personalEmail}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </Grid>
-          </Grid>
+          <Divider sx={{ mt: 1, mb: 2 }} />
+        </Grid>
 
-          {/* Employment Information */}
-          <Typography variant="h6" sx={{ mb: 2, mt: 2, fontWeight: 600, color: '#2c3e50' }}>
-            Employment Information
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            required
+            label="First Name"
+            name="firstName"
+            value={formData.firstName || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            required
+            label="Last Name"
+            name="lastName"
+            value={formData.lastName || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="Middle Name"
+            name="middleName"
+            value={formData.middleName || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="Date of Birth"
+            name="dateOfBirth"
+            type="date"
+            value={formData.dateOfBirth || ''}
+            onChange={handleChange}
+            disabled={loading}
+            InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            select
+            label="Gender"
+            name="gender"
+            value={formData.gender || ''}
+            onChange={handleChange}
+            disabled={loading}
+          >
+            <MenuItem value="">Select Gender</MenuItem>
+            <MenuItem value="Male">Male</MenuItem>
+            <MenuItem value="Female">Female</MenuItem>
+            <MenuItem value="Other">Other</MenuItem>
+          </TextField>
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            select
+            label="Marital Status"
+            name="maritalStatus"
+            value={formData.maritalStatus || ''}
+            onChange={handleChange}
+            disabled={loading}
+          >
+            <MenuItem value="">Select Status</MenuItem>
+            <MenuItem value="Single">Single</MenuItem>
+            <MenuItem value="Married">Married</MenuItem>
+            <MenuItem value="Divorced">Divorced</MenuItem>
+            <MenuItem value="Widowed">Widowed</MenuItem>
+          </TextField>
+        </Grid>
+
+        {/* Contact Information */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle1" fontWeight={600} color="primary" sx={{ mt: 2 }}>
+            Contact Information
           </Typography>
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Employee Code"
-                name="employeeCode"
-                value={formData.employeeCode}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth required disabled={loading}>
-                <InputLabel>Employee Type</InputLabel>
-                <Select
-                  name="employeeType"
-                  value={formData.employeeType}
-                  onChange={handleChange}
-                  label="Employee Type"
-                >
-                  {EMPLOYEE_TYPE_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={loading}>
-                <InputLabel>Department</InputLabel>
-                <Select
-                  name="departmentId"
-                  value={formData.departmentId}
-                  onChange={handleChange}
-                  label="Department"
-                >
-                  <MenuItem value="">Select Department</MenuItem>
-                  {departments.map((dept) => (
-                    <MenuItem key={dept.departmentId} value={dept.departmentId}>
-                      {dept.departmentName}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Job Title"
-                name="jobTitle"
-                value={formData.jobTitle}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Hire Date"
-                name="hireDate"
-                type="date"
-                value={formData.hireDate}
-                onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={loading}>
-                <InputLabel>Manager</InputLabel>
-                <Select
-                  name="managerId"
-                  value={formData.managerId}
-                  onChange={handleChange}
-                  label="Manager"
-                >
-                  <MenuItem value="">Select Manager</MenuItem>
-                  {managers.map((mgr) => (
-                    <MenuItem key={mgr.employeeId} value={mgr.employeeId}>
-                      {mgr.fullName}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={loading}>
-                <InputLabel>Employment Status</InputLabel>
-                <Select
-                  name="employmentStatus"
-                  value={formData.employmentStatus}
-                  onChange={handleChange}
-                  label="Employment Status"
-                >
-                  {EMPLOYMENT_STATUS_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+          <Divider sx={{ mt: 1, mb: 2 }} />
+        </Grid>
 
-          {/* Emergency Contact */}
-          <Typography variant="h6" sx={{ mb: 2, mt: 2, fontWeight: 600, color: '#2c3e50' }}>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Phone Number"
+            name="phoneNumber"
+            value={formData.phoneNumber || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Personal Email"
+            name="personalEmail"
+            type="email"
+            value={formData.personalEmail || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Address"
+            name="address"
+            value={formData.address || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="City"
+            name="city"
+            value={formData.city || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="State"
+            name="state"
+            value={formData.state || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="Zip Code"
+            name="zipCode"
+            value={formData.zipCode || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        {/* Emergency Contact */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle1" fontWeight={600} color="primary" sx={{ mt: 2 }}>
             Emergency Contact
           </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Emergency Contact Name"
-                name="emergencyContactName"
-                value={formData.emergencyContactName}
+          <Divider sx={{ mt: 1, mb: 2 }} />
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="Emergency Contact Name"
+            name="emergencyContactName"
+            value={formData.emergencyContactName || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="Emergency Contact Phone"
+            name="emergencyContactPhone"
+            value={formData.emergencyContactPhone || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="Relationship"
+            name="emergencyContactRelationship"
+            value={formData.emergencyContactRelationship || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        {/* Employment Details */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle1" fontWeight={600} color="primary" sx={{ mt: 2 }}>
+            Employment Details
+          </Typography>
+          <Divider sx={{ mt: 1, mb: 2 }} />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Job Title"
+            name="jobTitle"
+            value={formData.jobTitle || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            select
+            required
+            label="Employee Type"
+            name="employeeType"
+            value={formData.employeeType || ''}
+            onChange={handleChange}
+            disabled={loading}
+          >
+            <MenuItem value="AdminStaff">Admin Staff</MenuItem>
+            <MenuItem value="FieldStaff">Field Staff</MenuItem>
+          </TextField>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            select
+            required
+            label="Employment Type"
+            name="employmentType"
+            value={formData.employmentType || ''}
+            onChange={handleChange}
+            disabled={loading}
+          >
+            <MenuItem value="Full-Time">Full-Time</MenuItem>
+            <MenuItem value="Part-Time">Part-Time</MenuItem>
+            <MenuItem value="Contract">Contract</MenuItem>
+          </TextField>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Salary"
+            name="salary"
+            type="number"
+            value={formData.salary || ''}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </Grid>
+
+        {/* Benefits */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle1" fontWeight={600} color="primary" sx={{ mt: 2 }}>
+            Benefits Eligibility
+          </Typography>
+          <Divider sx={{ mt: 1, mb: 2 }} />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.isEligibleForPTO || false}
                 onChange={handleChange}
+                name="isEligibleForPTO"
                 disabled={loading}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Relationship"
-                name="emergencyContactRelationship"
-                value={formData.emergencyContactRelationship}
+            }
+            label="Eligible for PTO"
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.isEligibleForInsurance || false}
                 onChange={handleChange}
+                name="isEligibleForInsurance"
                 disabled={loading}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Emergency Contact Phone"
-                name="emergencyContactPhone"
-                value={formData.emergencyContactPhone}
+            }
+            label="Eligible for Health Insurance"
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.isEligibleForDental || false}
                 onChange={handleChange}
+                name="isEligibleForDental"
                 disabled={loading}
               />
-            </Grid>
-          </Grid>
-        </Box>
-      )}
+            }
+            label="Eligible for Dental"
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.isEligibleForVision || false}
+                onChange={handleChange}
+                name="isEligibleForVision"
+                disabled={loading}
+              />
+            }
+            label="Eligible for Vision"
+          />
+        </Grid>
+      </Grid>
     </CustomModal>
   );
 };

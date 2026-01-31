@@ -207,17 +207,47 @@ const ViewEmployee = () => {
         )}
 
         <PageHeader
-          icon={PersonIcon}
-          title={formatEmployeeName(employee)}
-          subtitle={employee.jobTitle || 'Employee Profile'}
-          chips={headerChips}
-          actionButton={{
-            label: 'Back to Directory',
-            icon: <ArrowBackIcon />,
-            onClick: () => navigate('/employees/list')
+  icon={PersonIcon}
+  title={formatEmployeeName(employee)}
+  subtitle={employee.jobTitle || 'Employee Profile'}
+  chips={headerChips}
+  actions={
+    <Box sx={{ display: 'flex', gap: 2 }}>
+      {/* Edit Button - only show if user has permission */}
+      {canEdit && (
+        <Button
+          variant="contained"
+          startIcon={<EditIcon />}
+          onClick={() => setEditModalOpen(true)}
+          sx={{
+            background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+            '&:hover': {
+              background: 'linear-gradient(90deg, #5568d3 0%, #6a3f8f 100%)',
+            }
           }}
-          backgroundColor="linear-gradient(135deg, #5B8FCC 0%, #4A73A6 100%)"
-        />
+        >
+          Edit Employee
+        </Button>
+      )}
+      
+      {/* Back Button */}
+      <Button
+        variant="contained"
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate('/employees/list')}
+        sx={{
+          backgroundColor: '#6AB4A8',
+          '&:hover': {
+            backgroundColor: '#559089',
+          }
+        }}
+      >
+        Back to Directory
+      </Button>
+    </Box>
+  }
+  backgroundColor="linear-gradient(135deg, #5B8FCC 0%, #4A73A6 100%)"
+/>
 
         <Grid container spacing={3}>
           {/* Personal Information */}

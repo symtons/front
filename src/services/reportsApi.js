@@ -21,6 +21,12 @@ export const getTurnoverAnalysis = (year = null) => {
   return api.get('/reports/workforce/turnover', { params });
 };
 
+export const getLicenseCompliance = (licenseType = 'all', status = 'all') => {
+  const params = {};
+  if (licenseType !== 'all') params.licenseType = licenseType;
+  if (status !== 'all') params.status = status;
+  return api.get('/reports/workforce/license-compliance', { params });
+};
 // =============================================
 // PAYROLL REPORTS
 // =============================================
