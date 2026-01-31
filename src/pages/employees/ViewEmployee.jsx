@@ -90,41 +90,84 @@ const ViewEmployee = () => {
     }
   };
 
-  const checkPermissions = async () => {
-    try {
-      const response = await api.get('/Menu/MyMenus');
+  // =============================================
+// FIXED checkPermissions function for ViewEmployee.jsx
+// Replace the existing checkPermissions function with this
+// =============================================
+
+const checkPermissions = async () => {
+  try {
+    console.log('🔍 Checking permissions...');
+    const response = await api.get('/Menu/MyMenus');
+    console.log('📋 Menu response:', response.data);
+    
+    // Handle different response structures
+    let menus = response.data;
+    
+    // If response.data is an object with a menus property
+    if (menus && typeof menus === 'object' && !Array.isArray(menus)) {
+      if (menus.menus) {
+        menus = menus.menus;
+      } else if (menus.data) {
+        menus = menus.data;
+      }
+    }
+    
+    // If still not an array, wrap it
+    if (!Array.isArray(menus)) {
+      console.warn('⚠️ Menus is not an array:', menus);
+      setCanEdit(false);
+      return;
+    }
+    
+    console.log('📋 Menus array:', menus);
+    
+    const findMenu = (menuArray) => {
+      if (!Array.isArray(menuArray)) return null;
       
-      const findMenu = (menus) => {
-        for (const menu of menus) {
-          if (menu.menuName === 'employees' && menu.subMenus) {
-            const employeeListMenu = menu.subMenus.find(
-              sub => sub.menuName === 'employees-list' || sub.menuUrl === '/employees/list'
-            );
-            if (employeeListMenu) return employeeListMenu;
-          }
-          
-          if (menu.menuName === 'employees-list' || menu.menuUrl === '/employees/list') {
-            return menu;
-          }
-          
-          if (menu.subMenus && menu.subMenus.length > 0) {
-            const found = findMenu(menu.subMenus);
-            if (found) return found;
+      for (const menu of menuArray) {
+        console.log('🔎 Checking menu:', menu.menuName, menu);
+        
+        // Check if this is the employees parent menu with submenus
+        if (menu.menuName === 'employees' && menu.subMenus && Array.isArray(menu.subMenus)) {
+          const employeeListMenu = menu.subMenus.find(
+            sub => sub.menuName === 'employees-list' || sub.menuUrl === '/employees/list'
+          );
+          if (employeeListMenu) {
+            console.log('✅ Found employees-list menu:', employeeListMenu);
+            return employeeListMenu;
           }
         }
-        return null;
-      };
-      
-      const employeeMenu = findMenu(response.data);
-      if (employeeMenu) {
-        setCanEdit(employeeMenu.canEdit || false);
-        console.log('Edit permission:', employeeMenu.canEdit);
+        
+        // Check if this IS the employees-list menu
+        if (menu.menuName === 'employees-list' || menu.menuUrl === '/employees/list') {
+          console.log('✅ Found employees-list menu directly:', menu);
+          return menu;
+        }
+        
+        // Recursively search submenus
+        if (menu.subMenus && Array.isArray(menu.subMenus) && menu.subMenus.length > 0) {
+          const found = findMenu(menu.subMenus);
+          if (found) return found;
+        }
       }
-    } catch (err) {
-      console.error('Error checking permissions:', err);
+      return null;
+    };
+    
+    const employeeMenu = findMenu(menus);
+    
+    if (employeeMenu) {
+      console.log('✅ Setting canEdit to:', employeeMenu.canEdit);
+      setCanEdit(employeeMenu.canEdit || false);
+    } else {
+      console.warn('⚠️ Employee menu not found in menu structure');
       setCanEdit(false);
     }
-  };
+  } catch (err) {
+    console.error('❌ Error checking permissions:', err);
+    setCanEdit(false);
+  }
+};
 
   const handleEditClick = () => {
     if (canEdit) {
@@ -742,11 +785,16 @@ const ViewEmployee = () => {
         </Box>
 
         <EditEmployeeModal
-          open={editModalOpen}
-          onClose={() => setEditModalOpen(false)}
-          employeeId={id}
-          onSuccess={handleEditSuccess}
-        />
+  open={editModalOpen}
+  onClose={() => setEditModalOpen(false)}
+  employee={employee}          // ✅ Pass the full employee object!
+  onSuccess={(message) => {
+    setSuccessMessage(message);
+    setShowSuccess(true);
+    setEditModalOpen(false);
+    fetchEmployee();
+  }}
+/>
       </Box>
     </Layout>
   );
