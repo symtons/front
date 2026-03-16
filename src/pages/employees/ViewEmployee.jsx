@@ -1,5 +1,5 @@
 // src/pages/employees/ViewEmployee.jsx
-// FIXED VERSION: Better alignment + proper Edit permission check + NEW BULK IMPORT FIELDS
+// FIXED VERSION: SSN visibility with debugging
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -68,12 +68,30 @@ const ViewEmployee = () => {
     checkPermissions();
   }, [id]);
 
+  // =============================================
+  // SSN VISIBILITY CHECK - Admin/Executive can see full SSN
+  // Calculated dynamically when currentUser changes
+  // =============================================
+  const canViewFullSSN = currentUser?.roleId === 1 || currentUser?.roleId === 2;
+
+  // Debug logging
+  useEffect(() => {
+    if (currentUser && employee) {
+      console.log('🔍 SSN Debug Info:');
+      console.log('  Current User RoleId:', currentUser.roleId);
+      console.log('  Can View Full SSN:', canViewFullSSN);
+      console.log('  Employee SSN:', employee.ssn);
+      console.log('  Employee SSN Last 4:', employee.ssnLast4);
+    }
+  }, [currentUser, employee, canViewFullSSN]);
+
   const fetchCurrentUser = async () => {
     try {
       const response = await api.get('/Auth/Me');
+      console.log('✅ Current User:', response.data);
       setCurrentUser(response.data);
     } catch (err) {
-      console.error('Error fetching current user:', err);
+      console.error('❌ Error fetching current user:', err);
     }
   };
 
@@ -81,6 +99,7 @@ const ViewEmployee = () => {
     try {
       setLoading(true);
       const data = await employeeService.getEmployeeById(id);
+      console.log('✅ Employee Data:', data);
       setEmployee(data);
       setError('');
     } catch (err) {
@@ -90,84 +109,79 @@ const ViewEmployee = () => {
     }
   };
 
-  // =============================================
-// FIXED checkPermissions function for ViewEmployee.jsx
-// Replace the existing checkPermissions function with this
-// =============================================
-
-const checkPermissions = async () => {
-  try {
-    console.log('🔍 Checking permissions...');
-    const response = await api.get('/Menu/MyMenus');
-    console.log('📋 Menu response:', response.data);
-    
-    // Handle different response structures
-    let menus = response.data;
-    
-    // If response.data is an object with a menus property
-    if (menus && typeof menus === 'object' && !Array.isArray(menus)) {
-      if (menus.menus) {
-        menus = menus.menus;
-      } else if (menus.data) {
-        menus = menus.data;
-      }
-    }
-    
-    // If still not an array, wrap it
-    if (!Array.isArray(menus)) {
-      console.warn('⚠️ Menus is not an array:', menus);
-      setCanEdit(false);
-      return;
-    }
-    
-    console.log('📋 Menus array:', menus);
-    
-    const findMenu = (menuArray) => {
-      if (!Array.isArray(menuArray)) return null;
+  const checkPermissions = async () => {
+    try {
+      console.log('🔍 Checking permissions...');
+      const response = await api.get('/Menu/MyMenus');
+      console.log('📋 Menu response:', response.data);
       
-      for (const menu of menuArray) {
-        console.log('🔎 Checking menu:', menu.menuName, menu);
+      // Handle different response structures
+      let menus = response.data;
+      
+      // If response.data is an object with a menus property
+      if (menus && typeof menus === 'object' && !Array.isArray(menus)) {
+        if (menus.menus) {
+          menus = menus.menus;
+        } else if (menus.data) {
+          menus = menus.data;
+        }
+      }
+      
+      // If still not an array, wrap it
+      if (!Array.isArray(menus)) {
+        console.warn('⚠️ Menus is not an array:', menus);
+        setCanEdit(false);
+        return;
+      }
+      
+      console.log('📋 Menus array:', menus);
+      
+      const findMenu = (menuArray) => {
+        if (!Array.isArray(menuArray)) return null;
         
-        // Check if this is the employees parent menu with submenus
-        if (menu.menuName === 'employees' && menu.subMenus && Array.isArray(menu.subMenus)) {
-          const employeeListMenu = menu.subMenus.find(
-            sub => sub.menuName === 'employees-list' || sub.menuUrl === '/employees/list'
-          );
-          if (employeeListMenu) {
-            console.log('✅ Found employees-list menu:', employeeListMenu);
-            return employeeListMenu;
+        for (const menu of menuArray) {
+          console.log('🔎 Checking menu:', menu.menuName, menu);
+          
+          // Check if this is the employees parent menu with submenus
+          if (menu.menuName === 'employees' && menu.subMenus && Array.isArray(menu.subMenus)) {
+            const employeeListMenu = menu.subMenus.find(
+              sub => sub.menuName === 'employees-list' || sub.menuUrl === '/employees/list'
+            );
+            if (employeeListMenu) {
+              console.log('✅ Found employees-list menu:', employeeListMenu);
+              return employeeListMenu;
+            }
+          }
+          
+          // Check if this IS the employees-list menu
+          if (menu.menuName === 'employees-list' || menu.menuUrl === '/employees/list') {
+            console.log('✅ Found employees-list menu directly:', menu);
+            return menu;
+          }
+          
+          // Recursively search submenus
+          if (menu.subMenus && Array.isArray(menu.subMenus) && menu.subMenus.length > 0) {
+            const found = findMenu(menu.subMenus);
+            if (found) return found;
           }
         }
-        
-        // Check if this IS the employees-list menu
-        if (menu.menuName === 'employees-list' || menu.menuUrl === '/employees/list') {
-          console.log('✅ Found employees-list menu directly:', menu);
-          return menu;
-        }
-        
-        // Recursively search submenus
-        if (menu.subMenus && Array.isArray(menu.subMenus) && menu.subMenus.length > 0) {
-          const found = findMenu(menu.subMenus);
-          if (found) return found;
-        }
+        return null;
+      };
+      
+      const employeeMenu = findMenu(menus);
+      
+      if (employeeMenu) {
+        console.log('✅ Setting canEdit to:', employeeMenu.canEdit);
+        setCanEdit(employeeMenu.canEdit || false);
+      } else {
+        console.warn('⚠️ Employee menu not found in menu structure');
+        setCanEdit(false);
       }
-      return null;
-    };
-    
-    const employeeMenu = findMenu(menus);
-    
-    if (employeeMenu) {
-      console.log('✅ Setting canEdit to:', employeeMenu.canEdit);
-      setCanEdit(employeeMenu.canEdit || false);
-    } else {
-      console.warn('⚠️ Employee menu not found in menu structure');
+    } catch (err) {
+      console.error('❌ Error checking permissions:', err);
       setCanEdit(false);
     }
-  } catch (err) {
-    console.error('❌ Error checking permissions:', err);
-    setCanEdit(false);
-  }
-};
+  };
 
   const handleEditClick = () => {
     if (canEdit) {
@@ -250,47 +264,47 @@ const checkPermissions = async () => {
         )}
 
         <PageHeader
-  icon={PersonIcon}
-  title={formatEmployeeName(employee)}
-  subtitle={employee.jobTitle || 'Employee Profile'}
-  chips={headerChips}
-  actions={
-    <Box sx={{ display: 'flex', gap: 2 }}>
-      {/* Edit Button - only show if user has permission */}
-      {canEdit && (
-        <Button
-          variant="contained"
-          startIcon={<EditIcon />}
-          onClick={() => setEditModalOpen(true)}
-          sx={{
-            background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-            '&:hover': {
-              background: 'linear-gradient(90deg, #5568d3 0%, #6a3f8f 100%)',
-            }
-          }}
-        >
-          Edit Employee
-        </Button>
-      )}
-      
-      {/* Back Button */}
-      <Button
-        variant="contained"
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/employees/list')}
-        sx={{
-          backgroundColor: '#6AB4A8',
-          '&:hover': {
-            backgroundColor: '#559089',
+          icon={PersonIcon}
+          title={formatEmployeeName(employee)}
+          subtitle={employee.jobTitle || 'Employee Profile'}
+          chips={headerChips}
+          actions={
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              {/* Edit Button - only show if user has permission */}
+              {canEdit && (
+                <Button
+                  variant="contained"
+                  startIcon={<EditIcon />}
+                  onClick={() => setEditModalOpen(true)}
+                  sx={{
+                    background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                    '&:hover': {
+                      background: 'linear-gradient(90deg, #5568d3 0%, #6a3f8f 100%)',
+                    }
+                  }}
+                >
+                  Edit Employee
+                </Button>
+              )}
+              
+              {/* Back Button */}
+              <Button
+                variant="contained"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => navigate('/employees/list')}
+                sx={{
+                  backgroundColor: '#6AB4A8',
+                  '&:hover': {
+                    backgroundColor: '#559089',
+                  }
+                }}
+              >
+                Back to Directory
+              </Button>
+            </Box>
           }
-        }}
-      >
-        Back to Directory
-      </Button>
-    </Box>
-  }
-  backgroundColor="linear-gradient(135deg, #5B8FCC 0%, #4A73A6 100%)"
-/>
+          backgroundColor="linear-gradient(135deg, #5B8FCC 0%, #4A73A6 100%)"
+        />
 
         <Grid container spacing={3}>
           {/* Personal Information */}
@@ -516,7 +530,7 @@ const checkPermissions = async () => {
             </Card>
           </Grid>
 
-          {/* Additional Information - NEW */}
+          {/* Additional Information - WITH SSN VISIBILITY FIX */}
           <Grid item xs={12} md={6}>
             <Card elevation={2}>
               <CardContent>
@@ -530,12 +544,17 @@ const checkPermissions = async () => {
                 
                 <Table size="small">
                   <TableBody>
-                    {employee.ssnLast4 && (
+                    {/* =============================================
+                        SSN DISPLAY - ADMIN/EXECUTIVE SEE FULL SSN
+                        ============================================= */}
+                    {(canViewFullSSN ? employee.ssn : employee.ssnLast4) && (
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 500, color: 'text.secondary', width: '50%', border: 'none' }}>
-                          SSN (Last 4)
+                        <TableCell sx={{ fontWeight: 600, color: 'text.secondary', width: '50%', border: 'none' }}>
+                          {canViewFullSSN ? 'SSN' : 'SSN (Last 4)'}
                         </TableCell>
-                        <TableCell sx={{ border: 'none' }}>***-**-{employee.ssnLast4}</TableCell>
+                        <TableCell sx={{ border: 'none' }}>
+                          {canViewFullSSN ? employee.ssn : `***-**-${employee.ssnLast4}`}
+                        </TableCell>
                       </TableRow>
                     )}
 
@@ -570,7 +589,8 @@ const checkPermissions = async () => {
                       </TableRow>
                     )}
 
-                    {!employee.ssnLast4 && !employee.workHoursCategory && 
+                    {!(canViewFullSSN ? employee.ssn : employee.ssnLast4) && 
+                     !employee.workHoursCategory && 
                      !employee.driversLicenseExpiration && !employee.nursingLicenseExpiration && (
                       <TableRow>
                         <TableCell colSpan={2} sx={{ border: 'none', textAlign: 'center' }}>
@@ -586,7 +606,7 @@ const checkPermissions = async () => {
             </Card>
           </Grid>
 
-          {/* Benefits Eligibility - NEW */}
+          {/* Benefits Eligibility */}
           <Grid item xs={12} md={6}>
             <Card elevation={2}>
               <CardContent>
@@ -785,16 +805,16 @@ const checkPermissions = async () => {
         </Box>
 
         <EditEmployeeModal
-  open={editModalOpen}
-  onClose={() => setEditModalOpen(false)}
-  employee={employee}          // ✅ Pass the full employee object!
-  onSuccess={(message) => {
-    setSuccessMessage(message);
-    setShowSuccess(true);
-    setEditModalOpen(false);
-    fetchEmployee();
-  }}
-/>
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          employee={employee}
+          onSuccess={(message) => {
+            setSuccessMessage(message);
+            setShowSuccess(true);
+            setEditModalOpen(false);
+            fetchEmployee();
+          }}
+        />
       </Box>
     </Layout>
   );
