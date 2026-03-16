@@ -46,7 +46,7 @@ const EmployeeDirectory = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   
-  // Filter states
+  // ✅ FIXED: Initialize as empty string
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [employeeTypeFilter, setEmployeeTypeFilter] = useState('');
@@ -80,8 +80,9 @@ const EmployeeDirectory = () => {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await api.get('/Auth/Me');
-      setCurrentUser(response.data);
+      // Use localStorage instead of /Auth/Me endpoint
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      setCurrentUser(user);
     } catch (err) {
       console.error('Error fetching current user:', err);
     }
@@ -138,7 +139,7 @@ const EmployeeDirectory = () => {
     try {
       setLoading(true);
       const params = {
-        pageNumber: page + 1,  // ✅ Backend expects 1-based (1, 2, 3...)
+        pageNumber: page + 1,
         pageSize: rowsPerPage,
         search: searchTerm || undefined,
         departmentId: departmentFilter || undefined,
@@ -158,8 +159,11 @@ const EmployeeDirectory = () => {
     }
   };
 
+  // ✅ FIXED: Ensure we always get the string value
   const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
+    // Handle both event objects and direct string values
+    const value = typeof e === 'string' ? e : (e?.target?.value || '');
+    setSearchTerm(value);
     setPage(0);
   };
 
@@ -197,19 +201,27 @@ const EmployeeDirectory = () => {
 
   // Build chips for PageHeader
   const headerChips = currentUser ? [
-    { icon: <PersonIcon />, label: currentUser.email },
-    { icon: <BadgeIcon />, label: currentUser.role?.roleName || 'User' }
+    { 
+      label: `${totalCount} Employees`, 
+      icon: <PersonIcon fontSize="small" />,
+      color: '#667eea'
+    },
+    { 
+      label: currentUser.role || 'User', 
+      icon: <BadgeIcon fontSize="small" />,
+      color: '#6AB4A8'
+    }
   ] : [];
 
-  // Define table columns
+  // Table columns
   const columns = [
     {
       id: 'employee',
       label: 'Employee',
       minWidth: 250,
       render: (row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <UserAvatar 
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <UserAvatar
             firstName={row.firstName}
             lastName={row.lastName}
             size={40}
@@ -226,27 +238,35 @@ const EmployeeDirectory = () => {
       )
     },
     {
-      id: 'employeeCode',
-      label: 'Employee Code',
+      id: 'hireDate',
+      label: 'Hire Date',
       minWidth: 130,
-      render: (row) => (
-        <Typography variant="body2">{row.employeeCode}</Typography>
-      )
+      render: (row) => {
+        if (!row.hireDate) return <Typography variant="body2">N/A</Typography>;
+        const date = new Date(row.hireDate);
+        return (
+          <Typography variant="body2">
+            {date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+          </Typography>
+        );
+      }
     },
     {
       id: 'department',
       label: 'Department',
       minWidth: 150,
-      render: (row) => (
-        <Typography variant="body2">
-          {row.department?.departmentName || 'N/A'}
-        </Typography>
-      )
+      render: (row) => {
+        // Handle both string and object formats
+        const deptName = typeof row.department === 'string' 
+          ? row.department 
+          : row.department?.departmentName || 'N/A';
+        return <Typography variant="body2">{deptName}</Typography>;
+      }
     },
     {
       id: 'jobTitle',
       label: 'Job Title',
-      minWidth: 150,
+      minWidth: 180,
       render: (row) => (
         <Typography variant="body2">{row.jobTitle || 'N/A'}</Typography>
       )
@@ -254,7 +274,7 @@ const EmployeeDirectory = () => {
     {
       id: 'employeeType',
       label: 'Type',
-      minWidth: 120,
+      minWidth: 130,
       align: 'center',
       render: (row) => (
         <StatusChip

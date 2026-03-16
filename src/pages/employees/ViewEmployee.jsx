@@ -71,14 +71,17 @@ const ViewEmployee = () => {
   // =============================================
   // SSN VISIBILITY CHECK - Admin/Executive can see full SSN
   // Calculated dynamically when currentUser changes
+  // RoleLevel 1=Admin, 2=Executive can see full SSN
   // =============================================
-  const canViewFullSSN = currentUser?.roleId === 1 || currentUser?.roleId === 2;
+  const canViewFullSSN = currentUser?.roleLevel === 1 || currentUser?.roleLevel === 2;
 
   // Debug logging
   useEffect(() => {
     if (currentUser && employee) {
       console.log('🔍 SSN Debug Info:');
-      console.log('  Current User RoleId:', currentUser.roleId);
+      console.log('  Current User:', currentUser);
+      console.log('  Current User RoleLevel:', currentUser.roleLevel);
+      console.log('  Current User RoleId (mapped):', currentUser.roleId);
       console.log('  Can View Full SSN:', canViewFullSSN);
       console.log('  Employee SSN:', employee.ssn);
       console.log('  Employee SSN Last 4:', employee.ssnLast4);
@@ -87,9 +90,17 @@ const ViewEmployee = () => {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await api.get('/Auth/Me');
-      console.log('✅ Current User:', response.data);
-      setCurrentUser(response.data);
+      // Get user from localStorage (has roleLevel from login)
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      console.log('✅ Current User from localStorage:', user);
+      
+      // Map roleLevel to roleId (RoleLevel 1=Admin, 2=Executive)
+      const roleId = user.roleLevel;
+      
+      setCurrentUser({
+        ...user,
+        roleId: roleId  // Add roleId for SSN check
+      });
     } catch (err) {
       console.error('❌ Error fetching current user:', err);
     }
